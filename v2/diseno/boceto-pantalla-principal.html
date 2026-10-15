@@ -240,6 +240,7 @@ fieldset:disabled{opacity:.45}
   <span><kbd>Espacio</kbd> GO</span>
   <span><kbd>↑</kbd> <kbd>↓</kbd> mover el cue en espera</span>
   <span><kbd>Esc</kbd> Parar todo</span>
+  <span><kbd>Mayús</kbd>+<kbd>F</kbd> fundir solo el último cue</span>
   <span><kbd>H</kbd> Ayuda</span>
 </div>
 
@@ -487,6 +488,10 @@ function go(){
   render();
 }
 function stopAll(){playing.clear();unlocked=null;paused=false;$('#pause').setAttribute('aria-pressed','false');render();toast('Todo parado (rampa de 10 ms, sin chasquido)')}
+function fadeLast(){ // funde solo el último cue que se disparó y sigue sonando
+  const live=[...playing.entries()].filter(([,p])=>p.fade===null);if(!live.length)return;
+  const [id,p]=live[live.length-1];p.fade=3;toast('Fundiendo solo «'+byId(id).name+'» en 3 s');render();
+}
 function fadeAll(){if(!playing.size)return;playing.forEach(p=>{if(p.fade===null)p.fade=3});toast('Fundiendo todo en 3 s');render()}
 function togglePause(){if(!playing.size)return;paused=!paused;$('#pause').setAttribute('aria-pressed',paused);toast(paused?'En pausa':'Reanudado');renderList()}
 function setMode(m){if(m===mode)return;mode=m;unlocked=null;if(m==='show'&&customizing)endCustomize(true);render();toast(m==='show'?'Modo Función':'Modo Edición')}
@@ -607,7 +612,7 @@ addEventListener('pointercancel',()=>{if(drag){drag.el.classList.remove('draggin
 const HELP={
   go:['GO','El botón más importante. Cada vez que lo tocas, empieza lo que sigue en la lista: un sonido, un vídeo o una imagen. Es como pasar la página de un cuento. También lo puedes tocar con la barra espaciadora.'],
   pause:['Pausa','Congela todo, como cuando pausas una película. Lo tocas otra vez y sigue desde donde quedó.'],
-  fade:['Fundir todo','Baja el sonido y apaga la imagen despacito, en 3 segundos, hasta que no queda nada. Sirve para terminar suave, sin cortes bruscos.'],
+  fade:['Fundir todo','Baja el sonido y apaga la imagen despacito, en 3 segundos, hasta que no queda nada. Sirve para terminar suave, sin cortes bruscos. Si mantienes Mayús y tocas F, se va despacito solo lo último que empezó y lo demás sigue sonando.'],
   stop:['Parar todo','El botón de emergencia. Apaga todo al instante. Aunque sea rápido, no hace ruidos feos en los altavoces. También con la tecla Esc.'],
   modes:['Edición y Función','Hay dos maneras de usar el programa. Edición es para preparar el show, como armar los juguetes antes de jugar. Función es para el show de verdad: se esconde todo lo que no hace falta para que no te equivoques. La tecla Tab cambia de una a otra y el sonido no se corta.'],
   list:['La lista de cues','Un cue es cada cosa que pasa en el show: una música, un ruido, un vídeo o una foto. Aquí están todos, en orden, como una receta paso a paso. El que tiene el borde de color es el que sale cuando toques GO. Lo que está en verde está sonando ahora.'],
@@ -649,6 +654,7 @@ document.addEventListener('keydown',e=>{
   if(e.key===' '){e.preventDefault();go()}
   else if(e.key==='Escape'){stopAll()}
   else if(e.key==='p'||e.key==='P'){togglePause()}
+  else if((e.key==='f'||e.key==='F')&&e.shiftKey){fadeLast()}
   else if(e.key==='f'||e.key==='F'){fadeAll()}
   else if(e.key==='ArrowDown'||e.key==='ArrowUp'){
     e.preventDefault();standby=Math.max(0,Math.min(cues.length-1,standby+(e.key==='ArrowDown'?1:-1)));
