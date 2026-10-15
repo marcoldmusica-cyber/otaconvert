@@ -1,0 +1,59 @@
+name: Compilar Otaconvert V2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "v2/**"
+      - ".github/workflows/v2.yml"
+  pull_request:
+    paths:
+      - "v2/**"
+      - ".github/workflows/v2.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: v2
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Versión de Rust
+        run: rustc --version; cargo --version
+
+      - name: Compilar
+        run: cargo build --release
+
+      - name: Pruebas automáticas
+        run: cargo test --release
+
+      - name: Comprobar que no pide el VC++ Redistributable
+        shell: pwsh
+        run: |
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+          $dumpbin = Get-ChildItem "$vs\VC\Tools\MSVC" -Recurse -Filter dumpbin.exe |
+            Where-Object FullName -like '*Hostx64\x64*' | Select-Object -First 1
+          $deps = & $dumpbin.FullName /nologo /dependents target\release\otaconvert-motor.exe
+          $deps
+          if ($deps -match 'VCRUNTIME|MSVCP|api-ms-win-crt') {
+            Write-Error "El motor depende del runtime de C externo"
+            exit 1
+          }
+
+      - name: Probar el ejecutable
+        run: |
+          target\release\otaconvert-motor.exe --version
+          target\release\otaconvert-motor.exe --listar-salidas
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: Otaconvert-V2-motor
+          path: |
+            v2/target/release/otaconvert-motor.exe
+            v2/Cargo.lock

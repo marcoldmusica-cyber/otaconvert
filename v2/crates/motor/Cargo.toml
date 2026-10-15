@@ -1,0 +1,11 @@
+[package]
+name = "otaconvert-motor"
+description = "Motor de audio y vídeo de Otaconvert V2"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+cpal = "0.18.2"

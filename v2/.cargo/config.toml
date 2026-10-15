@@ -1,0 +1,4 @@
+# Runtime de C dentro del ejecutable: el teatro no necesita instalar
+# el "Microsoft Visual C++ Redistributable".
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

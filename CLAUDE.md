@@ -72,7 +72,7 @@ Audio, vídeo e imágenes, al estilo de QLab o MultiPlay, para técnicos que dis
 - Los visuales están en la mayoría de los shows: el vídeo es núcleo.
 - **Mapeo de proyección** sobre figuras del escenario.
 
-**Estado (15/10/2026):** solo planificación y boceto. No hay código de la V2. Boceto interactivo (Edición/Función/Ayuda): `v2/diseno/boceto-pantalla-principal.html`, publicado en https://claude.ai/artifact/REKcem8j1vWFoAJPcNqAA1. Doc de mapeo: https://claude.ai/code/artifact/b6be72d1-fcde-48b6-b0c2-4d14c79abc8c (su contenido está replicado aquí).
+**Estado (15/10/2026):** Fase 0 empezada; hay esqueleto del motor en `v2/` (ver sección 10). Boceto interactivo (Edición/Función/Ayuda): `v2/diseno/boceto-pantalla-principal.html`, publicado en https://claude.ai/artifact/REKcem8j1vWFoAJPcNqAA1. Doc de mapeo: https://claude.ai/code/artifact/b6be72d1-fcde-48b6-b0c2-4d14c79abc8c (su contenido está replicado aquí).
 
 **Organización:** la V2 vive en `v2/` para que la V1 siga compilando igual.
 
@@ -200,6 +200,26 @@ Instalador + portable con todo dentro (motor, vídeo, decodificadores, **runtime
 - **Solo Windows, versiones 10 y 11 en adelante, 64 bits.** No macOS. **Windows 7 descartado** por el usuario tras ver el impacto: Rust ≥ 1.78 solo admite Windows 7 con un target de nivel 3, WebView2 se congeló en la 109 y mpv dejó de funcionar en Windows 7 desde la 0.37 (issue #16607). No volver a proponerlo.
 - El usuario delega en Claude el reparto de funciones entre fases, siempre que sea lo mejor para el proyecto. Las 9 funciones esenciales pasaron a la Fase 1; la hoja de cues a la Fase 2.
 
-## 10. Siguiente paso
+## 10. Fase 0 en curso
 
-Boceto aprobado. Siguiente: **Fase 0** (prototipo del motor en Rust + Prueba de hardware), en `v2/`, sin tocar la V1.
+### Plan aprobado por el usuario (15/10/2026)
+1. Esqueleto en `v2/` (hecho: ver abajo).
+2. Prototipo de audio: tono, rampas, prueba automática de cientos de disparos/paradas buscando chasquidos, discontinuidades y picos.
+3. Prototipo de vídeo: precarga y capas; prueba automática que cuenta cuadros negros o perdidos en cientos de cambios. **Es el mayor riesgo y no está probado.**
+4. Vigilante: reinicio del motor, medir < 1 s.
+5. Prueba de hardware descargable con informe; el usuario la ejecuta en su PC y en 2–3 equipos más.
+Regla: si una prueba automática falla, no se avanza.
+
+### Esqueleto (`v2/`)
+- `Cargo.toml` (workspace, versión 0.0.1, edición 2021, MSRV 1.85, GPL-3.0-or-later), `LICENSE` (GPLv3), `README.md`, `.gitignore` (`/target/`).
+- `.cargo/config.toml`: `+crt-static` para `x86_64-pc-windows-msvc` (runtime de C dentro del exe).
+- `crates/motor` → `otaconvert-motor.exe` con `--version` y `--listar-salidas` (cpal 0.18.2, WASAPI). Prueba `runtime_de_c_estatico`.
+- Workflow `.github/workflows/v2.yml` (separado de `main.yml`): se dispara con cambios en `v2/**`; compila, prueba, comprueba con `dumpbin /dependents` que no hay VCRUNTIME/MSVCP/api-ms-win-crt, ejecuta el motor y sube el artifact `Otaconvert-V2-motor` (exe + `Cargo.lock`). Pendiente: subir `Cargo.lock` al repo y volver a usar `--locked`.
+
+### Verificado en documentación (15/10/2026)
+- **cpal 0.18.2** (16/08/2026, MSRV 1.85): WASAPI por defecto. Nombres de dispositivo con `Display` (`{d}`); ya no hay `name()`, sí `description()` e `id()`. ASIO: feature `asio`; compilar exige SDK de Steinberg (`CPAL_ASIO_DIR` o lo descarga solo), LLVM/clang (`LIBCLANG_PATH`) y Visual Studio. En ejecución usa los drivers de la tarjeta, sin DLL.
+- **libmpv2 6.0.0** (crate Rust, requiere mpv ≥ 0.35; en Windows enlaza con archivos en `MPV_SOURCE/64`; su render API solo trae OpenGL). DLL: compilaciones diarias de shinchiro/mpv-winbuild-cmake (`mpv-dev-x86_64-…7z`, ~30 MB); fijar una versión con SHA-256 y guardar copia propia (las diarias rotan). Contenido del .7z sin verificar.
+- **mpv**: `hwdec=d3d11va` requiere `vo=gpu`/`gpu-next` con `gpu-context=d3d11`; si los decodificadores de la lista fallan, pasa a software. `--wid=<HWND>` dibuja dentro de una ventana nuestra (crea ventana hija). `--keep-open` mantiene el último cuadro. Idea a probar para capas: dos instancias en ventanas hijas, cambiar orden Z cuando la nueva ya pinta.
+- **GitHub Actions windows-latest** (Server 2025): Rust 1.99, LLVM 20.1.8, VS 2022 17.14 con clang, 7zip.
+
+Siguiente: paso 2 (prototipo de audio).
