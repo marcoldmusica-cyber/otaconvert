@@ -123,6 +123,8 @@ La V1 como pestaña aparte, en proceso aparte con prioridad baja. Bloqueada en F
 - Estética protegida: paletas diseñadas + acento libre con contraste automático; cuadrícula imantada; **Restaurar vista** siempre a mano.
 - En Función el diseño queda bloqueado (solo brillo y Modo noche).
 - GO y Parar todo se pueden mover, agrandar y recolorear, **nunca ocultar**.
+- **Desde la Fase 1** la interfaz se construye con la distribución guardada como datos (qué bloque va dónde y con qué tamaño), aunque el editor de arrastrar y soltar llegue en la Fase 2. Así personalizar no obliga a rehacer la interfaz.
+- El boceto actual (`v2/diseno/`) todavía no muestra Vista → Personalizar.
 
 ## 7. Arquitectura técnica decidida
 
