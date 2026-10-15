@@ -222,6 +222,8 @@ El show guarda nombres lógicos (*Principal*, *Auriculares*; luego *Sala*, *Efec
 
 ### Instalación y distribución
 Instalador + portable con todo dentro (motor, vídeo, decodificadores, **runtime de C incluido** para no pedir el VC++ Redistributable: verificar en Fase 0). Requisitos: Windows 10 64 bits y drivers normales. Compilación por GitHub Actions.
+- **Versión portable obligatoria** (confirmado por el usuario el 15/10/2026): un `.zip` que se descomprime y se ejecuta, también desde un pendrive. Igual que la V1: un archivo `portable.txt` junto al exe hace que toda la configuración (preferencias, perfiles de teatro, vistas) se guarde en esa carpeta y no en el usuario de Windows; no escribe en el registro ni pide administrador. Mismo contenido y mismas funciones que el instalador. Se publica en cada Release junto al instalador, con su huella SHA-256.
+- **Funciona 100 % sin internet** (confirmado el 15/10/2026): internet solo para descargarlo. Audio, vídeo, Ayuda, consejos y Convertir funcionan sin conexión; la búsqueda de actualizaciones viene apagada por defecto.
 
 ### Licencia (decidida el 15/10/2026)
 **V2 gratuita y de código abierto, GPLv3.** Compatible con mpv (GPLv2+) y con ASIO (doble licencia, GPLv3 desde octubre de 2025). Añadir el archivo de licencia GPLv3 en `v2/` al empezar el código.
