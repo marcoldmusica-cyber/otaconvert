@@ -1,0 +1,496 @@
+<title>Otaconvert V2 · Boceto</title>
+<style>
+/* Layout: ventana de app de escritorio. Cabecera / (lista de cues | panel lateral) / barra de transporte.
+   La lista y el GO no se mueven entre modos; solo cambia el panel lateral. Estética fija de la V1 (oscura). */
+:root{
+  color-scheme:dark;
+  --bg:#0E1117; --card:#151921; --card2:#1B2029; --hover:#252B37; --border:#262C38;
+  --text:#E9ECF2; --muted:#9098A8; --dim:#5D6677;
+  --accent:#6F80FF; --accent-h:#5C6DEE; --ok:#58D69A; --err:#F27A74; --warn:#F2C46B;
+  --on-accent:#0E1117;
+  --font:"Segoe UI","SF Pro Display",system-ui,Helvetica,Arial,sans-serif;
+  --mono:"Cascadia Mono",Consolas,ui-monospace,monospace;
+}
+:root[data-night]{
+  --bg:#080404; --card:#100909; --card2:#160C0C; --hover:#211212; --border:#2A1515;
+  --text:#D08A80; --muted:#8E5850; --dim:#5E3833;
+  --accent:#B9463B; --accent-h:#A13C33; --ok:#B9463B; --err:#E0584C; --warn:#C0674E;
+  --on-accent:#080404;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 var(--font);padding-inline:16px;padding-block:16px;transition:background .3s,color .3s}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,.row:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+.intro{max-width:1280px;margin:0 auto 12px;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:baseline;color:var(--muted);font-size:13px}
+.intro b{color:var(--text);font-weight:600}
+kbd{font:12px var(--mono);background:var(--card2);border:1px solid var(--border);border-bottom-width:2px;border-radius:6px;padding:1px 6px;color:var(--text)}
+
+.app{max-width:1280px;margin:0 auto;height:calc(100% - 40px);min-height:620px;display:grid;grid-template-rows:auto 1fr auto;gap:12px}
+
+/* Cabecera */
+.top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:10px 14px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.bars{display:flex;align-items:center;gap:3px;height:22px}
+.bars i{display:block;width:4px;border-radius:2px;background:var(--accent);height:calc(var(--h)*100%);transform-origin:center}
+.busy .bars i{animation:bounce 1s ease-in-out infinite;animation-delay:calc(var(--d)*-0.17s)}
+@keyframes bounce{50%{transform:scaleY(.45)}}
+@media (prefers-reduced-motion:reduce){.busy .bars i{animation:none}}
+.show-name{display:flex;flex-direction:column;min-width:0}
+.show-name strong{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.show-name span{font-size:12px;color:var(--muted)}
+.tabs{display:flex;gap:4px;background:var(--bg);border-radius:12px;padding:3px}
+.tabs button{background:none;border:0;border-radius:9px;padding:6px 14px;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--card2);color:var(--text)}
+.tabs button:disabled{opacity:.4;cursor:not-allowed}
+.spacer{flex:1}
+.modes{display:flex;align-items:center;gap:8px}
+.seg{display:flex;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:3px}
+.seg button{border:0;background:none;padding:7px 16px;border-radius:9px;color:var(--muted);font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
+.chip{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:99px;padding:5px 10px;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
+.clock{font:600 15px var(--mono);color:var(--text)}
+.btn{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:7px 12px}
+.btn:hover{background:var(--hover)}
+
+/* Cuerpo */
+.body{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:12px;min-height:0}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:18px;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.panel-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);color:var(--muted);font-size:13px}
+.panel-h strong{color:var(--text);font-weight:600;font-size:14px}
+
+/* Lista de cues */
+.list{overflow:auto;flex:1;padding:6px}
+.row{display:grid;grid-template-columns:30px 22px minmax(0,1fr) 92px 64px;align-items:center;gap:10px;padding:9px 10px;border-radius:12px;position:relative;cursor:default;border:1px solid transparent}
+.edit .row{cursor:pointer}
+.edit .row:hover{background:var(--hover)}
+.row .n{color:var(--dim);font:13px var(--mono);text-align:right}
+.row .ico{width:20px;height:20px;color:var(--muted)}
+.row .nm{min-width:0}
+.row .nm div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .nm small{display:block;color:var(--dim);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .out{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .du{font:13px var(--mono);color:var(--muted);text-align:right}
+.row.sel{background:var(--card2)}
+.row.standby{border-color:var(--accent)}
+.row.standby .n{color:var(--accent);font-weight:700}
+.row.standby::before{content:"";position:absolute;left:-1px;top:50%;width:6px;height:6px;margin-top:-3px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent)}
+.row.playing .ico,.row.playing .nm div{color:var(--ok)}
+.row .prog{position:absolute;left:10px;right:10px;bottom:3px;height:2px;border-radius:2px;background:var(--border);overflow:hidden}
+.row .prog i{display:block;height:100%;background:var(--ok);width:0}
+.row .tag{font-size:11px;color:var(--dim);margin-left:6px}
+.lock{font-size:11px;color:var(--warn);margin-left:6px}
+
+/* Panel lateral: Edición */
+.props{overflow:auto;flex:1;padding:16px;display:flex;flex-direction:column;gap:16px}
+.field{display:grid;grid-template-columns:110px minmax(0,1fr);align-items:center;gap:10px}
+.field label{color:var(--muted);font-size:13px}
+.field input[type=text],.field select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:7px 10px;color:var(--text);font:inherit}
+.field input[type=range]{width:100%;accent-color:var(--accent)}
+.field .val{font:12px var(--mono);color:var(--muted)}
+.inline{display:flex;align-items:center;gap:10px;min-width:0}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.toggle{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
+.toggle input{accent-color:var(--accent);width:16px;height:16px}
+.wave{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.wave canvas{width:100%;height:84px;display:block}
+.wave .legend{display:flex;justify-content:space-between;font:12px var(--mono);color:var(--muted)}
+.locked{background:color-mix(in srgb,var(--warn) 10%,var(--card));border:1px solid color-mix(in srgb,var(--warn) 40%,var(--border));border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap}
+.locked p{margin:0;color:var(--text)}
+.locked small{color:var(--muted)}
+fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;min-width:0}
+fieldset:disabled{opacity:.45}
+.thumb{aspect-ratio:16/9;max-width:100%;border-radius:10px;background:#000;border:1px solid var(--border);position:relative;overflow:hidden}
+.thumb .surf{position:absolute;inset:14% 18% 18% 14%;clip-path:polygon(4% 0,100% 6%,96% 100%,0 94%);transition:opacity .5s}
+.thumb .lbl{position:absolute;left:8px;bottom:6px;font-size:11px;color:#9098A8}
+.section-t{font-size:12px;color:var(--dim)}
+
+/* Panel lateral: Función */
+.live{flex:1;padding:16px;display:flex;flex-direction:column;gap:12px;overflow:auto}
+.big{background:var(--card2);border:1px solid var(--border);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.big .k{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.big .t{font-size:26px;font-weight:600;line-height:1.15;text-wrap:balance}
+.big .meta{color:var(--muted);font-size:13px}
+.big.now .t{color:var(--ok)}
+.big.next{border-color:var(--accent)}
+.big.next .t{color:var(--text)}
+.remain{font:600 34px var(--mono);color:var(--text)}
+.bigbar{height:6px;border-radius:3px;background:var(--border);overflow:hidden}
+.bigbar i{display:block;height:100%;background:var(--ok);width:0}
+.nowlist{display:flex;flex-direction:column;gap:10px}
+.empty{color:var(--dim);font-size:14px}
+
+/* Transporte */
+.transport{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:12px}
+.go-wrap{display:flex;gap:12px;align-items:stretch}
+.go{flex:1;min-height:76px;border:0;border-radius:16px;background:var(--accent);color:var(--on-accent);font-size:30px;font-weight:700;letter-spacing:.06em;display:flex;align-items:center;justify-content:center;gap:16px;transition:background .15s,transform .05s}
+.go:hover{background:var(--accent-h)}
+.go:active{transform:scale(.99)}
+.go small{font-size:13px;font-weight:500;letter-spacing:0;opacity:.75;max-width:45%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.tb{border-radius:16px;border:1px solid var(--border);background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px;min-height:76px}
+.tb:hover{background:var(--hover)}
+.tb span{font-weight:600}
+.tb kbd{font-size:11px}
+.tb[aria-pressed="true"]{border-color:var(--warn);color:var(--warn)}
+.panic{background:color-mix(in srgb,var(--err) 16%,var(--card));border-color:color-mix(in srgb,var(--err) 55%,var(--border));color:var(--err)}
+.panic:hover{background:color-mix(in srgb,var(--err) 26%,var(--card))}
+
+.convert{display:none;place-items:center;text-align:center;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:40px 16px}
+.convert .bars{height:56px;gap:7px;justify-content:center}
+.convert .bars i{width:9px;border-radius:5px}
+.convert h2{margin:16px 0 4px;font-size:20px;font-weight:600}
+.convert p{margin:0 0 18px;color:var(--muted)}
+.convert .primary{background:var(--accent);color:var(--on-accent);border:0;border-radius:12px;padding:10px 18px;font-weight:600}
+.app.conv .body{display:none}
+.app.conv .convert{display:grid}
+
+.help-btn[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.helping [data-help]{outline:2px dashed color-mix(in srgb,var(--accent) 70%,transparent);outline-offset:3px;cursor:help}
+.helping [data-help]:hover{outline-style:solid}
+.helping [data-help] *{cursor:help}
+.bubble{position:fixed;z-index:20;width:min(340px,calc(100% - 32px));background:var(--card2);border:1px solid var(--accent);border-radius:16px;padding:14px 16px;box-shadow:0 12px 40px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:8px}
+.bubble h3{margin:0;font-size:16px;font-weight:600;color:var(--text)}
+.bubble p{margin:0;font-size:15px;line-height:1.5;color:var(--text)}
+.bubble .close{align-self:flex-end;background:var(--accent);color:var(--on-accent);border:0;border-radius:10px;padding:6px 14px;font-weight:600}
+.helpbar{display:none;max-width:1280px;margin:0 auto 12px;background:color-mix(in srgb,var(--accent) 14%,var(--card));border:1px solid var(--accent);border-radius:14px;padding:12px 16px;color:var(--text);gap:8px 16px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.helping .helpbar{display:flex}
+.helpbar p{margin:0;font-size:15px}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:10px 16px;opacity:0;transition:.25s;pointer-events:none;color:var(--text);max-width:calc(100% - 32px)}
+.toast.on{opacity:1;transform:translateX(-50%)}
+
+.notes{max-width:1280px;margin:16px auto 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;color:var(--muted);font-size:13px}
+.notes div{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px}
+.notes b{color:var(--text);font-weight:600;display:block;margin-bottom:4px}
+
+@media (max-width:860px){
+  .app{height:auto}
+  .body,.transport{grid-template-columns:1fr}
+  .list{max-height:420px}
+  .row{grid-template-columns:24px 20px minmax(0,1fr) 54px}
+  .row .out{display:none}
+  .spacer{display:none}
+}
+</style>
+
+<div class="intro">
+  <span><b>Boceto, no es la app.</b> Los datos son de ejemplo.</span>
+  <span><kbd>Tab</kbd> cambia de modo</span>
+  <span><kbd>Espacio</kbd> GO</span>
+  <span><kbd>↑</kbd> <kbd>↓</kbd> mover el cue en espera</span>
+  <span><kbd>Esc</kbd> Parar todo</span>
+  <span><kbd>H</kbd> Ayuda</span>
+</div>
+
+<div class="helpbar" role="status">
+  <p><b>Modo Ayuda.</b> Toca cualquier parte con borde punteado y te cuento para qué sirve.</p>
+  <button class="btn" id="helpOff">Salir de la ayuda</button>
+</div>
+
+<div class="app edit" id="app">
+  <header class="top">
+    <div class="brand">
+      <div class="bars" aria-hidden="true">
+        <i style="--h:.38;--d:0"></i><i style="--h:.72;--d:1"></i><i style="--h:1;--d:2"></i><i style="--h:.58;--d:3"></i><i style="--h:.84;--d:4"></i><i style="--h:.46;--d:5"></i>
+      </div>
+      <div class="show-name"><strong>Bodas de sangre</strong><span>Teatro Municipal · perfil guardado</span></div>
+    </div>
+    <div class="tabs" role="tablist" data-help="tabs">
+      <button role="tab" id="tabShow" aria-selected="true">Show</button>
+      <button role="tab" id="tabConv" aria-selected="false">Convertir</button>
+    </div>
+    <div class="spacer"></div>
+    <div class="modes" data-help="modes">
+      <div class="seg" role="group" aria-label="Modo">
+        <button id="mEdit" aria-pressed="true">Edición</button>
+        <button id="mShow" aria-pressed="false">Función</button>
+      </div>
+      <kbd>Tab</kbd>
+    </div>
+    <div class="chip" title="Comprobación previa" data-help="check"><span class="dot"></span>Todo listo</div>
+    <div class="clock num" id="clock" data-help="clock">00:00:00</div>
+    <button class="btn" id="night" data-help="night">Modo noche</button>
+    <button class="btn help-btn" id="help" aria-pressed="false">Ayuda</button>
+  </header>
+
+  <main class="body">
+    <section class="panel" data-help="list">
+      <div class="panel-h"><strong>Cues</strong><span id="listInfo" class="num"></span></div>
+      <div class="list" id="list"></div>
+    </section>
+    <section class="panel" id="side" data-help="side"></section>
+  </main>
+
+  <section class="convert">
+    <div>
+      <div class="bars" aria-hidden="true">
+        <i style="--h:.38"></i><i style="--h:.72"></i><i style="--h:1"></i><i style="--h:.58"></i><i style="--h:.84"></i><i style="--h:.46"></i>
+      </div>
+      <h2>Convertir audio</h2>
+      <p>La herramienta de la V1, aquí dentro. Arrastra archivos o carpetas.</p>
+      <button class="primary">Elegir archivos</button>
+    </div>
+  </section>
+
+  <footer class="transport">
+    <div class="go-wrap">
+      <button class="go" id="go" data-help="go">GO <small id="goNext"></small></button>
+    </div>
+    <div class="side-btns">
+      <button class="tb" id="pause" aria-pressed="false" data-help="pause"><span>Pausa</span><kbd>P</kbd></button>
+      <button class="tb" id="fade" data-help="fade"><span>Fundir todo</span><kbd>F</kbd></button>
+      <button class="tb panic" id="stop" data-help="stop"><span>Parar todo</span><kbd>Esc</kbd></button>
+    </div>
+  </footer>
+</div>
+
+<div class="notes">
+  <div><b>Lo que no se mueve</b>La lista de cues, el GO y los cuatro botones de función quedan en el mismo sitio en los dos modos. Solo cambia el panel de la derecha.</div>
+  <div><b>Edición</b>Clic en un cue para verlo y dejarlo en espera. Si está sonando, aparece bloqueado hasta pararlo o confirmar.</div>
+  <div><b>Función</b>El panel muestra lo que suena, el tiempo restante, lo que viene y la miniatura del proyector. Pestaña Convertir bloqueada.</div>
+  <div><b>Ayuda</b>Pulsa Ayuda (o la tecla H) y toca cualquier parte: te explica para qué sirve con palabras muy simples. En la app real cada pantalla tendrá además una guía de primeros pasos.</div>
+  <div><b>Vídeo por capas</b>Prueba GO sobre los cues 2, 5 y 6: la miniatura funde el nuevo encima del anterior, nunca pasa por negro.</div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+const ICON={
+  audio:'<svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 9v2M6.5 6v8M10 3v14M13.5 7v6M17 9v2"/></svg>',
+  video:'<svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="4.5" width="15" height="11" rx="2.5"/><path d="M8.5 7.8v4.4l3.8-2.2z" fill="currentColor" stroke="none"/></svg>',
+  image:'<svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="2.5" y="4.5" width="15" height="11" rx="2.5"/><path d="M4.5 13.5l4-4 3 3 2-2 2 2"/><circle cx="13.3" cy="7.8" r="1.1" fill="currentColor" stroke="none"/></svg>'
+};
+const TYPE={audio:'Audio',video:'Vídeo',image:'Imagen'};
+const cues=[
+  {id:1,type:'audio',name:'Música de sala',file:'sala_guitarras.mp3',out:'Principal',dur:760,loop:true,vol:-6,fin:2,fout:4},
+  {id:2,type:'video',name:'Luna sobre el telón',file:'luna_lenta.mp4',out:'Telón',dur:95,loop:false,vol:-12,fin:1.5,fout:2,color:'radial-gradient(circle at 62% 38%,#E9ECF2 0 9%,#3a4a8f 10%,#0E1117 70%)'},
+  {id:3,type:'audio',name:'Viento nocturno',file:'viento_campo.wav',out:'Principal',dur:180,loop:true,vol:-10,fin:3,fout:5},
+  {id:4,type:'audio',name:'Campanas de boda',file:'campanas.flac',out:'Principal',dur:42,loop:false,vol:-4,fin:0,fout:2},
+  {id:5,type:'image',name:'Mapa del pueblo',file:'mapa_pueblo.png',out:'Telón',dur:0,loop:false,vol:0,fin:2,fout:2,color:'linear-gradient(135deg,#8a6a3e,#3b2c18)'},
+  {id:6,type:'video',name:'El bosque',file:'bosque_noche.mov',out:'Telón',dur:210,loop:true,vol:-14,fin:3,fout:3,color:'linear-gradient(180deg,#0b2a1e,#174d36 55%,#06140e)'},
+  {id:7,type:'audio',name:'Nana del caballo',file:'nana.m4a',out:'Principal',dur:128,loop:false,vol:-3,fin:1,fout:3},
+  {id:8,type:'audio',name:'Final y aplausos',file:'final.wav',out:'Principal',dur:96,loop:false,vol:0,fin:0,fout:6}
+];
+const byId=id=>cues.find(c=>c.id===id);
+let mode='edit', standby=1, selected=2, paused=false, unlocked=null;
+const playing=new Map(); // id -> {t, fade:null|secs}
+playing.set(1,{t:213,fade:null});
+
+const $=s=>document.querySelector(s);
+const app=$('#app'), list=$('#list'), side=$('#side');
+const fmt=s=>{s=Math.max(0,s);const m=Math.floor(s/60),x=Math.floor(s%60);return m+':'+String(x).padStart(2,'0')};
+const fmtD=c=>c.type==='image'?'—':fmt(c.dur);
+
+function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>el.classList.remove('on'),1800)}
+
+function renderList(){
+  list.innerHTML=cues.map((c,i)=>{
+    const p=playing.get(c.id);
+    const cls=['row',i===standby?'standby':'',p?'playing':'',mode==='edit'&&c.id===selected?'sel':''].join(' ');
+    const lock=p&&mode==='edit'&&unlocked!==c.id?'<span class="lock">bloqueado</span>':'';
+    return `<div class="${cls}" data-id="${c.id}" data-i="${i}" ${mode==='edit'?'tabindex="0"':''}>
+      <span class="n">${c.id}</span>${ICON[c.type]}
+      <span class="nm"><div>${c.name}${c.loop?'<span class="tag">loop</span>':''}${lock}</div><small>${c.file}</small></span>
+      <span class="out">${c.out}</span>
+      <span class="du num">${fmtD(c)}</span>
+      ${p&&c.type!=='image'?'<span class="prog"><i></i></span>':''}
+    </div>`}).join('');
+  $('#listInfo').textContent=`${cues.length} cues · ${playing.size} sonando`;
+  const nx=cues[standby];
+  $('#goNext').textContent=nx?nx.id+' · '+nx.name:'Fin de la lista';
+  app.querySelector('.top').classList.toggle('busy',playing.size>0&&!paused);
+}
+
+function visualOn(){ // capas activas en el Telón, la última encima
+  return [...playing.keys()].map(byId).filter(c=>c.type!=='audio');
+}
+function thumbHTML(){
+  const v=visualOn();
+  const layers=v.map((c,i)=>`<div class="surf" style="background:${c.color};opacity:${playing.get(c.id).fade!==null?0.3:1};z-index:${i+1}"></div>`).join('');
+  return `<div class="thumb" id="thumb" data-help="thumb">${layers}<span class="lbl">Proyector · ${v.length?v[v.length-1].name:'Negro'}</span></div>`;
+}
+
+function waveDraw(c){
+  const cv=$('#wave');if(!cv)return;
+  const r=cv.getBoundingClientRect(),dpr=devicePixelRatio||1;
+  cv.width=r.width*dpr;cv.height=r.height*dpr;const g=cv.getContext('2d');g.scale(dpr,dpr);
+  const css=getComputedStyle(document.documentElement);
+  const col=css.getPropertyValue('--accent').trim(),dim=css.getPropertyValue('--dim').trim(),txt=css.getPropertyValue('--text').trim();
+  let seed=c.id*9301;const rnd=()=>(seed=(seed*9301+49297)%233280)/233280;
+  const n=Math.floor(r.width/3),mid=r.height/2,start=0.04,end=c.loop?1:0.93;
+  for(let i=0;i<n;i++){
+    const x=i*3,f=i/n,env=Math.min(1,f*14,(1-f)*10)*(0.5+0.5*Math.sin(f*9+c.id));
+    const h=Math.max(1,(0.25+0.75*rnd())*env*mid*0.95);
+    g.fillStyle=(f<start||f>end)?dim:col;g.fillRect(x,mid-h,2,h*2);
+  }
+  g.fillStyle=txt;
+  [start,end].forEach(f=>{const x=Math.min(r.width-2,f*r.width);g.fillRect(x,0,2,r.height)});
+  const p=playing.get(c.id);
+  if(p&&c.dur){g.fillStyle=css.getPropertyValue('--ok').trim();g.fillRect((p.t%c.dur)/c.dur*r.width,0,2,r.height)}
+}
+
+function renderSide(){
+  if(mode==='edit'){
+    const c=byId(selected);const p=playing.get(c.id);const isLocked=p&&unlocked!==c.id;
+    side.innerHTML=`<div class="panel-h"><strong>Cue ${c.id} · ${TYPE[c.type]}</strong><span>${p?'Sonando':'Preparado en memoria'}</span></div>
+    <div class="props">
+      ${isLocked?`<div class="locked"><div><p>Este cue está sonando.</p><small>Páralo o confirma para editarlo en vivo.</small></div><button class="btn" id="unlock">Editar igualmente</button></div>`:''}
+      <fieldset ${isLocked?'disabled':''}>
+        <div class="field"><label for="fName">Nombre</label><input type="text" id="fName" value="${c.name}"></div>
+        <div class="field"><label>Archivo</label><span class="val">${c.file}</span></div>
+        <div class="field"><label for="fOut">${c.type==='audio'?'Salida':'Superficie'}</label>
+          <select id="fOut">${(c.type==='audio'?['Principal','Auriculares']:['Telón','Pantalla completa']).map(o=>`<option ${o===c.out?'selected':''}>${o}</option>`).join('')}</select></div>
+        ${c.type!=='image'?`<div class="field"><label for="fVol">Volumen</label><div class="inline"><input type="range" id="fVol" min="-40" max="6" step="0.5" value="${c.vol}"><span class="val num" id="vVol">${c.vol} dB</span></div></div>`:''}
+        <div class="field"><label for="fIn">Fundido inicial</label><select id="fIn">${[0,0.5,1,1.5,2,3,5].map(v=>`<option ${v===c.fin?'selected':''}>${v} s</option>`).join('')}</select></div>
+        <div class="field"><label for="fOutF">Fundido final</label><select id="fOutF">${[0,0.5,1,2,3,4,5,6].map(v=>`<option ${v===c.fout?'selected':''}>${v} s</option>`).join('')}</select></div>
+        <label class="toggle"><input type="checkbox" id="fLoop" ${c.loop?'checked':''}> Repetir en bucle</label>
+        ${c.type!=='image'?`<div class="wave"><canvas id="wave"></canvas><div class="legend num"><span>Inicio ${fmt(c.dur*0.04)}</span><span>Fin ${fmt(c.loop?c.dur:c.dur*0.93)}</span></div></div>`:''}
+        ${c.type!=='audio'?`<div class="section-t">Superficie ${c.out} · 4 puntos</div>${thumbHTML()}`:''}
+      </fieldset>
+    </div>`;
+    const v=$('#fVol');if(v)v.oninput=e=>{c.vol=+e.target.value;$('#vVol').textContent=c.vol+' dB'};
+    const n=$('#fName');if(n)n.oninput=e=>{c.name=e.target.value;renderListSoft()};
+    const u=$('#unlock');if(u)u.onclick=()=>{unlocked=c.id;render()};
+    requestAnimationFrame(()=>waveDraw(c));
+  }else{
+    const now=[...playing.keys()].map(byId);
+    const nx=cues[standby];
+    side.innerHTML=`<div class="panel-h"><strong>En vivo</strong><span>Diseño bloqueado</span></div>
+    <div class="live">
+      <div class="nowlist">${now.length?now.map(c=>`<div class="big now" data-now="${c.id}">
+          <div class="k"><span>Sonando · cue ${c.id}</span><span>${c.out}${c.loop?' · loop':''}</span></div>
+          <div class="t">${c.name}</div>
+          ${c.type!=='image'?`<div class="remain num" data-rem>0:00</div><div class="bigbar"><i></i></div>`:'<div class="meta">Imagen fija</div>'}
+        </div>`).join(''):'<div class="big now"><div class="k"><span>Sonando</span></div><div class="empty">Nada en reproducción</div></div>'}</div>
+      <div class="big next"><div class="k"><span>Siguiente · GO</span><span>${nx?nx.out:''}</span></div>
+        <div class="t">${nx?nx.id+'. '+nx.name:'Fin de la lista'}</div>
+        <div class="meta">${nx?TYPE[nx.type]+' · '+fmtD(nx)+' · listo en memoria':''}</div></div>
+      ${thumbHTML()}
+    </div>`;
+  }
+}
+function renderListSoft(){const keep=list.scrollTop;renderList();list.scrollTop=keep}
+function render(){
+  app.classList.toggle('edit',mode==='edit');
+  $('#mEdit').setAttribute('aria-pressed',mode==='edit');
+  $('#mShow').setAttribute('aria-pressed',mode==='show');
+  $('#tabConv').disabled=mode==='show';
+  $('#tabConv').title=mode==='show'?'Bloqueada en Función':'';
+  if(mode==='show'&&app.classList.contains('conv'))setTab('show');
+  renderListSoft();renderSide();
+}
+
+function go(){
+  const c=cues[standby];if(!c){toast('Fin de la lista');return}
+  if(c.type!=='audio'){ // capa nueva encima; la anterior se retira cuando la nueva ya tiene imagen
+    visualOn().forEach(o=>{if(o.out===c.out){const p=playing.get(o.id);if(p.fade===null)p.fade=c.fin||0.5}});
+  }
+  playing.set(c.id,{t:0,fade:null});
+  if(paused){paused=false;$('#pause').setAttribute('aria-pressed','false')}
+  standby=Math.min(standby+1,cues.length);
+  if(mode==='edit'&&cues[standby])selected=cues[standby].id;
+  render();
+}
+function stopAll(){playing.clear();unlocked=null;paused=false;$('#pause').setAttribute('aria-pressed','false');render();toast('Todo parado (rampa de 10 ms, sin chasquido)')}
+function fadeAll(){if(!playing.size)return;playing.forEach(p=>{if(p.fade===null)p.fade=3});toast('Fundiendo todo en 3 s');render()}
+function togglePause(){if(!playing.size)return;paused=!paused;$('#pause').setAttribute('aria-pressed',paused);toast(paused?'En pausa':'Reanudado');renderList()}
+function setMode(m){if(m===mode)return;mode=m;unlocked=null;render();toast(m==='show'?'Modo Función':'Modo Edición')}
+function setTab(t){
+  app.classList.toggle('conv',t==='conv');
+  $('#tabShow').setAttribute('aria-selected',t==='show');$('#tabConv').setAttribute('aria-selected',t==='conv');
+}
+
+list.addEventListener('click',e=>{
+  if(mode!=='edit')return;const r=e.target.closest('.row');if(!r)return;
+  selected=+r.dataset.id;standby=+r.dataset.i;render();
+});
+$('#go').onclick=go;$('#stop').onclick=stopAll;$('#fade').onclick=fadeAll;$('#pause').onclick=togglePause;
+$('#mEdit').onclick=()=>setMode('edit');$('#mShow').onclick=()=>setMode('show');
+$('#tabShow').onclick=()=>setTab('show');$('#tabConv').onclick=()=>setTab('conv');
+$('#night').onclick=()=>{const r=document.documentElement;r.toggleAttribute('data-night');$('#night').textContent=r.hasAttribute('data-night')?'Modo normal':'Modo noche';renderSide()};
+
+const HELP={
+  go:['GO','El botón más importante. Cada vez que lo tocas, empieza lo que sigue en la lista: un sonido, un vídeo o una imagen. Es como pasar la página de un cuento. También lo puedes tocar con la barra espaciadora.'],
+  pause:['Pausa','Congela todo, como cuando pausas una película. Lo tocas otra vez y sigue desde donde quedó.'],
+  fade:['Fundir todo','Baja el sonido y apaga la imagen despacito, en 3 segundos, hasta que no queda nada. Sirve para terminar suave, sin cortes bruscos.'],
+  stop:['Parar todo','El botón de emergencia. Apaga todo al instante. Aunque sea rápido, no hace ruidos feos en los altavoces. También con la tecla Esc.'],
+  modes:['Edición y Función','Hay dos maneras de usar el programa. Edición es para preparar el show, como armar los juguetes antes de jugar. Función es para el show de verdad: se esconde todo lo que no hace falta para que no te equivoques. La tecla Tab cambia de una a otra y el sonido no se corta.'],
+  list:['La lista de cues','Un cue es cada cosa que pasa en el show: una música, un ruido, un vídeo o una foto. Aquí están todos, en orden, como una receta paso a paso. El que tiene el borde de color es el que sale cuando toques GO. Lo que está en verde está sonando ahora.'],
+  sideEdit:['Cómo es este cue','Aquí cambias el cue que elegiste: si suena más fuerte o más bajito, si aparece despacito, si se repite sin parar, por qué altavoz sale. Si está sonando, primero te pregunta, para que no lo cambies sin querer.'],
+  sideShow:['En vivo','Te muestra lo que está sonando ahora, cuánto le falta para terminar y qué viene después. Solo mirar: aquí no se puede cambiar nada, así no se rompe nada en medio del show.'],
+  thumb:['Proyector','Una tele chiquita que te muestra lo mismo que está saliendo por el proyector, para que lo veas sin darte vuelta.'],
+  tabs:['Show y Convertir','Show es donde preparas y haces la función. Convertir sirve para cambiar archivos de audio a otro tipo, como la primera versión del programa. Para el show no hace falta usarlo: el programa prepara los archivos solo.'],
+  check:['Todo listo','Antes de la función, el programa revisa solo que estén bien la tarjeta de sonido, el proyector y todos los archivos. Verde quiere decir que puedes empezar tranquilo. Si algo falla, te dice qué es y cómo arreglarlo.'],
+  clock:['Reloj','La hora de ahora, para saber cuándo empieza la función.'],
+  night:['Modo noche','Pone la pantalla oscura y rojiza para que no te encandile en la cabina a oscuras ni moleste al público.']
+};
+let helping=false,bubble=null;
+function closeBubble(){if(bubble){bubble.remove();bubble=null}}
+function setHelp(on){helping=on;document.body.classList.toggle('helping',on);$('#help').setAttribute('aria-pressed',on);if(!on)closeBubble()}
+function showHelp(el){
+  closeBubble();let k=el.dataset.help;if(k==='side')k=mode==='edit'?'sideEdit':'sideShow';
+  const [t,p]=HELP[k];bubble=document.createElement('div');bubble.className='bubble';bubble.setAttribute('role','dialog');
+  bubble.innerHTML=`<h3>${t}</h3><p>${p}</p><button class="close">Entendido</button>`;
+  document.body.appendChild(bubble);
+  const r=el.getBoundingClientRect(),b=bubble.getBoundingClientRect();
+  let top=r.bottom+10;if(top+b.height>innerHeight-10)top=Math.max(10,r.top-b.height-10);
+  let left=Math.min(Math.max(16,r.left+r.width/2-b.width/2),innerWidth-b.width-16);
+  bubble.style.top=top+'px';bubble.style.left=left+'px';
+  bubble.querySelector('.close').onclick=closeBubble;bubble.querySelector('.close').focus();
+}
+document.addEventListener('click',e=>{
+  if(!helping||e.target.closest('#help,#helpOff,.bubble'))return;
+  e.preventDefault();e.stopPropagation();
+  const el=e.target.closest('[data-help]');if(el)showHelp(el);else closeBubble();
+},true);
+$('#help').onclick=()=>setHelp(!helping);$('#helpOff').onclick=()=>setHelp(false);
+
+document.addEventListener('keydown',e=>{
+  if(helping){if(e.key==='Escape'||e.key==='h'||e.key==='H'){e.preventDefault();bubble?closeBubble():setHelp(false)}return}
+  if((e.key==='h'||e.key==='H')&&!e.target.matches('input[type=text],textarea,select')){setHelp(true);return}
+  const typing=e.target.matches('input[type=text],textarea,select');
+  if(e.key==='Tab'&&!typing){e.preventDefault();setMode(mode==='edit'?'show':'edit');return}
+  if(typing)return;
+  if(e.key===' '){e.preventDefault();go()}
+  else if(e.key==='Escape'){stopAll()}
+  else if(e.key==='p'||e.key==='P'){togglePause()}
+  else if(e.key==='f'||e.key==='F'){fadeAll()}
+  else if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+    e.preventDefault();standby=Math.max(0,Math.min(cues.length-1,standby+(e.key==='ArrowDown'?1:-1)));
+    if(mode==='edit')selected=cues[standby].id;render();
+    list.querySelector('.standby')?.scrollIntoView({block:'nearest'});
+  }
+});
+
+let last=performance.now(),acc=0;
+function tick(now){
+  const dt=Math.min(0.1,(now-last)/1000);last=now;let changed=false;
+  playing.forEach((p,id)=>{
+    const c=byId(id);
+    if(!paused){
+      p.t+=dt;
+      if(p.fade!==null){p.fade-=dt;if(p.fade<=0){playing.delete(id);changed=true;return}}
+      if(c.dur&&p.t>=c.dur){
+        if(c.loop)p.t%=c.dur;
+        else if(c.type==='video'){p.t=c.dur} // mantiene el último cuadro
+        else{playing.delete(id);changed=true;return}
+      }
+    }
+    const row=list.querySelector(`.row[data-id="${id}"] .prog i`);
+    if(row&&c.dur)row.style.width=(p.t/c.dur*100)+'%';
+    const card=side.querySelector(`[data-now="${id}"]`);
+    if(card&&c.dur){card.querySelector('[data-rem]').textContent=(p.fade!==null?'Fundiendo · ':'')+'-'+fmt(c.dur-p.t);card.querySelector('.bigbar i').style.width=(p.t/c.dur*100)+'%'}
+  });
+  if(changed){if(unlocked&&!playing.has(unlocked))unlocked=null;render()}
+  acc+=dt;if(acc>0.25){acc=0;if(mode==='edit'&&playing.has(selected)){const c=byId(selected);waveDraw(c)}
+    const d=new Date();$('#clock').textContent=[d.getHours(),d.getMinutes(),d.getSeconds()].map(x=>String(x).padStart(2,'0')).join(':')}
+  requestAnimationFrame(tick);
+}
+render();requestAnimationFrame(tick);
+addEventListener('resize',()=>{if(mode==='edit')waveDraw(byId(selected))});
+})();
+</script>
