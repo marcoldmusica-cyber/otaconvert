@@ -232,6 +232,41 @@ pub fn ejecutar(cambios: u64, pantalla: Option<&str>, carpeta: Option<&Path>) ->
     Ok(ok)
 }
 
+/// Reproducción continua de un vídeo en bucle durante `segundos`, contando
+/// cuadros perdidos. Mide si el equipo aguanta ese vídeo (p. ej. 4K60) sin cortes.
+pub fn reproduccion(segundos: u64, archivo: &Path, pantalla: Option<&str>) -> Result<bool, String> {
+    if !archivo.is_file() {
+        return Err(format!("no existe el vídeo {}", archivo.display()));
+    }
+    let p = elegir_pantalla(pantalla)?;
+    let rect = Rect { x: p.x, y: p.y, ancho: p.ancho, alto: p.alto };
+    let lib = Libmpv::cargar(&ruta_junto_al_exe()?)?;
+    println!("Pantalla: {} · {} × {} a {} Hz · {}", p.nombre, p.ancho, p.alto, p.hz, p.gpu);
+    println!("Reproduciendo {} durante {segundos} s…", archivo.display());
+    let proy = Proyeccion::abrir(rect, 1)?;
+    let rep = Reproductor::nuevo(lib, proy.capa(0), &[("loop-file", "inf")])?;
+    rep.precargar(&archivo.to_string_lossy(), LIMITE_CARGA)?;
+    rep.propiedad("pause", "no")?;
+    std::thread::sleep(Duration::from_secs(segundos));
+    let leer = |n: &str| rep.leer(n).unwrap_or_else(|| "?".into());
+    let num = |n: &str| rep.leer(n).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+    let perdidos = num("frame-drop-count");
+    let perdidos_dec = num("decoder-frame-drop-count");
+    let atrasados = num("vo-delayed-frame-count");
+    println!("— Informe —");
+    println!("Vídeo: {} × {} a {} cuadros/s · {}", leer("video-params/w"), leer("video-params/h"), leer("container-fps"), leer("video-codec"));
+    println!("Decodificación: {}", rep.leer("hwdec-current").filter(|s| !s.is_empty() && s != "no").unwrap_or_else(|| "CPU".into()));
+    println!("Cuadros por segundo medidos: {}", leer("estimated-vf-fps"));
+    println!("Cuadros perdidos al mostrar: {perdidos}");
+    println!("Cuadros perdidos al decodificar: {perdidos_dec}");
+    println!("Cuadros mostrados tarde: {atrasados}");
+    let ok = perdidos == 0 && perdidos_dec == 0;
+    println!("{}", if ok { "RESULTADO: BIEN" } else { "RESULTADO: HAY PROBLEMAS" });
+    drop(rep);
+    drop(proy);
+    Ok(ok)
+}
+
 #[cfg(test)]
 mod pruebas {
     use super::*;

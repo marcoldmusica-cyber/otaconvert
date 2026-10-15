@@ -42,6 +42,7 @@ fn main() -> ExitCode {
     let mut salida: Option<String> = None;
     let mut pantalla: Option<String> = None;
     let mut carpeta: Option<String> = None;
+    let mut archivo: Option<String> = None;
     let mut args: Vec<String> = Vec::new();
     let mut it = todos.into_iter();
     while let Some(a) = it.next() {
@@ -51,6 +52,8 @@ fn main() -> ExitCode {
             pantalla = it.next();
         } else if a == "--carpeta" {
             carpeta = it.next();
+        } else if a == "--archivo" {
+            archivo = it.next();
         } else {
             args.push(a);
         }
@@ -75,6 +78,11 @@ fn main() -> ExitCode {
         Some("--tono") => tono(num(1, 3), num(2, 50), salida),
         Some("--prueba-vivo") => prueba_vivo(num(1, 60), num(2, 50), salida),
         #[cfg(windows)]
+        Some("--prueba-reproduccion") => match archivo.as_deref() {
+            Some(a) => prueba_video::reproduccion(num(1, 60), std::path::Path::new(a), pantalla),
+            None => Err("falta --archivo <vídeo>".into()),
+        },
+        #[cfg(windows)]
         Some("--prueba-video") => prueba_video::ejecutar(num(1, 200), pantalla, carpeta.as_deref().map(std::path::Path::new)),
         _ => {
             println!("otaconvert-motor {VERSION}");
@@ -87,6 +95,7 @@ fn main() -> ExitCode {
             println!("  --prueba-vivo [segundos] [margen_ms]   órdenes al azar en la salida real");
             println!("  --prueba-video [cambios]               cambios de vídeo por capas, contando cuadros negros");
             println!("  --salida <número | nombre | id>        elige la salida de audio (si no, la predeterminada)");
+            println!("  --prueba-reproduccion [segundos] --archivo <vídeo>   reproducción continua contando cuadros perdidos");
             println!("  --pantalla <número | nombre | id>      pantalla para el vídeo (si no, la que no es principal)");
             println!("  --carpeta <ruta>                       vídeos de prueba llamados RRGGBB.* (color del centro)");
             Ok(true)

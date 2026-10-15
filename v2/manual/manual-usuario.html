@@ -485,7 +485,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <li>El programa compilado por GitHub, probado en el mismo equipo: 100 cambios con vídeos reales, 0 cuadros negros, 0 perdidos, 18 ms del GO a la imagen. En un equipo sin tarjeta gráfica (máquina virtual) tampoco hubo negros, pero se pierden cuadros y tarda unos 60 ms: para funciones conviene una tarjeta gráfica.</li>
     <li>libmpv necesita <code>vulkan-1.dll</code>, que instalan los drivers de la tarjeta gráfica; la Prueba de hardware avisará si falta.</li>
     <li>Ventana de proyección en proceso aparte, negra en reposo. El reloj de la tarjeta de sonido manda.</li>
-    <li>Salida de hasta <strong>4K</strong> (3840 × 2160), objetivo 60 Hz, con vídeos H.264 y HEVC de hasta 4K60 decodificados por la tarjeta gráfica. Probado: 20 cambios con 4K60 H.264 y 20 con 4K60 HEVC en una GTX 1050 Ti, sin negros ni cuadros perdidos (en un monitor 1080p; falta probar una pantalla 4K real).</li>
+    <li>Salida de hasta <strong>4K</strong> (3840 × 2160), objetivo 60 Hz, con vídeos H.264 y HEVC de hasta 4K60 decodificados por la tarjeta gráfica. Probado: 20 cambios con 4K60 H.264 y 20 con 4K60 HEVC en una GTX 1050 Ti, sin negros ni cuadros perdidos; y 60 s seguidos de 4K60 H.264 y de 4K60 HEVC a 60 cuadros por segundo, 0 cuadros perdidos, con la tarjeta a 41 °C como máximo (en un monitor 1080p; falta probar una pantalla 4K real).</li>
     <li>Contenedores MP4, MOV, MKV con decodificadores incluidos; Hap opcional.</li>
     <li>Mapeo: contenido → recorte → deformación (4 puntos; malla en la Fase 3) → máscara → bordes, todo en la GPU en un solo paso.</li>
   </ul>
@@ -507,6 +507,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <tr><td><code>--listar-salidas</code></td><td>Salidas de audio numeradas, con su configuración, cuál es la predeterminada y su identificador estable.</td></tr>
     <tr><td><code>--listar-pantallas</code></td><td>Pantallas: nombre del monitor o proyector, tarjeta gráfica, resolución en píxeles reales, frecuencia, posición y cuál es la principal.</td></tr>
     <tr><td><code>--prueba-video [cambios]</code></td><td>Abre la proyección y hace cambios entre dos capas contando cuadros negros, colores raros, cuadros perdidos y el tiempo del GO a la imagen.</td></tr>
+    <tr><td><code>--prueba-reproduccion [s] --archivo &lt;vídeo&gt;</code></td><td>Reproduce un vídeo en bucle y cuenta cuadros perdidos y atrasados: mide si el equipo aguanta ese vídeo (por ejemplo, 4K a 60 cuadros).</td></tr>
     <tr><td><code>--pantalla &lt;número | nombre | id&gt;</code></td><td>Pantalla de la proyección; si no se indica, la que no es principal.</td></tr>
     <tr><td><code>--carpeta &lt;ruta&gt;</code></td><td>Vídeos de prueba llamados con el color de su centro (<code>RRGGBB.mp4</code>).</td></tr>
     <tr><td><code>--salida &lt;número | nombre | id&gt;</code></td><td>Elige la salida de audio para <code>--tono</code> y <code>--prueba-vivo</code>. Si no existe, da error: nunca usa otra en silencio.</td></tr>
