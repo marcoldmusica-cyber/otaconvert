@@ -50,7 +50,7 @@ pub fn listar() -> Vec<Pantalla> {
 }
 
 #[cfg(windows)]
-mod win {
+pub(crate) mod win {
     use super::Pantalla;
     use std::collections::HashMap;
     use std::mem::{size_of, zeroed};
@@ -125,7 +125,7 @@ mod win {
     }
 
     /// `\\.\DISPLAYn` → tarjeta gráfica.
-    fn gpus() -> HashMap<String, String> {
+    pub fn gpus() -> HashMap<String, String> {
         let mut mapa = HashMap::new();
         // SAFETY: DISPLAY_DEVICEW con `cb` correcto; se para cuando Windows devuelve 0.
         unsafe {

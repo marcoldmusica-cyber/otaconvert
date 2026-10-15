@@ -93,9 +93,50 @@ jobs:
         continue-on-error: true
         run: target\release\otaconvert-motor.exe --comprobar
 
-      - name: Prueba de vídeo (informativa)
+      # FFmpeg de la misma fuente, fijado por su huella. Solo se usa aquí para
+      # crear los vídeos de prueba; no va dentro del programa.
+      - name: Crear vídeos de prueba
+        shell: pwsh
+        env:
+          FF_URL: https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20261015/ffmpeg-x86_64-git-ee8cbd7db.7z
+          FF_SHA256: dc123b3ef138915c7c7b9fd1afaddce815c3163c496a5eaa63cf7945e7e475ab
+        run: |
+          Invoke-WebRequest $env:FF_URL -OutFile ff.7z
+          $h = (Get-FileHash ff.7z -Algorithm SHA256).Hash
+          if ($h -ne $env:FF_SHA256) { Write-Error "ffmpeg: huella distinta ($h)"; exit 1 }
+          7z x ff.7z -off ffmpeg.exe | Out-Null
+          $ff = "ff\ffmpeg.exe"
+          $p = "paquete\Otaconvert-Prueba-de-hardware"
+          New-Item -ItemType Directory -Force "$p\pruebas\1080p" | Out-Null
+          foreach ($c in 'D04848','48B060','4868D0','D0B848','B848B8','48B8B8') {
+            & $ff -hide_banner -loglevel error -y -f lavfi -i "color=c=0x$($c):s=1920x1080:r=60:d=6" -f lavfi -i "testsrc2=s=320x180:r=60:d=6" -filter_complex "[0][1]overlay=x='mod(t*300\,1600)':y=40" -c:v libx264 -preset veryfast -profile:v high -pix_fmt yuv420p -g 60 -b:v 8M "$p\pruebas\1080p\$c.mp4"
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+          }
+          $src4k = @('-f','lavfi','-i','color=c=0x4868D0:s=3840x2160:r=60:d=6','-f','lavfi','-i','testsrc2=s=640x360:r=60:d=6','-filter_complex',"[0][1]overlay=x='mod(t*600\,3200)':y=80")
+          & $ff -hide_banner -loglevel error -y @src4k -c:v libx264 -preset ultrafast -profile:v high -level 5.2 -pix_fmt yuv420p -g 60 -b:v 40M "$p\pruebas\4k-h264.mp4"
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          & $ff -hide_banner -loglevel error -y @src4k -c:v libx265 -preset ultrafast -pix_fmt yuv420p -tag:v hvc1 -g 60 -b:v 30M -x265-params log-level=error "$p\pruebas\4k-hevc.mp4"
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Armar el paquete de la Prueba de hardware
+        shell: pwsh
+        run: |
+          $p = "paquete\Otaconvert-Prueba-de-hardware"
+          Copy-Item target\release\otaconvert-motor.exe "$p\Prueba de hardware.exe"
+          Copy-Item target\release\libmpv-2.dll $p
+          Copy-Item prueba-hardware\LEEME.txt $p
+          Get-ChildItem -Recurse $p | Select-Object FullName, Length
+
+      # El equipo de GitHub no tiene tarjeta gráfica ni tarjeta de sonido:
+      # partes de la prueba fallan aquí. Se ejecuta para comprobar que el
+      # orquestador y el informe funcionan; la que manda es la del equipo real.
+      - name: Prueba de hardware (informativa)
         continue-on-error: true
-        run: target\release\otaconvert-motor.exe --prueba-video 20
+        shell: pwsh
+        run: |
+          $p = "paquete\Otaconvert-Prueba-de-hardware"
+          & "$p\Prueba de hardware.exe" --prueba-hardware --sin-pausa
+          Remove-Item "$p\Informe-hardware-*.txt" -ErrorAction SilentlyContinue
 
       - name: Huella SHA-256 (para comprobar descargas)
         shell: pwsh
@@ -107,6 +148,11 @@ jobs:
           path: |
             v2/target/release/otaconvert-motor.exe
             v2/target/release/libmpv-2.dll
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: Otaconvert-Prueba-de-hardware
+          path: v2/paquete/
 
   vulnerabilidades:
     runs-on: ubuntu-latest

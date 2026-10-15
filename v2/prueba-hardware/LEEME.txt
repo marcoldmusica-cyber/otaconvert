@@ -1,0 +1,41 @@
+OTACONVERT · PRUEBA DE HARDWARE
+================================
+
+Sirve para saber si este equipo está listo para hacer funciones con
+Otaconvert: prueba la tarjeta de sonido, las pantallas y el vídeo.
+
+No instala nada y no cambia nada del equipo.
+
+
+CÓMO USARLA
+-----------
+
+1. Descomprime esta carpeta en el equipo (por ejemplo, en el Escritorio).
+   No la abras desde dentro del archivo .zip.
+
+2. Si vas a usar un proyector, conéctalo antes y elige "Extender"
+   en Windows (teclas Windows + P).
+
+3. Haz doble clic en "Prueba de hardware.exe".
+   Si Windows muestra un aviso azul, toca "Más información" y después
+   "Ejecutar de todas formas". Aparece porque el programa es nuevo.
+
+4. No toques nada durante unos 5 minutos.
+   Sonarán tonos suaves y la pantalla del proyector (o esta, si no hay
+   otra) se llenará de colores y vídeos de prueba. Es normal.
+
+5. Al final se guarda un archivo "Informe-hardware-....txt" en esta
+   misma carpeta (o en Documentos). Envíalo tal cual.
+
+
+QUÉ HAY EN ESTA CARPETA
+-----------------------
+
+- Prueba de hardware.exe   la prueba
+- libmpv-2.dll             el reproductor de vídeo (no lo borres)
+- pruebas\                 vídeos de prueba (1080p y 4K)
+- LEEME.txt                este archivo
+
+Funciona sin internet. Windows 10 u 11 de 64 bits.
+
+Otaconvert es libre y gratuito (licencia GPLv3). Nadie se salva solo.

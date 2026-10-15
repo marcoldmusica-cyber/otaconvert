@@ -28,7 +28,7 @@ pub struct Componente {
 }
 
 #[cfg(windows)]
-mod win {
+pub(crate) mod win {
     use std::os::windows::ffi::OsStrExt;
     use std::path::Path;
 

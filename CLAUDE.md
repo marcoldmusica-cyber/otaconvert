@@ -120,6 +120,20 @@ Atajos aprobados por el usuario (15/10/2026): Espacio GO, Esc Parar todo, P Paus
 
 La V1 como pestaña aparte, en proceso aparte con prioridad baja. Bloqueada en Función; si se entra en Función con una conversión en curso, termina el archivo actual y pausa el resto. Los cues **no** necesitan convertirse antes: el motor prepara cada audio en segundo plano (decodifica a memoria a la frecuencia de la tarjeta). Preajuste "Vídeo para función" para equipos que no aguanten ciertos vídeos.
 
+## 5b. Botonera de sonidos (pedida por el usuario el 15/10/2026)
+
+Panel con sonidos sueltos que se disparan a mano **superpuestos** a lo que esté sonando en cualquier cue (aplausos, timbre, risas, un trueno para improvisar…).
+
+- **Dos formas de verla:** **botones cuadrados** (cuadrícula) o **lista de sonidos**. Se elige en **Vista → Botonera ▸ Cuadrícula / Lista** (regla de la barra de menús). El panel se muestra u oculta en Vista → Personalizar, como cualquier otro; viene **oculto** por defecto para no sumar botones a quien no lo usa.
+- **No toca la lista de cues:** disparar un botón no mueve el cue en espera ni cuenta como GO.
+- **Cada botón:** nombre, color, sonido (de la carpeta del show), volumen, fundido de entrada y de salida, bucle, salida lógica (*Principal* / *Auriculares*), tecla rápida opcional (avisa si choca con otra) y qué pasa si se toca otra vez mientras suena: **parar** (por defecto), **volver a empezar** o **superponer** otra copia. Cada opción con su consejo emergente y ejemplos de escena (regla de interfaz).
+- **Varias páginas** por show (p. ej. "Acto 1", "Improvisación"); viajan con el show.
+- **Edición y Función:** en las dos se disparan; en Función no se editan.
+- **Parar todo** (Esc) y **Fundir todo** (F) también los paran o funden (pánico). **Mayús+F** (fundir el último cue) no los toca: un botón se funde tocándolo otra vez si tiene fundido de salida. A confirmar con el usuario.
+- **Motor:** los sonidos de la botonera quedan **siempre en memoria** desde que se abre el show (no solo al quedar en espera), para que suenen al instante; el mezclador ya mezcla voces superpuestas (hasta 64) con las mismas rampas configurables. Cuentan para la comprobación previa (memoria, picos > 0 dB).
+- **Fase 1** (el motor ya lo soporta; es un panel más). Pendiente: agregarla al boceto.
+- Ayuda para principiantes: "La botonera es como un teclado de efectos: cada botón hace sonar algo cuando lo tocas, aunque ya esté sonando otra cosa".
+
 ## 6. Barra de menús y menú Vista
 
 ### Barra de menús (decidido el 15/10/2026)
@@ -129,7 +143,7 @@ El usuario pidió **no llenar la ventana de botones** para ajustes del tipo "mos
 |---|---|
 | **Archivo** | Nuevo show · Abrir… · Abrir reciente ▸ · Guardar · Guardar como… · Reunir medios… · Salir |
 | **Edición** | Deshacer · Rehacer · Copiar · Pegar · Eliminar cue · **Ajustes del show…** (rampas cortas, salidas y perfiles de teatro, protección contra doble GO) |
-| **Vista** | Personalizar… · Vistas listas ▸ · Modo noche · Modo día · Idioma ▸ (Español / English) · Restaurar vista |
+| **Vista** | Personalizar… · Vistas listas ▸ · Modo noche · Modo día · Botonera ▸ (Cuadrícula / Lista) · Idioma ▸ (Español / English) · Restaurar vista |
 | **Ayuda** | Modo Ayuda (H) · Primeros pasos · **Mostrar consejos** ✓ · Atajos de teclado · Prueba de hardware… · Acerca de Otaconvert |
 
 - Cada opción aparece **una sola vez** (nada repetido en dos menús ni como botón suelto).
@@ -289,7 +303,7 @@ Objetivo: que el programa no abra puertas a gente malintencionada de fuera. Prin
 ## 8. Hoja de ruta V2
 
 - **Fase 0 — Prueba técnica del motor y Prueba de hardware.** Prototipo Rust (WASAPI/ASIO + libmpv) en procesos separados. Prueba de hardware con informe estándar (tarjeta, canales, frecuencias, cortes, latencia, tono por salida, estrés, vídeo 1080p 60 s contando cuadros perdidos, GPU por salida, cambio 44,1/48 midiendo chasquidos y deriva). Pruebas automáticas de cientos de cambios de cue (cuadros negros, discontinuidades, picos): si una falla, no se avanza. Pruebas de horas. Verificar vigilante < 1 s, runtime de C, D3D11VA con vuelta a CPU, ASIO opcional. Lista de equipos probados. Ideal: notebook con dos GPU.
-- **Fase 1 — Reproductor mínimo útil.** Lista de cues; GO con espacio; volumen; fade in/out; loop; inicio/fin sobre onda; parar/pausar/pánico; elección de tarjeta; modos con Tab e indicador; guardar/abrir show; preescucha; cues de audio, vídeo e imagen; *Proyector* con 4 puntos; miniatura; *Principal* + *Auriculares* y perfiles; pestañas, paletas, Vista básica (paneles, letra, Modo noche, Modo día); **Ayuda para principiantes**; interfaz en español e inglés. Además (añadido el 15/10/2026 tras comparar con QLab, SCS y MultiPlay): deshacer/rehacer en Edición; notas por cue (lo que ve el operador antes del GO); numeración libre (1, 1.5, 2A) para coincidir con el libreto; parar o fundir un solo cue desde el panel "Sonando"; ir a cue y empezar un cue desde un punto (ensayos); protección contra doble GO (tiempo mínimo entre GOs, ajustable); volumen maestro y medidor de nivel simple; "Reunir medios" (copiar todos los archivos a la carpeta del show); registro de la función (qué se disparó, cuándo y cualquier error); archivo del show con número de versión para abrir shows viejos en versiones nuevas. Justo después: pestaña Convertir.
+- **Fase 1 — Reproductor mínimo útil.** Lista de cues; GO con espacio; **botonera de sonidos** (cuadrícula o lista, disparo superpuesto; sección 5b); volumen; fade in/out; loop; inicio/fin sobre onda; parar/pausar/pánico; elección de tarjeta; modos con Tab e indicador; guardar/abrir show; preescucha; cues de audio, vídeo e imagen; *Proyector* con 4 puntos; miniatura; *Principal* + *Auriculares* y perfiles; pestañas, paletas, Vista básica (paneles, letra, Modo noche, Modo día); **Ayuda para principiantes**; interfaz en español e inglés. Además (añadido el 15/10/2026 tras comparar con QLab, SCS y MultiPlay): deshacer/rehacer en Edición; notas por cue (lo que ve el operador antes del GO); numeración libre (1, 1.5, 2A) para coincidir con el libreto; parar o fundir un solo cue desde el panel "Sonando"; ir a cue y empezar un cue desde un punto (ensayos); protección contra doble GO (tiempo mínimo entre GOs, ajustable); volumen maestro y medidor de nivel simple; "Reunir medios" (copiar todos los archivos a la carpeta del show); registro de la función (qué se disparó, cuándo y cualquier error); archivo del show con número de versión para abrir shows viejos en versiones nuevas. Justo después: pestaña Convertir.
 - **Fase 2 —** Cue de Fade; esperas y auto-continuar; Grupos; Playlist; teclas rápidas; exportar/imprimir la hoja de cues para el regidor; Vista → Personalizar, perfiles de operador, botones a medida.
 - **Fase 3 — Multisalida y mapeo.** Matriz de ruteo, pan, medidores, maestro; varias pantallas; varias superficies, máscaras, patrones, foto de fondo; **malla** (adelantada desde la Fase 4 porque el usuario proyecta seguido sobre superficies curvas).
 - **Fase 4 — Vídeo avanzado.** Capas, transiciones, texto; fusión de bordes (el usuario no usa dos proyectores solapados: prioridad baja), 4 puntos animado.
@@ -378,7 +392,7 @@ Regla: si una prueba automática falla, no se avanza.
 ### Estado al pausar (15/10/2026, tarde) y próximo paso
 - Fase 0 hecha y probada en la PC del usuario: audio (paso 2), elección de salida de audio y lista de pantallas, vídeo con precarga y capas incl. 4K (paso 3), vigilante (paso 4), comprobación de componentes. Todo subido a GitHub (último run verde: 38811070736, commit 6413400).
 - Hallazgo del último run en GitHub (equipo virtual sin GPU): 19 muestras de "otro color" con ejemplos `(68,106,211)`, `(192,89,188)`, `(62,172,185)`: son colores de la prueba (4868D0, B848B8, 48B8B8) vistos cuando no tocaba, o sea que sin GPU **la capa de abajo a veces se ve por encima** mientras precarga. En la PC real (GPU) no pasa. Investigar al hacer el proceso de proyección aparte (posibles arreglos: ocultar la capa de abajo con `ShowWindow` hasta que esté lista, o `WS_EX_NOREDIRECTIONBITMAP`/orden Z explícito).
-- **Próximo paso: Prueba de hardware (paso 5 de la Fase 0).** Diseño acordado conmigo, aún sin código:
+- **Prueba de hardware (paso 5 de la Fase 0): HECHA**, ver "Paso 5" abajo. Diseño original:
   1. Doble clic en `Prueba de hardware.exe` (el mismo motor renombrado; si el nombre empieza por "Prueba" y no hay argumentos, corre la prueba). Ventana de consola en español: qué va a pasar (colores en pantalla, tonos), que no hay que tocar nada, duración ~5 min; al final "Pulsa Enter para cerrar" (`--sin-pausa` para GitHub).
   2. Orquestador que ejecuta cada prueba como proceso hijo del propio exe (aísla caídas), muestra la salida y la copia a `Informe-hardware-<equipo>-<fecha>.txt` junto al exe (o en Documentos si no se puede escribir).
   3. Orden: datos del equipo (`--info-equipo`: Windows, CPU por registro, RAM con GlobalMemoryStatusEx, GPUs) → `--comprobar` → `--listar-salidas` → `--prueba-vivo` 10 s por cada salida (margen 50 ms) y 10 s a 20 ms en la predeterminada → `--listar-pantallas` → `--prueba-video` 100 cambios de color en la pantalla del proyector → 50 cambios con vídeos 1080p → `--prueba-reproduccion` 30 s 1080p60, 30 s 4K H.264, 30 s 4K HEVC → `--prueba-vigilante 6` → resumen BIEN/PROBLEMA por línea y veredicto.
@@ -386,6 +400,17 @@ Regla: si una prueba automática falla, no se avanza.
   5. Para que el usuario lo use en 2–3 teatros conviene publicarlo como Release descargable sin cuenta de GitHub: **necesita su permiso** (publica algo).
   - Fuera de alcance por ahora (anotar en el informe como "no medido"): latencia real de salida (requiere grabar la salida), cambio 44,1/48 kHz con medición de deriva (cambiar el formato del dispositivo no tiene API pública), chasquidos dentro del driver (requiere loopback).
 - Decisiones pendientes del usuario: copia propia de libmpv en su GitHub; incluir `vulkan-1.dll`; instalador de WebView2 (peso); publicar la Prueba de hardware como Release; dependabot y protección de rama `main`; tocar `main.yml` de la V1.
+
+### Paso 5: Prueba de hardware (15/10/2026, noche)
+- `crates/motor/src/prueba_hardware.rs` (orquestador) + `equipo.rs` (`--info-equipo`: nombre del equipo, Windows por registro, procesador por registro y hilos, memoria con `GlobalMemoryStatusEx`, tarjetas gráficas con `EnumDisplayDevicesW`, enchufado/batería con `GetSystemPowerStatus`).
+- **Doble clic**: si el exe se llama `Prueba de hardware.exe` (nombre que empieza por "prueba") y no tiene argumentos, corre `--prueba-hardware`. Explica en español qué va a pasar, cuenta 5 s y empieza. Al final: resumen, ruta del informe y "Pulsa Enter para cerrar" (`--sin-pausa` para GitHub).
+- Cada prueba es un **proceso hijo** del propio exe con límite de tiempo (si se cuelga, se cierra y cuenta como PROBLEMA). La salida se muestra y se copia a `Informe-hardware-<EQUIPO>-<AAAA-MM-DD_HH-MM>.txt` (UTF-8 con BOM) junto al exe, o en Documentos si ahí no se puede escribir.
+- Orden (13 pasos en la PC del usuario): datos del equipo · componentes · salidas de audio · sonido 10 s por **cada** salida (margen 50 ms) · sonido 10 s con margen 20 ms en la predeterminada · pantallas · 100 cambios de color · 50 cambios con vídeos 1080p reales · reproducción 30 s de 1080p60, 4K60 H.264 y 4K60 HEVC · vigilante con 6 fallos. Resumen con BIEN / PROBLEMA / DATO / NO MEDIDO y veredicto. "NO MEDIDO" fijo: latencia real, cambio 44,1/48 kHz con deriva, cortes dentro del driver; y lo que falte (sin salidas de audio, sin vídeos de prueba).
+- Vídeos de prueba en `pruebas/` junto al exe: `1080p/RRGGBB.mp4` (6 colores, 1080p60 H.264, 6 s), `4k-h264.mp4`, `4k-hevc.mp4` (4K60, 6 s). En GitHub se generan con FFmpeg de shinchiro fijado por SHA-256 (`ffmpeg-x86_64-git-ee8cbd7db.7z`, `dc123b3e…7e475ab`; mismo problema de que las compilaciones diarias desaparecen).
+- **Paquete**: el workflow V2 arma `Otaconvert-Prueba-de-hardware/` (exe renombrado, `libmpv-2.dll`, `LEEME.txt` de `v2/prueba-hardware/`, `pruebas/`), corre la prueba completa como informativa (sin GPU ni audio en GitHub) y lo sube como artifact `Otaconvert-Prueba-de-hardware`. Descargar artifacts exige cuenta de GitHub: para otros teatros conviene una Release (**necesita permiso**).
+- **Resultado en la PC del usuario** (paquete armado con el exe local, como doble clic): 188 s; equipo DESKTOP-T79LDS5, Windows 10 Pro 22H2 (19045), i5-12400 (12 hilos), 15,8 GB, **dos tarjetas gráficas** (Intel UHD 730 integrada + GTX 1050 Ti), enchufado; todo **BIEN** (salidas USB y HDMI, 100 colores, 50 vídeos 1080p, 1080p60/4K H.264/4K HEVC 30 s, vigilante: caída 78 ms y cuelgue 410 ms como peor caso). Veredicto: pasó todo lo medible.
+- Pendiente: probar el paquete compilado por GitHub (MSVC) en su PC; correrlo en 2–3 equipos o teatros más; con un proyector en modo Extender; detectar qué GPU maneja cada salida en equipos con dos GPU (hoy se lista la GPU de cada pantalla).
+
 
 
 

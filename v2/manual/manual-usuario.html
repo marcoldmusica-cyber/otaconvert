@@ -165,6 +165,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <a href="#vista">Cómo se ve</a>
     <div class="paso"><b>3</b>En la función</div>
     <a href="#botones">Los 4 botones</a>
+    <a href="#botonera">La botonera de sonidos</a>
     <a href="#teclas">Teclas rápidas</a>
     <a href="#antes">Antes de empezar</a>
     <a href="#problemas">Si algo falla</a>
@@ -364,6 +365,20 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
   <div class="nota">El programa no deja que un doble toque de GO dispare dos cues sin querer: entre un GO y el siguiente hay un tiempo mínimo, que puedes ajustar.</div>
 </section>
 
+<section class="card" id="botonera">
+  <h2>La botonera de sonidos <span class="estado pronto">Próximamente</span></h2>
+  <p>La botonera es como un teclado de efectos: cada botón hace sonar algo cuando lo tocas, <strong>aunque ya esté sonando otra cosa</strong>. Sirve para sonidos que no tienen un momento fijo: aplausos, un timbre, risas, un trueno para improvisar.</p>
+  <ul>
+    <li><strong>Mostrarla:</strong> viene oculta. Se agrega desde <strong>Vista → Personalizar</strong>.</li>
+    <li><strong>Cómo se ve:</strong> como botones cuadrados o como lista. Se elige en <strong>Vista → Botonera</strong>.</li>
+    <li><strong>No mueve la lista:</strong> tocar un botón no cambia el cue que sale con el próximo GO.</li>
+    <li><strong>Cada botón</strong> tiene nombre, color, su sonido, volumen, fundido, bucle, salida y, si quieres, una tecla. También eliges qué pasa si lo tocas otra vez mientras suena: se para, vuelve a empezar o suena otra copia encima.</li>
+    <li><strong>Páginas:</strong> puedes tener varias, por ejemplo "Acto 1" e "Improvisación".</li>
+    <li><strong>En la función</strong> se puede tocar, pero no cambiar. <kbd>Esc</kbd> (Parar todo) y <kbd>F</kbd> (Fundir todo) también paran sus sonidos.</li>
+  </ul>
+  <div class="nota">Sus sonidos están siempre listos en la memoria desde que abres el show, para que suenen al instante.</div>
+</section>
+
 <section class="card" id="teclas">
   <h2>Teclas rápidas</h2>
   <div class="tabla"><table>
@@ -392,8 +407,15 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <li>ningún sonido pasa del volumen máximo.</li>
   </ul>
   <p>Si algo falla, te dice qué es y cómo arreglarlo. Si la tarjeta de sonido se desconecta en medio del show, el programa avisa fuerte: nunca pasa el sonido a los parlantes de la computadora sin decirte.</p>
-  <h3>Prueba de hardware <span class="estado pronto">Próximamente</span></h3>
-  <p>En <strong>Ayuda → Prueba de hardware</strong> el programa prueba tu tarjeta de sonido, tus pantallas y el vídeo, y hace un informe. Conviene hacerla una vez en cada equipo o teatro nuevo, mejor una semana antes del estreno.</p>
+  <h3>Prueba de hardware <span class="estado ya">Ya funciona</span></h3>
+  <p>Prueba tu tarjeta de sonido, tus pantallas y el vídeo, y hace un informe. Conviene hacerla una vez en cada equipo o teatro nuevo, mejor una semana antes del estreno. En el programa terminado estará en <strong>Ayuda → Prueba de hardware</strong>; hoy viene como una carpeta aparte:</p>
+  <ol class="pasos">
+    <li><div>Descomprime la carpeta <code>Otaconvert-Prueba-de-hardware</code> en el equipo (no la abras desde dentro del .zip).</div></li>
+    <li><div>Si vas a usar proyector, conéctalo antes y elige <strong>Extender</strong> con las teclas <kbd>Windows</kbd> + <kbd>P</kbd>.</div></li>
+    <li><div>Haz doble clic en <code>Prueba de hardware.exe</code> y no toques nada unos 3 a 5 minutos: suenan tonos suaves y la pantalla se llena de colores y vídeos.</div></li>
+    <li><div>Al final queda un archivo <code>Informe-hardware-….txt</code> en esa carpeta (o en Documentos). Envíalo tal cual.</div></li>
+  </ol>
+  <p>El informe dice, para cada prueba, <strong>BIEN</strong> o <strong>PROBLEMA</strong>, y al final si el equipo está listo. No instala nada ni cambia nada del equipo.</p>
   <h3>Lista para el día de la función</h3>
   <ol class="pasos">
     <li><div>Equipo limpio: cierra los demás programas.</div></li>
@@ -504,6 +526,8 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
   <div class="tabla"><table>
     <tr><th>Comando</th><th>Qué hace</th></tr>
     <tr><td><code>--version</code></td><td>Versión del motor.</td></tr>
+    <tr><td><code>--prueba-hardware [--sin-pausa]</code></td><td>Todas las pruebas en orden (equipo, componentes, sonido por cada salida, pantallas, cambios de vídeo, reproducción 1080p y 4K, vigilante) con informe de texto. También con doble clic en <code>Prueba de hardware.exe</code>.</td></tr>
+    <tr><td><code>--info-equipo</code></td><td>Windows, procesador, memoria, tarjetas gráficas y si está enchufado.</td></tr>
     <tr><td><code>--comprobar</code></td><td>Revisa los componentes: Windows 10/11, libmpv, Vulkan y WebView2. Dice qué falta y cómo se arregla; código de error si falta algo.</td></tr>
     <tr><td><code>--listar-salidas</code></td><td>Salidas de audio numeradas, con su configuración, cuál es la predeterminada y su identificador estable.</td></tr>
     <tr><td><code>--listar-pantallas</code></td><td>Pantallas: nombre del monitor o proyector, tarjeta gráfica, resolución en píxeles reales, frecuencia, posición y cuál es la principal.</td></tr>
