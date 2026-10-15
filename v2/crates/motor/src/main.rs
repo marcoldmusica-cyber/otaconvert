@@ -10,6 +10,8 @@ use otaconvert_audio::prueba::Escenario;
 use otaconvert_audio::{crear, Ajustes, Comando, Control, Detector, Mezclador, Pista};
 
 mod pantallas;
+#[cfg(windows)]
+mod prueba_video;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -35,18 +37,25 @@ fn endurecer_carga_de_dll() {}
 fn main() -> ExitCode {
     endurecer_carga_de_dll();
     let todos: Vec<String> = std::env::args().skip(1).collect();
-    // `--salida X` puede ir en cualquier lugar; lo demás son el comando y sus números.
+    // `--salida X` y `--pantalla X` pueden ir en cualquier lugar; lo demás son el comando y sus números.
     let mut salida: Option<String> = None;
+    let mut pantalla: Option<String> = None;
+    let mut carpeta: Option<String> = None;
     let mut args: Vec<String> = Vec::new();
     let mut it = todos.into_iter();
     while let Some(a) = it.next() {
         if a == "--salida" {
             salida = it.next();
+        } else if a == "--pantalla" {
+            pantalla = it.next();
+        } else if a == "--carpeta" {
+            carpeta = it.next();
         } else {
             args.push(a);
         }
     }
     let salida = salida.as_deref();
+    let pantalla = pantalla.as_deref();
     let num = |i: usize, defecto: u64| args.get(i).and_then(|s| s.parse().ok()).unwrap_or(defecto);
     let r = match args.first().map(String::as_str) {
         Some("--version") => {
@@ -63,6 +72,8 @@ fn main() -> ExitCode {
         }
         Some("--tono") => tono(num(1, 3), num(2, 50), salida),
         Some("--prueba-vivo") => prueba_vivo(num(1, 60), num(2, 50), salida),
+        #[cfg(windows)]
+        Some("--prueba-video") => prueba_video::ejecutar(num(1, 200), pantalla, carpeta.as_deref().map(std::path::Path::new)),
         _ => {
             println!("otaconvert-motor {VERSION}");
             println!("Uso:");
@@ -71,7 +82,10 @@ fn main() -> ExitCode {
             println!("  --listar-pantallas                     pantallas para la salida de vídeo");
             println!("  --tono [segundos] [margen_ms]          tono de 440 Hz a -12 dBFS");
             println!("  --prueba-vivo [segundos] [margen_ms]   órdenes al azar en la salida real");
+            println!("  --prueba-video [cambios]               cambios de vídeo por capas, contando cuadros negros");
             println!("  --salida <número | nombre | id>        elige la salida de audio (si no, la predeterminada)");
+            println!("  --pantalla <número | nombre | id>      pantalla para el vídeo (si no, la que no es principal)");
+            println!("  --carpeta <ruta>                       vídeos de prueba llamados RRGGBB.* (color del centro)");
             Ok(true)
         }
     };

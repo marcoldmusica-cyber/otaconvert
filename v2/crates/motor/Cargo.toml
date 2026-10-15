@@ -11,6 +11,7 @@ repository.workspace = true
 # "realtime": el hilo de audio pide prioridad de tiempo real a Windows (MMCSS).
 cpal = { version = "0.18.2", features = ["realtime"] }
 otaconvert-audio = { path = "../audio" }
+otaconvert-video = { path = "../video" }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61.2", features = [

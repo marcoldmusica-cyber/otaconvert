@@ -476,6 +476,14 @@ version = "0.0.1"
 dependencies = [
  "cpal",
  "otaconvert-audio",
+ "otaconvert-video",
+ "windows-sys",
+]
+
+[[package]]
+name = "otaconvert-video"
+version = "0.0.1"
+dependencies = [
  "windows-sys",
 ]
 
