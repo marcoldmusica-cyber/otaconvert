@@ -214,7 +214,8 @@ Regla: si una prueba automática falla, no se avanza.
 - `Cargo.toml` (workspace, versión 0.0.1, edición 2021, MSRV 1.85, GPL-3.0-or-later), `LICENSE` (GPLv3), `README.md`, `.gitignore` (`/target/`).
 - `.cargo/config.toml`: `+crt-static` para `x86_64-pc-windows-msvc` (runtime de C dentro del exe).
 - `crates/motor` → `otaconvert-motor.exe` con `--version` y `--listar-salidas` (cpal 0.18.2, WASAPI). Prueba `runtime_de_c_estatico`.
-- Workflow `.github/workflows/v2.yml` (separado de `main.yml`): se dispara con cambios en `v2/**`; compila, prueba, comprueba con `dumpbin /dependents` que no hay VCRUNTIME/MSVCP/api-ms-win-crt, ejecuta el motor y sube el artifact `Otaconvert-V2-motor` (exe + `Cargo.lock`). Pendiente: subir `Cargo.lock` al repo y volver a usar `--locked`.
+- Workflow `.github/workflows/v2.yml` (separado de `main.yml`): se dispara con cambios en `v2/**`; compila, prueba, comprueba con `dumpbin /dependents` que no hay VCRUNTIME/MSVCP/api-ms-win-crt, ejecuta el motor y sube el artifact `Otaconvert-V2-motor`. `Cargo.lock` en el repo y compilación con `--locked`.
+- **Comprobado (15/10/2026):** compila en Actions (Rust 1.99), la prueba pasa, el exe solo depende de DLLs del sistema (sin VCRUNTIME). En la PC del usuario `--listar-salidas` ve WASAPI, "Altavoces (USB Audio CODEC)" y la salida NVIDIA HDMI, ambas 2 canales, 48 kHz, F32, buffer 480 (min = max = 10 ms; probablemente el periodo fijo del modo compartido de WASAPI, sin verificar; resolver cómo lograr buffers grandes en el paso 2).
 
 ### Verificado en documentación (15/10/2026)
 - **cpal 0.18.2** (16/08/2026, MSRV 1.85): WASAPI por defecto. Nombres de dispositivo con `Display` (`{d}`); ya no hay `name()`, sí `description()` e `id()`. ASIO: feature `asio`; compilar exige SDK de Steinberg (`CPAL_ASIO_DIR` o lo descarga solo), LLVM/clang (`LIBCLANG_PATH`) y Visual Studio. En ejecución usa los drivers de la tarjeta, sin DLL.

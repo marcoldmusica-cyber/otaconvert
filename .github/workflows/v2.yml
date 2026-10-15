@@ -28,10 +28,10 @@ jobs:
         run: rustc --version; cargo --version
 
       - name: Compilar
-        run: cargo build --release
+        run: cargo build --release --locked
 
       - name: Pruebas automáticas
-        run: cargo test --release
+        run: cargo test --release --locked
 
       - name: Comprobar que no pide el VC++ Redistributable
         shell: pwsh
@@ -51,9 +51,7 @@ jobs:
           target\release\otaconvert-motor.exe --version
           target\release\otaconvert-motor.exe --listar-salidas
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: Otaconvert-V2-motor
-          path: |
-            v2/target/release/otaconvert-motor.exe
-            v2/Cargo.lock
+          path: v2/target/release/otaconvert-motor.exe
