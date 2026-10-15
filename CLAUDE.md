@@ -178,8 +178,8 @@ mpv es GPLv2+ (LGPL con opción de compilación). ASIO con doble licencia desde 
 ## 8. Hoja de ruta V2
 
 - **Fase 0 — Prueba técnica del motor y Prueba de hardware.** Prototipo Rust (WASAPI/ASIO + libmpv) en procesos separados. Prueba de hardware con informe estándar (tarjeta, canales, frecuencias, cortes, latencia, tono por salida, estrés, vídeo 1080p 60 s contando cuadros perdidos, GPU por salida, cambio 44,1/48 midiendo chasquidos y deriva). Pruebas automáticas de cientos de cambios de cue (cuadros negros, discontinuidades, picos): si una falla, no se avanza. Pruebas de horas. Verificar vigilante < 1 s, runtime de C, D3D11VA con vuelta a CPU, ASIO opcional. Lista de equipos probados. Ideal: notebook con dos GPU.
-- **Fase 1 — Reproductor mínimo útil.** Lista de cues; GO con espacio; volumen; fade in/out; loop; inicio/fin sobre onda; parar/pausar/pánico; elección de tarjeta; modos con Tab e indicador; guardar/abrir show; preescucha; cues de audio, vídeo e imagen; *Proyector* con 4 puntos; miniatura; *Principal* + *Auriculares* y perfiles; pestañas, paletas, Vista básica (paneles, letra, Modo noche); **Ayuda para principiantes**. Justo después: pestaña Convertir.
-- **Fase 2 —** Cue de Fade; esperas y auto-continuar; Grupos; Playlist; teclas rápidas; Vista → Personalizar, perfiles de operador, botones a medida.
+- **Fase 1 — Reproductor mínimo útil.** Lista de cues; GO con espacio; volumen; fade in/out; loop; inicio/fin sobre onda; parar/pausar/pánico; elección de tarjeta; modos con Tab e indicador; guardar/abrir show; preescucha; cues de audio, vídeo e imagen; *Proyector* con 4 puntos; miniatura; *Principal* + *Auriculares* y perfiles; pestañas, paletas, Vista básica (paneles, letra, Modo noche, Modo día); **Ayuda para principiantes**; interfaz en español e inglés. Además (añadido el 15/10/2026 tras comparar con QLab, SCS y MultiPlay): deshacer/rehacer en Edición; notas por cue (lo que ve el operador antes del GO); numeración libre (1, 1.5, 2A) para coincidir con el libreto; parar o fundir un solo cue desde el panel "Sonando"; ir a cue y empezar un cue desde un punto (ensayos); protección contra doble GO (tiempo mínimo entre GOs, ajustable); volumen maestro y medidor de nivel simple; "Reunir medios" (copiar todos los archivos a la carpeta del show); registro de la función (qué se disparó, cuándo y cualquier error); archivo del show con número de versión para abrir shows viejos en versiones nuevas. Justo después: pestaña Convertir.
+- **Fase 2 —** Cue de Fade; esperas y auto-continuar; Grupos; Playlist; teclas rápidas; exportar/imprimir la hoja de cues para el regidor; Vista → Personalizar, perfiles de operador, botones a medida.
 - **Fase 3 — Multisalida.** Matriz de ruteo, pan, medidores, maestro; varias pantallas; varias superficies, máscaras, patrones, foto de fondo.
 - **Fase 4 — Vídeo avanzado.** Capas, transiciones, texto; malla, fusión de bordes, 4 puntos animado.
 - **Fase 5 — Control externo.** GO desde celular por Wi-Fi local; MIDI/OSC; MSC (GO, STOP, LOAD).
@@ -195,10 +195,11 @@ mpv es GPLv2+ (LGPL con opción de compilación). ASIO con doble licencia desde 
 5. V1: ¿lista virtualizada para miles de archivos?
 6. Menor: actualizar acciones del workflow (Node 20).
 7. ¿Aprueba el boceto y los atajos propuestos?
-8. **Funciones esenciales propuestas el 15/10/2026, pendientes de aprobación** (revisión de huecos frente a QLab, SCS y MultiPlay):
-   - Fase 1: deshacer/rehacer en Edición; notas por cue (lo que ve el operador antes del GO); numeración libre de cues (1, 1.5, 2A) para coincidir con el libreto; parar o fundir un solo cue desde el panel "Sonando"; ir a cue y empezar un cue desde un punto (ensayos); protección contra doble GO (tiempo mínimo entre GOs); volumen maestro y medidor de nivel simple; "Reunir medios" (copiar todos los archivos a la carpeta del show); registro de la función (qué se disparó y cuándo, y cualquier error).
-   - Decisiones: idiomas de la interfaz (¿español e inglés como la V1?); ¿la V2 solo para Windows o también macOS?; exportar/imprimir la hoja de cues (Fase 2).
-   - Técnico: el archivo del show lleva número de versión para abrir shows viejos en versiones nuevas.
+8. ¿La V2 solo para Windows o también macOS? (Recomendación: Windows primero; en Mac ya existe QLab.)
+
+### Decidido el 15/10/2026
+- **Idiomas de la interfaz: español e inglés** (también la Ayuda).
+- El usuario delega en Claude el reparto de funciones entre fases, siempre que sea lo mejor para el proyecto. Las 9 funciones esenciales pasaron a la Fase 1; la hoja de cues a la Fase 2.
 
 ## 10. Siguiente paso
 
