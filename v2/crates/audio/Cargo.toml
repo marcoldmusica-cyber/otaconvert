@@ -1,0 +1,11 @@
+[package]
+name = "otaconvert-audio"
+description = "Mezclador de audio en tiempo real de Otaconvert V2"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+rtrb = "0.4.0"

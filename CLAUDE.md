@@ -223,4 +223,14 @@ Regla: si una prueba automática falla, no se avanza.
 - **mpv**: `hwdec=d3d11va` requiere `vo=gpu`/`gpu-next` con `gpu-context=d3d11`; si los decodificadores de la lista fallan, pasa a software. `--wid=<HWND>` dibuja dentro de una ventana nuestra (crea ventana hija). `--keep-open` mantiene el último cuadro. Idea a probar para capas: dos instancias en ventanas hijas, cambiar orden Z cuando la nueva ya pinta.
 - **GitHub Actions windows-latest** (Server 2025): Rust 1.99, LLVM 20.1.8, VS 2022 17.14 con clang, 7zip.
 
-Siguiente: paso 2 (prototipo de audio).
+### Paso 2: prototipo de audio (15/10/2026, en curso)
+- `crates/audio` (`otaconvert-audio`, sin dependencias salvo `rtrb` 0.4.0, cola sin bloqueo): `Rampa`, `Pista` (audio entero en memoria, f32 intercalado), `Mezclador`/`Control` (`crear`), `Detector`, `prueba::Escenario`.
+  - Comandos: Iniciar (volumen, desde, bucle, fundido), Parar, Pausar, Reanudar, Volumen, Saltar, PararTodo, VolumenMaestro. Rampas mínimas 5 ms subida / 10 ms bajada (`Ajustes::para`); rampa de 10 ms sobre el final del archivo si no es bucle; salto = bajar, mover, subir.
+  - El hilo de audio no pide ni libera memoria: los `Arc<Pista>` que dejan de sonar vuelven por una cola "basura" y se liberan en el hilo de control. Rechaza pistas a otra frecuencia (sin remuestreo en vivo).
+  - Salida recortada a ±1 y contada como "recortes". **Pendiente: limitador maestro transparente.**
+  - Detector: segunda diferencia `x[n]-2x[n-1]+x[n-2]` por canal; umbral para tonos `1,5·A·(2·sin(πf/fs))² + 0,002`.
+- Pruebas (`cargo test --release`): estrés de 10 min × 3 semillas (~1.850 órdenes cada una, bloques de 1–1024 cuadros): 0 discontinuidades (máxima 0,0023, umbral 0,0127), 0 recortes, 0 rechazos. Control: sin rampas el detector encuentra 568 en 2 min. `sin_memoria`: asignador que cuenta en el hilo de `procesar` (comprobado que falla si se pide memoria).
+- Motor: `--tono [s] [margen_ms]` y `--prueba-vivo [s] [margen_ms]` (salida predeterminada, modo compartido, `BufferSize::Fixed(margen)`; mide intervalos entre llamadas, cortes probables = intervalo > margen, discontinuidades, recortes, errores; termina con "RESULTADO: BIEN" o código de error). cpal con feature `realtime` (MMCSS).
+- Verificado en el código de cpal 0.18.2 (`host/wasapi`): solo modo compartido; el periodo de llamada es siempre `GetDevicePeriod` (10 ms) y el `BufferSize::Fixed` solo agranda el búfer de WASAPI (más margen y más latencia); cada llamada llena todo el hueco libre. Solo F32 por ahora.
+- Compilar en la PC del usuario: no tiene Visual Studio. Toolchain temporal GNU en `%TEMP%\otr` (sirve para `cargo test -p otaconvert-audio` y `cargo check`; el motor no enlaza con GNU porque falta `as.exe`). Ruta corta obligatoria: el scratchpad supera MAX_PATH. El ejecutable real sale de GitHub Actions (MSVC).
+- Pendiente del paso 2: ejecutar `--prueba-vivo` en la PC del usuario con el exe de Actions y decidir el margen por defecto.

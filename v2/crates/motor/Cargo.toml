@@ -8,4 +8,6 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-cpal = "0.18.2"
+# "realtime": el hilo de audio pide prioridad de tiempo real a Windows (MMCSS).
+cpal = { version = "0.18.2", features = ["realtime"] }
+otaconvert-audio = { path = "../audio" }
