@@ -10,6 +10,7 @@
 //!   inicio es de golpe y lo demás lleva una rampa corta.
 //! - No remuestrea: rechaza audios que no estén a la frecuencia de la salida.
 
+pub mod consejos;
 mod detector;
 mod mezclador;
 mod pista;

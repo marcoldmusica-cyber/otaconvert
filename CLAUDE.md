@@ -11,6 +11,8 @@ Léelo entero antes de proponer o tocar nada. Si algo de aquí choca con el cód
 - Antes de afirmar cómo funciona una librería o programa de terceros, verificarlo (documentación o código).
 - Ser honesto sobre lo **no** probado: distinguir lo comprobado de lo pendiente.
 - Si pide respuestas rápidas, respetarlo.
+- Cuando el usuario dice **"el manual"** o "el registro del proyecto" se refiere a **este archivo (CLAUDE.md)**. Toda decisión, función y opción nueva se anota aquí.
+- **Regla de interfaz (15/10/2026):** cada opción configurable lleva un **mensaje emergente sutil** (al pasar el ratón o tocar "?") que recomienda en qué casos activarla o desactivarla y qué valor usar. Los textos viven en el código, en español e inglés, junto a la opción, y se resumen en este archivo.
 - El usuario quiere que Claude maneje GitHub de forma automática (commits, subidas, compilaciones). Avisar antes de cada `git push` salvo que diga lo contrario.
 
 ### Entorno de la PC del usuario
@@ -159,6 +161,18 @@ El usuario pidió que **por defecto los audios arranquen de golpe** (sin rampa a
 - Se cambian **en vivo** sin cortar lo que suena (`Comando::CambiarAjustes`).
 - Preajustes en código: `Ajustes::para` (por defecto), `Ajustes::suaves` (todas activas, también inicio 5 ms), `Ajustes::sin_rampas` (todo de golpe).
 - Riesgo que hay que explicar en la Ayuda (no se elimina, se avisa): arrancar de golpe solo suena limpio si el archivo empieza en silencio o en un ataque pensado así; si el cue empieza desde un punto intermedio (`desde` > 0) o el archivo empieza a mitad de onda, puede oírse un clic. La comprobación previa debería avisar de los cues con inicio de golpe cuyo primer cuadro no es ~0 (pendiente).
+- **Mensajes emergentes de cada rampa** (pedido el 15/10/2026), en `v2/crates/audio/src/consejos.rs` (`TipoRampa::consejo(Idioma)` → título, qué hace, cuándo activar, cuándo dejar en 0; es/en; prueba que exige los dos idiomas y ≤ 200 caracteres por texto). Resumen en español:
+
+| Rampa | Activar (ms recomendados) | Dejar en 0 |
+|---|---|---|
+| Inicio | 5 ms si el cue empieza a mitad del archivo o se oye un clic; 2–5 ms no se nota. | Golpes, disparos, portazos, música que empieza fuerte; seguro si el archivo empieza en silencio. |
+| Reanudar | 5 ms (recomendada): se reanuda a mitad de onda. | Solo corte seco a propósito; puede sonar clic. |
+| Pausa | 10 ms (recomendada); 20–50 ms para una pausa más suave. | Corte seco a propósito; puede sonar clic. |
+| Parada | 10 ms (recomendada): Parar todo limpio; para salidas lentas, el fundido del cue. | Cortes secos con un apagón de luces; puede sonar clic. |
+| Salto | 5 ms (recomendada): el salto cae a mitad de onda. | Casi nunca conviene. |
+| Volumen | 5 ms (recomendada): cambio instantáneo = chasquido; fundidos largos en el cue. | Solo pruebas técnicas. |
+| Final del archivo | 10 ms si el archivo termina de golpe o a mitad de sonido. | Si ya termina en silencio y se quiere tal cual se editó. |
+
 - Interfaz (Fase 1): en Preferencias del show, sección "Rampas cortas", una fila por rampa con un valor en ms y un interruptor; además, en cada cue, fundido de entrada y de salida. Guardado en el archivo del show. Ayuda para principiantes: "Una rampa es una subida o bajada de volumen tan corta que no se nota, pero evita el clic. Si la pones en 0, el sonido empieza o se corta de golpe".
 
 ### Salidas lógicas y perfiles de teatro
