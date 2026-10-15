@@ -12,7 +12,8 @@ Léelo entero antes de proponer o tocar nada. Si algo de aquí choca con el cód
 - Ser honesto sobre lo **no** probado: distinguir lo comprobado de lo pendiente.
 - Si pide respuestas rápidas, respetarlo.
 - Cuando el usuario dice **"el manual"** o "el registro del proyecto" se refiere a **este archivo (CLAUDE.md)**. Toda decisión, función y opción nueva se anota aquí.
-- **Regla de interfaz (15/10/2026):** cada opción configurable lleva un **mensaje emergente sutil** (al pasar el ratón o tocar "?") que recomienda en qué casos activarla o desactivarla y qué valor usar. Los textos viven en el código, en español e inglés, junto a la opción, y se resumen en este archivo.
+- **Regla de interfaz (15/10/2026):** cada opción configurable lleva un **mensaje emergente sutil** (al pasar el ratón o tocar "?") que recomienda en qué casos activarla o desactivarla y qué valor usar. Cada mensaje incluye **ejemplos de escena** ("si en una escena pasa X, actívala para Y"), uno para activar y otro para desactivar. **Idioma:** los mensajes salen siempre en el idioma configurado del programa; si el programa está en inglés todo está en inglés, y lo mismo en español (nunca mezclados). **Opcionales:** se pueden ocultar (para usuarios avanzados) con un interruptor "Mostrar consejos" en Vista y en Ayuda; activados por defecto y **siempre se pueden volver a activar** (ese interruptor nunca se oculta, ni siquiera con Vista → Personalizar).
+ Los textos viven en el código, en español e inglés, junto a la opción, y se resumen en este archivo.
 - El usuario quiere que Claude maneje GitHub de forma automática (commits, subidas, compilaciones). Avisar antes de cada `git push` salvo que diga lo contrario.
 
 ### Entorno de la PC del usuario
@@ -125,6 +126,7 @@ La V1 como pestaña aparte, en proceso aparte con prioridad baja. Bloqueada en F
 - Estética protegida: paletas diseñadas + acento libre con contraste automático; cuadrícula imantada; **Restaurar vista** siempre a mano.
 - En Función el diseño queda bloqueado (solo brillo, Modo noche y Modo día).
 - GO y Parar todo se pueden mover, agrandar y recolorear, **nunca ocultar**.
+- Interruptor **"Mostrar consejos"** (mensajes emergentes con recomendaciones y ejemplos de escena), activado por defecto, en Vista y en Ayuda. Igual que GO y Parar todo, **nunca se puede ocultar**: siempre se pueden volver a activar los consejos. Los consejos siguen el idioma del programa.
 - **Desde la Fase 1** la interfaz se construye con la distribución guardada como datos (qué bloque va dónde y con qué tamaño), aunque el editor de arrastrar y soltar llegue en la Fase 2. Así personalizar no obliga a rehacer la interfaz.
 - El boceto (`v2/diseno/`) incluye una demo de Vista → Personalizar: arrastrar paneles, barra y botones; letra, densidad, GO grande; vistas listas; Restaurar vista; bloqueo en Función.
 
@@ -161,17 +163,18 @@ El usuario pidió que **por defecto los audios arranquen de golpe** (sin rampa a
 - Se cambian **en vivo** sin cortar lo que suena (`Comando::CambiarAjustes`).
 - Preajustes en código: `Ajustes::para` (por defecto), `Ajustes::suaves` (todas activas, también inicio 5 ms), `Ajustes::sin_rampas` (todo de golpe).
 - Riesgo que hay que explicar en la Ayuda (no se elimina, se avisa): arrancar de golpe solo suena limpio si el archivo empieza en silencio o en un ataque pensado así; si el cue empieza desde un punto intermedio (`desde` > 0) o el archivo empieza a mitad de onda, puede oírse un clic. La comprobación previa debería avisar de los cues con inicio de golpe cuyo primer cuadro no es ~0 (pendiente).
-- **Mensajes emergentes de cada rampa** (pedido el 15/10/2026), en `v2/crates/audio/src/consejos.rs` (`TipoRampa::consejo(Idioma)` → título, qué hace, cuándo activar, cuándo dejar en 0; es/en; prueba que exige los dos idiomas y ≤ 200 caracteres por texto). Resumen en español:
+- **Mensajes emergentes de cada rampa** (pedidos el 15/10/2026; ejemplos de escena añadidos el mismo día), en `v2/crates/audio/src/consejos.rs`: `TipoRampa::consejo(Idioma)` devuelve título, qué hace, cuándo activar + ejemplo de escena, cuándo dejar en 0 + ejemplo de escena. `consejo_visible(idioma, PreferenciasConsejos)` devuelve nada si el usuario los ocultó. Pruebas: los dos idiomas completos y distintos (nada sin traducir), ejemplos que empiezan por "Ej.: "/"E.g.: ", ≤ 200 caracteres por texto, ocultar y volver a mostrar. Resumen en español:
 
-| Rampa | Activar (ms recomendados) | Dejar en 0 |
+| Rampa | Activar (ms) · ejemplo | Dejar en 0 · ejemplo |
 |---|---|---|
-| Inicio | 5 ms si el cue empieza a mitad del archivo o se oye un clic; 2–5 ms no se nota. | Golpes, disparos, portazos, música que empieza fuerte; seguro si el archivo empieza en silencio. |
-| Reanudar | 5 ms (recomendada): se reanuda a mitad de onda. | Solo corte seco a propósito; puede sonar clic. |
-| Pausa | 10 ms (recomendada); 20–50 ms para una pausa más suave. | Corte seco a propósito; puede sonar clic. |
-| Parada | 10 ms (recomendada): Parar todo limpio; para salidas lentas, el fundido del cue. | Cortes secos con un apagón de luces; puede sonar clic. |
-| Salto | 5 ms (recomendada): el salto cae a mitad de onda. | Casi nunca conviene. |
-| Volumen | 5 ms (recomendada): cambio instantáneo = chasquido; fundidos largos en el cue. | Solo pruebas técnicas. |
-| Final del archivo | 10 ms si el archivo termina de golpe o a mitad de sonido. | Si ya termina en silencio y se quiere tal cual se editó. |
+| Inicio | 5 ms si el cue empieza a mitad del archivo o hay clic. *Al abrir el telón la música entra desde el estribillo.* | Sonidos que deben pegar con toda su fuerza; seguro si el archivo empieza en silencio. *El disparo de la escena final, el portazo del segundo acto.* |
+| Reanudar | 5 ms (recomendada). *Pausas la lluvia de fondo durante un parlamento y la retomas.* | Corte seco a propósito. *Una radio en escena que se "enciende" de golpe al tocarla.* |
+| Pausa | 10 ms; 20–50 ms más suave. *Congelas la música de una coreografía cuando los bailarines se quedan quietos (30 ms).* | Corte seco a propósito. *Efecto de "tiempo detenido".* |
+| Parada | 10 ms (recomendada). *Un actor se adelanta y cortas ambiente, música y efectos con Parar todo.* | Corte seco a propósito. *Apagón total: el sonido se corta con la luz.* |
+| Salto | 5 ms (recomendada). *En el ensayo el director pide repetir desde el minuto 2.* | Casi nunca. *Solo pruebas técnicas.* |
+| Volumen | 5 ms (recomendada). *Bajas el ambiente de la fiesta cuando empieza un diálogo.* | Solo pruebas técnicas. *Medir la tarjeta en la Prueba de hardware.* |
+| Final del archivo | 10 ms si termina de golpe. *Un efecto de motor recortado a mano que acaba en pleno ruido.* | Si ya termina en silencio. *Una canción con su final desvanecido completo.* |
+
 
 - Interfaz (Fase 1): en Preferencias del show, sección "Rampas cortas", una fila por rampa con un valor en ms y un interruptor; además, en cada cue, fundido de entrada y de salida. Guardado en el archivo del show. Ayuda para principiantes: "Una rampa es una subida o bajada de volumen tan corta que no se nota, pero evita el clic. Si la pones en 0, el sonido empieza o se corta de golpe".
 
