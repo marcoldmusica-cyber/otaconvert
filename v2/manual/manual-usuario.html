@@ -42,10 +42,20 @@ kbd{font:12px var(--mono);background:var(--card2);border:1px solid var(--border)
 .bars i{display:block;width:4px;border-radius:2px;background:var(--accent);height:calc(var(--h)*100%)}
 .brand strong{font-size:16px}
 .brand span{display:block;font-size:12px;color:var(--muted)}
-.toc nav{display:flex;flex-direction:column;gap:2px}
-.toc a{color:var(--muted);text-decoration:none;padding:6px 10px;border-radius:10px;font-size:14px}
+.toc nav{display:flex;flex-direction:column;gap:1px}
+.toc a{color:var(--muted);text-decoration:none;padding:6px 10px 6px 38px;border-radius:10px;font-size:14px;position:relative}
 .toc a:hover{background:var(--hover);color:var(--text)}
-.toc .grupo{font-size:12px;color:var(--dim);padding:12px 10px 4px}
+.toc a.activo{color:var(--text);background:var(--card2)}
+.toc a.activo::before{content:"";position:absolute;left:24px;top:8px;bottom:8px;width:3px;border-radius:2px;background:var(--accent)}
+.toc .paso{display:flex;align-items:center;gap:10px;font-weight:600;font-size:14px;color:var(--text);padding:14px 10px 4px}
+.toc .paso:first-child{padding-top:4px}
+.toc .paso b{width:20px;height:20px;border-radius:50%;background:var(--accent);color:var(--on-accent);font-size:12px;display:flex;align-items:center;justify-content:center;flex:none}
+.toc .nada{color:var(--muted);font-size:13px;padding:6px 10px;margin:0}
+.buscar{display:block;margin-bottom:10px}
+.buscar input{width:100%;font:inherit;font-size:14px;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:8px 12px}
+.buscar input::placeholder{color:var(--dim)}
+.buscar input:focus{outline:2px solid var(--accent);outline-offset:1px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .toc .vista{display:flex;gap:4px;margin-top:14px;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:3px}
 .toc .vista button{flex:1;border:0;background:none;color:var(--muted);font:inherit;font-size:13px;padding:6px;border-radius:9px;cursor:pointer}
 .toc .vista button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
@@ -118,7 +128,11 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
 @media print{
   :root{print-color-adjust:exact;-webkit-print-color-adjust:exact}
   :root[data-day]{color-scheme:dark;--bg:#0E1117;--card:#151921;--card2:#1B2029;--hover:#252B37;--border:#262C38;--text:#E9ECF2;--muted:#9098A8;--dim:#5D6677;--accent:#6F80FF;--accent-h:#5C6DEE;--ok:#58D69A;--err:#F27A74;--warn:#F2C46B;--on-accent:#0E1117}
-  .toc{display:none}
+  /* En el PDF el índice va al principio, como página de contenido. */
+  .toc{position:static;max-height:none;margin-bottom:16px;break-after:page}
+  .toc .buscar,.toc .vista{display:none}
+  .toc a.activo{background:none}
+  .toc a.activo::before{display:none}
   .layout{display:block;padding:0}
   .card{break-inside:avoid-page;margin-bottom:12px}
   .card{border-radius:12px}
@@ -135,34 +149,38 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <div class="bars" aria-hidden="true"><i style="--h:.38"></i><i style="--h:.72"></i><i style="--h:1"></i><i style="--h:.58"></i><i style="--h:.84"></i><i style="--h:.46"></i></div>
     <div><strong>Otaconvert</strong><span>Manual de usuario</span></div>
   </div>
-  <nav>
-    <a href="#bienvenida">Bienvenida</a>
-    <a href="#que-es">Qué es Otaconvert</a>
-    <a href="#instalar">Instalar o usar sin instalar</a>
+  <label class="buscar"><span class="sr">Buscar en el manual</span><input type="search" id="buscar" placeholder="Buscar… (ej.: clic, proyector)" autocomplete="off"></label>
+  <nav id="indice">
+    <div class="paso"><b>1</b>Empezar</div>
+    <a href="#que-es">Qué es</a>
+    <a href="#instalar">Instalarlo</a>
+    <a href="#primer-show">Tu primer show en 5 pasos</a>
+    <div class="paso"><b>2</b>Preparar el show</div>
     <a href="#carpeta">La carpeta del show</a>
     <a href="#pantalla">La pantalla</a>
-    <a href="#primer-show">Tu primer show</a>
     <a href="#modos">Edición y Función</a>
-    <a href="#botones">Los botones de la función</a>
+    <a href="#salidas">Elegir salidas</a>
+    <a href="#video">Vídeo y proyector</a>
+    <a href="#rampas">Clics: las rampas</a>
+    <a href="#vista">Cómo se ve</a>
+    <div class="paso"><b>3</b>En la función</div>
+    <a href="#botones">Los 4 botones</a>
     <a href="#teclas">Teclas rápidas</a>
-    <a href="#salidas">Elegir dónde sale el sonido y la imagen</a>
-    <a href="#video">Vídeo, imágenes y proyector</a>
-    <a href="#rampas">Rampas cortas</a>
-    <a href="#ayuda">Consejos y Modo Ayuda</a>
-    <a href="#vista">Cómo se ve el programa</a>
-    <a href="#antes">Antes de la función</a>
-    <a href="#problemas">Si algo sale mal</a>
+    <a href="#antes">Antes de empezar</a>
+    <a href="#problemas">Si algo falla</a>
+    <div class="paso"><b>+</b>Más</div>
+    <a href="#ayuda">Ayuda y consejos</a>
     <a href="#convertir">Convertir archivos</a>
-    <div class="grupo">Para usuarios avanzados</div>
-    <a href="#tecnico">Especificaciones técnicas</a>
-    <div class="grupo">Otaconvert</div>
+    <a href="#tecnico">Datos técnicos</a>
     <a href="#libre">Libre y gratuito</a>
+    <p class="nada" id="nada" hidden>Nada encontrado. Prueba con otra palabra.</p>
   </nav>
   <div class="vista" role="group" aria-label="Colores del manual">
     <button type="button" id="oscuro" aria-pressed="true">Oscuro</button>
     <button type="button" id="dia" aria-pressed="false">Día</button>
   </div>
 </aside>
+
 
 <main>
 
@@ -217,6 +235,21 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
   </ol>
   <div class="nota cuidado">No lo descomprimas dentro de <em>Archivos de programa</em>: ahí no podría guardar tu configuración. Si pasa, el programa te avisa.</div>
   <p>No hace falta instalar nada más: ni códecs, ni Python, ni otros programas. Todo viene incluido.</p>
+  <h3>La primera vez que lo abres</h3>
+  <p>El programa revisa solo que tenga todo lo que necesita. <strong>Si está todo, no ves nada</strong> y empiezas a trabajar.</p>
+  <p>Si falta algo, aparece <strong>una sola ventana</strong> que te dice qué es y para qué sirve, con el botón <strong>Instalar lo que falta</strong>. Se instala desde el propio programa, sin internet y casi siempre sin pedir contraseña de administrador. Nunca se instala nada sin que toques el botón. Si es algo que Otaconvert no puede instalar (por ejemplo, el driver de la tarjeta gráfica), te explica cómo arreglarlo.</p>
+</section>
+
+<section class="card" id="primer-show">
+  <h2>Tu primer show en 5 pasos</h2>
+  <ol class="pasos">
+    <li><div><strong>Archivo → Nuevo show</strong> y elige la carpeta de tu obra.</div></li>
+    <li><div>Arrastra tus archivos a la lista de cues. Cada archivo se convierte en un cue.</div></li>
+    <li><div>Ordénalos como van en la obra. Si quieres, ponles el mismo número que en el libreto (1, 1.5, 2A…) y una nota para acordarte de cuándo van.</div></li>
+    <li><div>Toca un cue y ajusta en el panel derecho: volumen, si aparece despacito (fundido), si se repite (bucle).</div></li>
+    <li><div>Pulsa <kbd>Tab</kbd> para pasar a <strong>Función</strong> y toca <strong>GO</strong> (o la barra espaciadora) cada vez que quieras que salga el siguiente.</div></li>
+  </ol>
+  <p>El programa guarda solo cada poco tiempo, y también puedes usar <strong>Archivo → Guardar</strong> o <kbd>Ctrl</kbd> <kbd>S</kbd>.</p>
 </section>
 
 <section class="card" id="carpeta">
@@ -250,18 +283,6 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
   </table></div>
 </section>
 
-<section class="card" id="primer-show">
-  <h2>Tu primer show en 5 pasos</h2>
-  <ol class="pasos">
-    <li><div><strong>Archivo → Nuevo show</strong> y elige la carpeta de tu obra.</div></li>
-    <li><div>Arrastra tus archivos a la lista de cues. Cada archivo se convierte en un cue.</div></li>
-    <li><div>Ordénalos como van en la obra. Si quieres, ponles el mismo número que en el libreto (1, 1.5, 2A…) y una nota para acordarte de cuándo van.</div></li>
-    <li><div>Toca un cue y ajusta en el panel derecho: volumen, si aparece despacito (fundido), si se repite (bucle).</div></li>
-    <li><div>Pulsa <kbd>Tab</kbd> para pasar a <strong>Función</strong> y toca <strong>GO</strong> (o la barra espaciadora) cada vez que quieras que salga el siguiente.</div></li>
-  </ol>
-  <p>El programa guarda solo cada poco tiempo, y también puedes usar <strong>Archivo → Guardar</strong> o <kbd>Ctrl</kbd> <kbd>S</kbd>.</p>
-</section>
-
 <section class="card" id="modos">
   <h2>Edición y Función</h2>
   <p><strong>Edición</strong> es para preparar el show, como armar los juguetes antes de jugar. Ves todos los ajustes, la forma de onda del sonido y puedes cambiar todo.</p>
@@ -272,36 +293,6 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <li>En Edición, un cue que está sonando aparece bloqueado: para cambiarlo, primero lo paras o confirmas.</li>
     <li>Si quieres más seguridad, activa <strong>Proteger Función</strong> en el menú Vista: para salir de Función hay que mantener <kbd>Tab</kbd> apretado medio segundo.</li>
   </ul>
-</section>
-
-<section class="card" id="botones">
-  <h2>Los botones de la función</h2>
-  <div class="botones">
-    <div class="boton go"><div class="nombre">GO <kbd>Espacio</kbd></div>Empieza el cue que sigue en la lista. Es como pasar la página de un cuento.</div>
-    <div class="boton"><div class="nombre">Pausa <kbd>P</kbd></div>Congela todo. Lo tocas otra vez y sigue desde donde quedó.</div>
-    <div class="boton"><div class="nombre">Fundir todo <kbd>F</kbd></div>Baja el sonido y apaga la imagen despacito, hasta que no queda nada.</div>
-    <div class="boton parar"><div class="nombre">Parar todo <kbd>Esc</kbd></div>El botón de emergencia. Apaga todo al instante, sin ruidos feos en los altavoces.</div>
-  </div>
-  <p>Con <kbd>Mayús</kbd> + <kbd>F</kbd> se funde solo el último cue que empezó; lo demás sigue sonando.</p>
-  <p>En el panel <strong>Sonando</strong> también puedes parar o fundir un solo cue.</p>
-  <div class="nota">El programa no deja que un doble toque de GO dispare dos cues sin querer: entre un GO y el siguiente hay un tiempo mínimo, que puedes ajustar.</div>
-</section>
-
-<section class="card" id="teclas">
-  <h2>Teclas rápidas</h2>
-  <div class="tabla"><table>
-    <tr><th>Tecla</th><th>Qué hace</th></tr>
-    <tr><td><kbd>Espacio</kbd></td><td>GO: empieza el siguiente cue.</td></tr>
-    <tr><td><kbd>Esc</kbd></td><td>Parar todo.</td></tr>
-    <tr><td><kbd>P</kbd></td><td>Pausa y seguir.</td></tr>
-    <tr><td><kbd>F</kbd></td><td>Fundir todo.</td></tr>
-    <tr><td><kbd>Mayús</kbd> + <kbd>F</kbd></td><td>Fundir solo el último cue que empezó.</td></tr>
-    <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Elegir qué cue sale con el próximo GO.</td></tr>
-    <tr><td><kbd>Tab</kbd></td><td>Cambiar entre Edición y Función.</td></tr>
-    <tr><td><kbd>H</kbd></td><td>Modo Ayuda.</td></tr>
-    <tr><td><kbd>Ctrl</kbd> <kbd>Z</kbd> / <kbd>Ctrl</kbd> <kbd>Y</kbd></td><td>Deshacer y rehacer (en Edición).</td></tr>
-  </table></div>
-  <p class="muted">Si estás escribiendo en un campo de texto, <kbd>Tab</kbd> pasa al campo siguiente en vez de cambiar de modo. Las teclas se podrán cambiar desde el menú Vista.</p>
 </section>
 
 <section class="card" id="salidas">
@@ -345,17 +336,6 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
   <div class="nota cuidado">Si un sonido empieza de golpe desde la mitad del archivo, puede oírse un clic. Para eso está la rampa al iniciar.</div>
 </section>
 
-<section class="card" id="ayuda">
-  <h2>Consejos y Modo Ayuda</h2>
-  <h3>Consejos</h3>
-  <p>Al pasar el ratón por una opción, o al tocar su <strong>?</strong>, aparece un mensaje corto que te dice cuándo conviene usarla, con un ejemplo de escena. Siempre salen en el idioma del programa.</p>
-  <p>Si ya conoces el programa y te molestan, desactívalos en <strong>Ayuda → Mostrar consejos</strong>. Esa misma casilla los vuelve a activar cuando quieras: nunca desaparece.</p>
-  <h3>Modo Ayuda</h3>
-  <p>Pulsa <kbd>H</kbd> o elige <strong>Ayuda → Modo Ayuda</strong>. Después toca cualquier parte de la pantalla y te explica qué hace. Mientras está activo, tocar algo no lo pone en marcha. Para salir, pulsa <kbd>H</kbd> o <kbd>Esc</kbd>.</p>
-  <h3>Primeros pasos</h3>
-  <p>En <strong>Ayuda → Primeros pasos</strong> hay una guía corta para armar tu primer show.</p>
-</section>
-
 <section class="card" id="vista">
   <h2>Cómo se ve el programa</h2>
   <p>En el menú <strong>Vista</strong> eliges cómo se ve:</p>
@@ -368,6 +348,36 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <li><strong>Restaurar vista</strong> vuelve todo a como venía.</li>
   </ul>
   <p>En Función el diseño queda bloqueado para que no lo cambies sin querer; solo se pueden cambiar el brillo y los modos noche y día.</p>
+</section>
+
+<section class="card" id="botones">
+  <h2>Los botones de la función</h2>
+  <div class="botones">
+    <div class="boton go"><div class="nombre">GO <kbd>Espacio</kbd></div>Empieza el cue que sigue en la lista. Es como pasar la página de un cuento.</div>
+    <div class="boton"><div class="nombre">Pausa <kbd>P</kbd></div>Congela todo. Lo tocas otra vez y sigue desde donde quedó.</div>
+    <div class="boton"><div class="nombre">Fundir todo <kbd>F</kbd></div>Baja el sonido y apaga la imagen despacito, hasta que no queda nada.</div>
+    <div class="boton parar"><div class="nombre">Parar todo <kbd>Esc</kbd></div>El botón de emergencia. Apaga todo al instante, sin ruidos feos en los altavoces.</div>
+  </div>
+  <p>Con <kbd>Mayús</kbd> + <kbd>F</kbd> se funde solo el último cue que empezó; lo demás sigue sonando.</p>
+  <p>En el panel <strong>Sonando</strong> también puedes parar o fundir un solo cue.</p>
+  <div class="nota">El programa no deja que un doble toque de GO dispare dos cues sin querer: entre un GO y el siguiente hay un tiempo mínimo, que puedes ajustar.</div>
+</section>
+
+<section class="card" id="teclas">
+  <h2>Teclas rápidas</h2>
+  <div class="tabla"><table>
+    <tr><th>Tecla</th><th>Qué hace</th></tr>
+    <tr><td><kbd>Espacio</kbd></td><td>GO: empieza el siguiente cue.</td></tr>
+    <tr><td><kbd>Esc</kbd></td><td>Parar todo.</td></tr>
+    <tr><td><kbd>P</kbd></td><td>Pausa y seguir.</td></tr>
+    <tr><td><kbd>F</kbd></td><td>Fundir todo.</td></tr>
+    <tr><td><kbd>Mayús</kbd> + <kbd>F</kbd></td><td>Fundir solo el último cue que empezó.</td></tr>
+    <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Elegir qué cue sale con el próximo GO.</td></tr>
+    <tr><td><kbd>Tab</kbd></td><td>Cambiar entre Edición y Función.</td></tr>
+    <tr><td><kbd>H</kbd></td><td>Modo Ayuda.</td></tr>
+    <tr><td><kbd>Ctrl</kbd> <kbd>Z</kbd> / <kbd>Ctrl</kbd> <kbd>Y</kbd></td><td>Deshacer y rehacer (en Edición).</td></tr>
+  </table></div>
+  <p class="muted">Si estás escribiendo en un campo de texto, <kbd>Tab</kbd> pasa al campo siguiente en vez de cambiar de modo. Las teclas se podrán cambiar desde el menú Vista.</p>
 </section>
 
 <section class="card" id="antes">
@@ -408,6 +418,17 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <p>Pulsa <kbd>Esc</kbd> (Parar todo) o para solo ese cue desde el panel Sonando. Con <kbd>↑</kbd> <kbd>↓</kbd> vuelves a elegir el cue que sigue.</p></details>
   <details open><summary>El programa se cerró</summary>
     <p>Un vigilante lo vuelve a abrir solo y recarga el show. El trabajo se guarda solo cada poco tiempo, con copias de seguridad.</p></details>
+</section>
+
+<section class="card" id="ayuda">
+  <h2>Consejos y Modo Ayuda</h2>
+  <h3>Consejos</h3>
+  <p>Al pasar el ratón por una opción, o al tocar su <strong>?</strong>, aparece un mensaje corto que te dice cuándo conviene usarla, con un ejemplo de escena. Siempre salen en el idioma del programa.</p>
+  <p>Si ya conoces el programa y te molestan, desactívalos en <strong>Ayuda → Mostrar consejos</strong>. Esa misma casilla los vuelve a activar cuando quieras: nunca desaparece.</p>
+  <h3>Modo Ayuda</h3>
+  <p>Pulsa <kbd>H</kbd> o elige <strong>Ayuda → Modo Ayuda</strong>. Después toca cualquier parte de la pantalla y te explica qué hace. Mientras está activo, tocar algo no lo pone en marcha. Para salir, pulsa <kbd>H</kbd> o <kbd>Esc</kbd>.</p>
+  <h3>Primeros pasos</h3>
+  <p>En <strong>Ayuda → Primeros pasos</strong> hay una guía corta para armar tu primer show.</p>
 </section>
 
 <section class="card" id="convertir">
@@ -479,6 +500,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
   <div class="tabla"><table>
     <tr><th>Comando</th><th>Qué hace</th></tr>
     <tr><td><code>--version</code></td><td>Versión del motor.</td></tr>
+    <tr><td><code>--comprobar</code></td><td>Revisa los componentes: Windows 10/11, libmpv, Vulkan y WebView2. Dice qué falta y cómo se arregla; código de error si falta algo.</td></tr>
     <tr><td><code>--listar-salidas</code></td><td>Salidas de audio numeradas, con su configuración, cuál es la predeterminada y su identificador estable.</td></tr>
     <tr><td><code>--listar-pantallas</code></td><td>Pantallas: nombre del monitor o proyector, tarjeta gráfica, resolución en píxeles reales, frecuencia, posición y cuál es la principal.</td></tr>
     <tr><td><code>--prueba-video [cambios]</code></td><td>Abre la proyección y hace cambios entre dos capas contando cuadros negros, colores raros, cuadros perdidos y el tiempo del GO a la imagen.</td></tr>
@@ -520,6 +542,27 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
   var guardado=null;try{guardado=localStorage.getItem('otaconvert-manual-dia')}catch(e){}
   poner(guardado==='1');
   osc.onclick=function(){poner(false)};dia.onclick=function(){poner(true)};
+})();
+// Índice: buscador y sección actual resaltada.
+(function(){
+  var enlaces=[].slice.call(document.querySelectorAll('#indice a'));
+  var pasos=[].slice.call(document.querySelectorAll('#indice .paso'));
+  var nada=document.getElementById('nada');
+  function sinTildes(s){return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')}
+  var textos=enlaces.map(function(a){var s=document.querySelector(a.getAttribute('href'));return sinTildes(a.textContent+' '+(s?s.textContent:''))});
+  document.getElementById('buscar').addEventListener('input',function(e){
+    var q=sinTildes(e.target.value.trim()),algo=false;
+    enlaces.forEach(function(a,i){var ver=!q||textos[i].indexOf(q)>=0;a.hidden=!ver;if(ver)algo=true});
+    pasos.forEach(function(p){var n=p.nextElementSibling,ver=false;while(n&&n.tagName==='A'){if(!n.hidden)ver=true;n=n.nextElementSibling}p.hidden=!ver});
+    nada.hidden=algo;
+  });
+  if('IntersectionObserver' in window){
+    var porId={};enlaces.forEach(function(a){porId[a.getAttribute('href').slice(1)]=a});
+    var obs=new IntersectionObserver(function(es){es.forEach(function(e){
+      if(e.isIntersecting&&porId[e.target.id]){enlaces.forEach(function(a){a.classList.remove('activo')});porId[e.target.id].classList.add('activo')}
+    })},{rootMargin:'-20% 0px -70% 0px'});
+    Object.keys(porId).forEach(function(id){var s=document.getElementById(id);if(s)obs.observe(s)});
+  }
 })();
 </script>
 </body>

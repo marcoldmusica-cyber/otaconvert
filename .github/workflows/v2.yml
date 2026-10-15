@@ -89,6 +89,10 @@ jobs:
       # El equipo de GitHub no tiene tarjeta gráfica: la prueba de vídeo puede
       # no funcionar aquí. Se ejecuta para ver hasta dónde llega; la que manda
       # es la del equipo real.
+      - name: Componentes (informativa)
+        continue-on-error: true
+        run: target\release\otaconvert-motor.exe --comprobar
+
       - name: Prueba de vídeo (informativa)
         continue-on-error: true
         run: target\release\otaconvert-motor.exe --prueba-video 20

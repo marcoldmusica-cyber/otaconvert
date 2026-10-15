@@ -9,6 +9,7 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use otaconvert_audio::prueba::Escenario;
 use otaconvert_audio::{crear, Ajustes, Comando, Control, Detector, Mezclador, Pista};
 
+mod componentes;
 mod pantallas;
 #[cfg(windows)]
 mod prueba_video;
@@ -66,6 +67,7 @@ fn main() -> ExitCode {
             listar_salidas();
             Ok(true)
         }
+        Some("--comprobar") => Ok(componentes::imprimir()),
         Some("--listar-pantallas") => {
             pantallas::imprimir();
             Ok(true)
@@ -78,6 +80,7 @@ fn main() -> ExitCode {
             println!("otaconvert-motor {VERSION}");
             println!("Uso:");
             println!("  --version");
+            println!("  --comprobar                            componentes necesarios: qué hay y qué falta");
             println!("  --listar-salidas                       salidas de audio, con número e identificador");
             println!("  --listar-pantallas                     pantallas para la salida de vídeo");
             println!("  --tono [segundos] [margen_ms]          tono de 440 Hz a -12 dBFS");
