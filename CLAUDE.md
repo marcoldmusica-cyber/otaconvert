@@ -247,6 +247,8 @@ Objetivo: que el programa no abra puertas a gente malintencionada de fuera. Prin
 - **V1 (Python):** FFmpeg se llama con lista de argumentos (sin `shell=True`) y rutas absolutas (un nombre de archivo no puede pasar por opción); la configuración JSON se lee con `try/except` y no ejecuta nada; no hay red.
 - **Repositorio (GitHub):** público; escaneo de secretos y bloqueo de subida de secretos **activados**; permisos por defecto de los workflows: solo lectura.
 
+- **Verificado en GitHub Actions el 15/10/2026** (run 38803101598, commit 59ac7a1): 21 pruebas en verde; el exe solo depende de DLL del sistema; `dumpbin /loadconfig` muestra `0800 Dependent Load Flag`; el motor arranca; `cargo audit` cargó 1.329 avisos de RustSec, revisó 94 librerías y no encontró nada. Huella del exe de esa compilación: `E907AE88…52B45E5`.
+
 **Pendiente: necesita el permiso del usuario (ajustes de GitHub)**
 - Activar **Dependabot alerts** (avisos de vulnerabilidades; hoy desactivado).
 - Proteger la rama `main` contra borrado y `force push`.
