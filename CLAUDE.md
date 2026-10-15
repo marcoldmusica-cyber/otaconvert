@@ -132,7 +132,7 @@ El usuario pidió **no llenar la ventana de botones** para ajustes del tipo "mos
 
 - Cada opción aparece **una sola vez** (nada repetido en dos menús ni como botón suelto).
 - En Función los menús siguen ahí pero lo que edita queda gris: solo Vista → Modo noche/Modo día/brillo, Archivo → Guardar y todo Ayuda. Abrir un menú nunca roba Espacio (GO) ni Esc (Parar todo): Esc primero cierra el menú y un segundo Esc para todo (a verificar en Fase 1 que no retrasa el pánico; si lo retrasa, Esc para todo siempre y el menú se cierra a la vez).
-- Pendiente: el boceto aprobado (`v2/diseno/`) todavía tiene Vista y Ayuda como botones en la cabecera; pasarlos a esta barra cuando se retome el boceto o en la Fase 1.
+- Boceto actualizado el 15/10/2026: la barra de menús ya está en `v2/diseno/boceto-pantalla-principal.html` (Vista y Ayuda dejaron de ser botones de la cabecera; el Modo Ayuda se activa desde Ayuda → Modo Ayuda o con H). Captura de cómo se ve al abrir, a 1366×768: `v2/diseno/pantalla-inicio.png` (hecha con Edge sin ventana: `msedge --headless=new --window-size=1366,768 --screenshot=…`). Comprobado en el navegador: los menús abren y cierran, en Función Edición queda en gris y Guardar sigue activo, Mostrar consejos se apaga y se vuelve a encender. La versión publicada del boceto (enlace de la sección 2) todavía es la anterior.
 
 ### Menú Vista
 

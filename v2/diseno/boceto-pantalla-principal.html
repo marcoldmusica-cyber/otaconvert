@@ -188,6 +188,14 @@ fieldset:disabled{opacity:.45}
 .helpbar p{margin:0;font-size:15px}
 /* Menú Vista */
 .vista-wrap{position:relative}
+/* Barra de menús: arriba de todo, discreta; los ajustes viven aquí y no como botones sueltos */
+.menubar{order:-1;display:flex;align-items:center;gap:2px;margin:-4px 0 -6px;padding:0 4px}
+.mb{position:relative}
+.mb>button{background:none;border:0;border-radius:8px;padding:5px 10px;color:var(--muted);font-size:13px}
+.mb>button:hover,.mb>button[aria-expanded="true"]{background:var(--hover);color:var(--text)}
+.menubar .menu{left:0;right:auto;top:calc(100% + 4px)}
+.menu kbd{font-size:11px;padding:0 5px}
+.help-mode[aria-pressed="true"]{color:var(--accent)}
 .menu{position:absolute;right:0;top:calc(100% + 8px);z-index:25;min-width:240px;background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:6px;display:flex;flex-direction:column;gap:2px;box-shadow:0 12px 40px rgba(0,0,0,.45)}
 .menu button{background:none;border:0;text-align:left;padding:8px 12px;border-radius:10px;display:flex;justify-content:space-between;gap:12px}
 .menu button:hover:not(:disabled){background:var(--hover)}
@@ -260,6 +268,70 @@ fieldset:disabled{opacity:.45}
 </div>
 
 <div class="app edit" id="app">
+  <nav class="menubar" role="menubar" data-help="menubar">
+    <div class="mb">
+      <button aria-haspopup="true" aria-expanded="false" data-menu="archivo">Archivo</button>
+      <div class="menu" role="menu" id="m-archivo" hidden>
+        <button role="menuitem" data-edit>Nuevo show</button>
+        <button role="menuitem" data-edit>Abrir…</button>
+        <button role="menuitem" data-edit>Abrir reciente</button>
+        <div class="sep"></div>
+        <button role="menuitem">Guardar <kbd>Ctrl S</kbd></button>
+        <button role="menuitem" data-edit>Guardar como…</button>
+        <button role="menuitem" data-edit>Reunir medios…</button>
+        <div class="sep"></div>
+        <button role="menuitem" data-edit>Salir</button>
+      </div>
+    </div>
+    <div class="mb">
+      <button aria-haspopup="true" aria-expanded="false" data-menu="edicion">Edición</button>
+      <div class="menu" role="menu" id="m-edicion" hidden>
+        <button role="menuitem" data-edit>Deshacer <kbd>Ctrl Z</kbd></button>
+        <button role="menuitem" data-edit>Rehacer <kbd>Ctrl Y</kbd></button>
+        <div class="sep"></div>
+        <button role="menuitem" data-edit>Copiar</button>
+        <button role="menuitem" data-edit>Pegar</button>
+        <button role="menuitem" data-edit>Eliminar cue</button>
+        <div class="sep"></div>
+        <button role="menuitem" data-edit>Ajustes del show…</button>
+      </div>
+    </div>
+    <div class="mb vista-wrap">
+      <button id="vista" data-help="vista" aria-haspopup="true" aria-expanded="false">Vista</button>
+      <div class="menu" id="vistaMenu" role="menu" hidden>
+        <button role="menuitem" data-act="customize">Personalizar…</button>
+        <div class="lock-note" id="lockNote" hidden>En Función el diseño está bloqueado. Solo puedes cambiar el Modo noche o el Modo día.</div>
+        <div class="sep"></div>
+        <div class="lbl">Vistas listas</div>
+        <button role="menuitemradio" data-preset="standard">Estándar</button>
+        <button role="menuitemradio" data-preset="minimal">Minimalista</button>
+        <button role="menuitemradio" data-preset="touch">Pantalla táctil</button>
+        <button role="menuitemradio" data-preset="contrast">Alto contraste</button>
+        <div class="sep"></div>
+        <button role="menuitemcheckbox" data-act="night">Modo noche</button>
+        <button role="menuitemcheckbox" data-act="day">Modo día (al aire libre)</button>
+        <div class="sep"></div>
+        <div class="lbl">Idioma</div>
+        <button role="menuitemradio" data-act="lang" data-lang="es" aria-checked="true">Español</button>
+        <button role="menuitemradio" data-act="lang" data-lang="en">English</button>
+        <div class="sep"></div>
+        <button role="menuitem" data-act="reset">Restaurar vista</button>
+      </div>
+    </div>
+    <div class="mb">
+      <button aria-haspopup="true" aria-expanded="false" data-menu="ayuda">Ayuda</button>
+      <div class="menu" role="menu" id="m-ayuda" hidden>
+        <button role="menuitemcheckbox" class="help-mode" id="help" aria-pressed="false">Modo Ayuda <kbd>H</kbd></button>
+        <button role="menuitem">Primeros pasos</button>
+        <button role="menuitemcheckbox" id="tips" aria-checked="true">Mostrar consejos</button>
+        <div class="sep"></div>
+        <button role="menuitem">Atajos de teclado</button>
+        <button role="menuitem" data-edit>Prueba de hardware…</button>
+        <div class="sep"></div>
+        <button role="menuitem">Acerca de Otaconvert</button>
+      </div>
+    </div>
+  </nav>
   <header class="top">
     <div class="brand">
       <div class="bars" aria-hidden="true">
@@ -281,25 +353,6 @@ fieldset:disabled{opacity:.45}
     </div>
     <div class="chip" title="Comprobación previa" data-help="check"><span class="dot"></span>Todo listo</div>
     <div class="clock num" id="clock" data-help="clock">00:00:00</div>
-    <div class="vista-wrap">
-      <button class="btn" id="vista" data-help="vista" aria-haspopup="true" aria-expanded="false">Vista</button>
-      <div class="menu" id="vistaMenu" role="menu" hidden>
-        <button role="menuitem" data-act="customize">Personalizar…</button>
-        <div class="lock-note" id="lockNote" hidden>En Función el diseño está bloqueado. Solo puedes cambiar el Modo noche o el Modo día.</div>
-        <div class="sep"></div>
-        <div class="lbl">Vistas listas</div>
-        <button role="menuitemradio" data-preset="standard">Estándar</button>
-        <button role="menuitemradio" data-preset="minimal">Minimalista</button>
-        <button role="menuitemradio" data-preset="touch">Pantalla táctil</button>
-        <button role="menuitemradio" data-preset="contrast">Alto contraste</button>
-        <div class="sep"></div>
-        <button role="menuitemcheckbox" data-act="night">Modo noche</button>
-        <button role="menuitemcheckbox" data-act="day">Modo día (al aire libre)</button>
-        <div class="sep"></div>
-        <button role="menuitem" data-act="reset">Restaurar vista</button>
-      </div>
-    </div>
-    <button class="btn help-btn" id="help" aria-pressed="false">Ayuda</button>
   </header>
 
   <div class="zone zone-top" data-drop="bar" data-where="top">Suelta aquí la barra de botones para ponerla arriba</div>
@@ -545,7 +598,7 @@ const menu=$('#vistaMenu');
 function openMenu(on){menu.hidden=!on;$('#vista').setAttribute('aria-expanded',on);
   const locked=mode==='show';$('#lockNote').hidden=!locked;
   menu.querySelectorAll('[data-preset],[data-act="customize"],[data-act="reset"]').forEach(b=>b.disabled=locked)}
-$('#vista').onclick=e=>{if(helping)return;openMenu(menu.hidden)};
+$('#vista').onclick=e=>{if(helping)return;closeMenus();openMenu(menu.hidden)};
 document.addEventListener('click',e=>{if(!menu.hidden&&!e.target.closest('.vista-wrap'))openMenu(false)});
 menu.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b||b.disabled)return;openMenu(false);
@@ -553,8 +606,22 @@ menu.addEventListener('click',e=>{
   const a=b.dataset.act;
   if(a==='customize')startCustomize();
   else if(a==='night'||a==='day'){layout.theme=layout.theme===a?'normal':a;applyLayout();renderSide();toast(layout.theme==='normal'?'Colores normales':b.textContent.trim())}
+  else if(a==='lang'){document.querySelectorAll('[data-act="lang"]').forEach(x=>x.setAttribute('aria-checked',x===b));toast(b.dataset.lang==='es'?'Todo en español':'Everything in English (en el boceto solo se ve el aviso)')}
   else if(a==='reset'){resetView()}
 });
+// Barra de menús (Archivo, Edición, Ayuda; Vista usa el código de arriba)
+const MENUS=[...document.querySelectorAll('[data-menu]')];
+function closeMenus(){MENUS.forEach(b=>{b.setAttribute('aria-expanded',false);b.nextElementSibling.hidden=true})}
+MENUS.forEach(b=>b.onclick=()=>{
+  if(helping)return;const m=b.nextElementSibling,open=m.hidden;closeMenus();openMenu(false);
+  if(open){m.hidden=false;b.setAttribute('aria-expanded',true);m.querySelectorAll('[data-edit]').forEach(x=>x.disabled=mode==='show')}
+});
+document.addEventListener('click',e=>{if(!e.target.closest('.mb'))closeMenus()});
+document.querySelectorAll('.menubar .menu:not(#vistaMenu)').forEach(m=>m.addEventListener('click',e=>{
+  const it=e.target.closest('button');if(!it||it.disabled)return;closeMenus();if(it.id==='help')return;
+  if(it.id==='tips'){const on=it.getAttribute('aria-checked')!=='true';it.setAttribute('aria-checked',on);toast(on?'Consejos visibles':'Consejos ocultos · se vuelven a activar en Ayuda');return}
+  toast(it.firstChild.textContent.trim()+' · solo demostración');
+}));
 function resetView(){layout=Object.assign({},DEF);applyLayout();toast('Vista restaurada')}
 
 // Personalizar
@@ -622,6 +689,7 @@ const HELP={
   tabs:['Show y Convertir','Show es donde preparas y haces la función. Convertir sirve para cambiar archivos de audio a otro tipo, como la primera versión del programa. Para el show no hace falta usarlo: el programa prepara los archivos solo.'],
   check:['Todo listo','Antes de la función, el programa revisa solo que estén bien la tarjeta de sonido, el proyector y todos los archivos. Verde quiere decir que puedes empezar tranquilo. Si algo falla, te dice qué es y cómo arreglarlo.'],
   clock:['Reloj','La hora de ahora, para saber cuándo empieza la función.'],
+  menubar:['Menús de arriba','Aquí están guardados los ajustes, como los cajones de un mueble: Archivo para abrir y guardar el show, Edición para deshacer y cambiar ajustes, Vista para cómo se ve y Ayuda para aprender. Así la pantalla queda limpia, solo con los botones del show.'],
   vista:['Vista','Aquí eliges cómo se ve el programa. Con Personalizar mueves los bloques y los botones a donde te queden más cómodos, como acomodar los muebles de tu cuarto. Hay vistas listas, como Pantalla táctil con botones grandes, Modo noche, oscuro y rojizo para la cabina, o Modo día, blanco y bien marcado para leerlo a pleno sol en funciones al aire libre. Si algo queda feo, Restaurar vista lo deja como al principio.']
 };
 let helping=false,bubble=null;
