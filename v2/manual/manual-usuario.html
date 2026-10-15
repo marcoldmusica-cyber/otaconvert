@@ -437,6 +437,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <li>Estrés: 3 × 10 min a 48 kHz, unas 1.850 órdenes al azar cada una (iniciar, parar, pausar, reanudar, saltar, volumen, parar todo, maestro), bloques de 1 a 1024 cuadros: 0 discontinuidades (máxima 0,0023 frente a un umbral de 0,0127), 0 recortes.</li>
     <li>Control del detector: sin rampas encuentra cientos de chasquidos en 2 minutos.</li>
     <li>Prueba en vivo en la tarjeta real: <code>otaconvert-motor --prueba-vivo [segundos] [margen_ms]</code> (intervalos entre llamadas, cortes probables, discontinuidades, recortes, errores).</li>
+    <li>Primera prueba en un equipo real (15/10/2026, tarjeta USB Audio CODEC, 48 kHz): 60 s con 50 ms de margen y 30 s con 20 ms, cientos de órdenes al azar, intervalo máximo entre llamadas 10,9 ms, 0 cortes, 0 discontinuidades, 0 recortes. Esta medición no ve cortes dentro del propio Windows o del driver: la Prueba de hardware grabará la salida para comprobarlo.</li>
   </ul>
 
   <h3>Vídeo <span class="estado pronto">Próximamente</span></h3>
