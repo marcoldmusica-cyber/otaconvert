@@ -17,7 +17,14 @@
   --accent:#B9463B; --accent-h:#A13C33; --ok:#B9463B; --err:#E0584C; --warn:#C0674E;
   --on-accent:#080404;
 }
+:root[data-contrast]{
+  --bg:#000000; --card:#000000; --card2:#0D0D10; --hover:#1E1F26; --border:#BFC6D4;
+  --text:#FFFFFF; --muted:#E1E5EC; --dim:#B8BECA;
+  --accent:#8C9BFF; --accent-h:#A4B0FF; --ok:#6EF0AE; --err:#FF8A84; --warn:#FFD27A;
+  --on-accent:#000000;
+}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 var(--font);padding-inline:16px;padding-block:16px;transition:background .3s,color .3s}
 button{font:inherit;color:inherit;cursor:pointer}
@@ -28,7 +35,19 @@ button:focus-visible,input:focus-visible,select:focus-visible,.row:focus-visible
 .intro b{color:var(--text);font-weight:600}
 kbd{font:12px var(--mono);background:var(--card2);border:1px solid var(--border);border-bottom-width:2px;border-radius:6px;padding:1px 6px;color:var(--text)}
 
-.app{max-width:1280px;margin:0 auto;height:calc(100% - 40px);min-height:620px;display:grid;grid-template-rows:auto 1fr auto;gap:12px}
+.app{max-width:1280px;margin:0 auto;height:calc(100% - 40px);min-height:620px;display:flex;flex-direction:column;gap:12px;--rowpad:9px}
+.top{order:0}.zone-top{order:1}.body{order:3;flex:1}.zone-bottom{order:4}.transport{order:5;position:relative}
+.app.bar-top .transport{order:2}
+.app.side-left .body{grid-template-columns:minmax(0,1fr) minmax(0,1.35fr)}
+.app.side-left #side{order:-1}
+.app.no-side .body{grid-template-columns:minmax(0,1fr)}
+.app.no-side #side{display:none}
+.app.go-right .transport{grid-template-columns:minmax(0,1fr) minmax(0,1.35fr)}
+.app.go-right .go-wrap{order:2}
+.app.go-big .go{min-height:118px;font-size:40px}
+.app.d-compact{--rowpad:5px}
+.app.d-touch{--rowpad:15px}
+.app.d-touch .tb,.app.d-touch .go{min-height:104px}
 
 /* Cabecera */
 .top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:10px 14px}
@@ -64,7 +83,7 @@ kbd{font:12px var(--mono);background:var(--card2);border:1px solid var(--border)
 
 /* Lista de cues */
 .list{overflow:auto;flex:1;padding:6px}
-.row{display:grid;grid-template-columns:30px 22px minmax(0,1fr) 92px 64px;align-items:center;gap:10px;padding:9px 10px;border-radius:12px;position:relative;cursor:default;border:1px solid transparent}
+.row{display:grid;grid-template-columns:30px 22px minmax(0,1fr) 92px 64px;align-items:center;gap:10px;padding:var(--rowpad) 10px;border-radius:12px;position:relative;cursor:default;border:1px solid transparent}
 .edit .row{cursor:pointer}
 .edit .row:hover{background:var(--hover)}
 .row .n{color:var(--dim);font:13px var(--mono);text-align:right}
@@ -159,6 +178,37 @@ fieldset:disabled{opacity:.45}
 .helpbar{display:none;max-width:1280px;margin:0 auto 12px;background:color-mix(in srgb,var(--accent) 14%,var(--card));border:1px solid var(--accent);border-radius:14px;padding:12px 16px;color:var(--text);gap:8px 16px;flex-wrap:wrap;align-items:center;justify-content:space-between}
 .helping .helpbar{display:flex}
 .helpbar p{margin:0;font-size:15px}
+/* Menú Vista */
+.vista-wrap{position:relative}
+.menu{position:absolute;right:0;top:calc(100% + 8px);z-index:25;min-width:240px;background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:6px;display:flex;flex-direction:column;gap:2px;box-shadow:0 12px 40px rgba(0,0,0,.45)}
+.menu button{background:none;border:0;text-align:left;padding:8px 12px;border-radius:10px;display:flex;justify-content:space-between;gap:12px}
+.menu button:hover:not(:disabled){background:var(--hover)}
+.menu button:disabled{opacity:.4;cursor:not-allowed}
+.menu button[aria-checked="true"]::after{content:"✓";color:var(--accent)}
+.menu .sep{height:1px;background:var(--border);margin:4px 6px}
+.menu .lbl{font-size:12px;color:var(--dim);padding:6px 12px 2px}
+.menu .lock-note{font-size:12px;color:var(--warn);padding:4px 12px 6px}
+
+/* Personalizar */
+.custombar{display:none;max-width:1280px;margin:0 auto 12px;background:color-mix(in srgb,var(--accent) 14%,var(--card));border:1px solid var(--accent);border-radius:14px;padding:12px 16px;color:var(--text);gap:10px 18px;flex-wrap:wrap;align-items:center}
+.customizing .custombar{display:flex}
+.custombar p{margin:0;font-size:14px;flex:1 1 320px}
+.custombar p small{display:block;color:var(--muted)}
+.ctl{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.ctl select{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:6px 8px;color:var(--text);font:inherit}
+.ctl input{accent-color:var(--accent);width:16px;height:16px}
+.ctl .btn{padding:5px 10px}
+.primary-btn{background:var(--accent);color:var(--on-accent);border:0;border-radius:10px;padding:8px 18px;font-weight:600}
+.app.customizing [data-drag]{outline:2px dashed var(--accent);outline-offset:3px;cursor:grab;touch-action:none}
+.app.customizing [data-drag] *{cursor:grab}
+.app.customizing .body{user-select:none}
+.dragging{opacity:.75;z-index:30;position:relative;pointer-events:none;box-shadow:0 18px 50px rgba(0,0,0,.5)}
+.drop-over{outline:3px solid var(--ok)!important;outline-offset:3px}
+.zone{display:none;border:2px dashed var(--border);border-radius:14px;padding:10px;text-align:center;color:var(--muted);font-size:13px}
+.app.customizing .zone{display:block}
+.bar-handle{display:none;position:absolute;left:50%;top:-11px;transform:translateX(-50%);z-index:3;background:var(--accent);color:var(--on-accent);font-size:12px;font-weight:600;border-radius:99px;padding:2px 12px;white-space:nowrap}
+.app.customizing .bar-handle{display:block}
+.app.customizing .bar-handle{outline:none!important}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:10px 16px;opacity:0;transition:.25s;pointer-events:none;color:var(--text);max-width:calc(100% - 32px)}
 .toast.on{opacity:1;transform:translateX(-50%)}
 
@@ -168,7 +218,7 @@ fieldset:disabled{opacity:.45}
 
 @media (max-width:860px){
   .app{height:auto}
-  .body,.transport{grid-template-columns:1fr}
+  .app .body,.app .transport{grid-template-columns:1fr!important}
   .list{max-height:420px}
   .row{grid-template-columns:24px 20px minmax(0,1fr) 54px}
   .row .out{display:none}
@@ -188,6 +238,16 @@ fieldset:disabled{opacity:.45}
 <div class="helpbar" role="status">
   <p><b>Modo Ayuda.</b> Toca cualquier parte con borde punteado y te cuento para qué sirve.</p>
   <button class="btn" id="helpOff">Salir de la ayuda</button>
+</div>
+
+<div class="custombar" role="region" aria-label="Personalizar la vista">
+  <p><b>Personalizando la vista.</b> Arrastra los bloques con borde punteado: los dos paneles, la barra de botones (desde su etiqueta) y cada botón.<small>GO y Parar todo se pueden mover y agrandar, pero no ocultar.</small></p>
+  <div class="ctl">Letra <button class="btn" id="fontMinus" aria-label="Letra más chica">A−</button><button class="btn" id="fontPlus" aria-label="Letra más grande">A+</button></div>
+  <label class="ctl" for="density">Densidad <select id="density"><option value="compact">Compacta</option><option value="normal">Normal</option><option value="touch">Táctil</option></select></label>
+  <label class="ctl" for="showSide"><input type="checkbox" id="showSide"> Panel derecho</label>
+  <label class="ctl" for="goBig"><input type="checkbox" id="goBig"> GO grande</label>
+  <button class="btn" id="resetView">Restaurar vista</button>
+  <button class="primary-btn" id="doneCustom">Listo</button>
 </div>
 
 <div class="app edit" id="app">
@@ -212,17 +272,37 @@ fieldset:disabled{opacity:.45}
     </div>
     <div class="chip" title="Comprobación previa" data-help="check"><span class="dot"></span>Todo listo</div>
     <div class="clock num" id="clock" data-help="clock">00:00:00</div>
-    <button class="btn" id="night" data-help="night">Modo noche</button>
+    <div class="vista-wrap">
+      <button class="btn" id="vista" data-help="vista" aria-haspopup="true" aria-expanded="false">Vista</button>
+      <div class="menu" id="vistaMenu" role="menu" hidden>
+        <button role="menuitem" data-act="customize">Personalizar…</button>
+        <div class="lock-note" id="lockNote" hidden>En Función el diseño está bloqueado. Solo puedes cambiar el Modo noche.</div>
+        <div class="sep"></div>
+        <div class="lbl">Vistas listas</div>
+        <button role="menuitemradio" data-preset="standard">Estándar</button>
+        <button role="menuitemradio" data-preset="minimal">Minimalista</button>
+        <button role="menuitemradio" data-preset="touch">Pantalla táctil</button>
+        <button role="menuitemradio" data-preset="contrast">Alto contraste</button>
+        <div class="sep"></div>
+        <button role="menuitemcheckbox" data-act="night">Modo noche</button>
+        <div class="sep"></div>
+        <button role="menuitem" data-act="reset">Restaurar vista</button>
+      </div>
+    </div>
     <button class="btn help-btn" id="help" aria-pressed="false">Ayuda</button>
   </header>
 
+  <div class="zone zone-top" data-drop="bar" data-where="top">Suelta aquí la barra de botones para ponerla arriba</div>
+
   <main class="body">
-    <section class="panel" data-help="list">
+    <section class="panel" id="listPanel" data-help="list" data-drag="panel">
       <div class="panel-h"><strong>Cues</strong><span id="listInfo" class="num"></span></div>
       <div class="list" id="list"></div>
     </section>
-    <section class="panel" id="side" data-help="side"></section>
+    <section class="panel" id="side" data-help="side" data-drag="panel"></section>
   </main>
+
+  <div class="zone zone-bottom" data-drop="bar" data-where="bottom">Suelta aquí la barra de botones para ponerla abajo</div>
 
   <section class="convert">
     <div>
@@ -235,14 +315,15 @@ fieldset:disabled{opacity:.45}
     </div>
   </section>
 
-  <footer class="transport">
-    <div class="go-wrap">
+  <footer class="transport" id="transport">
+    <div class="bar-handle" data-drag="bar">Mover barra</div>
+    <div class="go-wrap" data-drag="btn" data-key="go">
       <button class="go" id="go" data-help="go">GO <small id="goNext"></small></button>
     </div>
     <div class="side-btns">
-      <button class="tb" id="pause" aria-pressed="false" data-help="pause"><span>Pausa</span><kbd>P</kbd></button>
-      <button class="tb" id="fade" data-help="fade"><span>Fundir todo</span><kbd>F</kbd></button>
-      <button class="tb panic" id="stop" data-help="stop"><span>Parar todo</span><kbd>Esc</kbd></button>
+      <button class="tb" id="pause" aria-pressed="false" data-help="pause" data-drag="btn" data-key="pause"><span>Pausa</span><kbd>P</kbd></button>
+      <button class="tb" id="fade" data-help="fade" data-drag="btn" data-key="fade"><span>Fundir todo</span><kbd>F</kbd></button>
+      <button class="tb panic" id="stop" data-help="stop" data-drag="btn" data-key="stop"><span>Parar todo</span><kbd>Esc</kbd></button>
     </div>
   </footer>
 </div>
@@ -251,6 +332,7 @@ fieldset:disabled{opacity:.45}
   <div><b>Lo que no se mueve</b>La lista de cues, el GO y los cuatro botones de función quedan en el mismo sitio en los dos modos. Solo cambia el panel de la derecha.</div>
   <div><b>Edición</b>Clic en un cue para verlo y dejarlo en espera. Si está sonando, aparece bloqueado hasta pararlo o confirmar.</div>
   <div><b>Función</b>El panel muestra lo que suena, el tiempo restante, lo que viene y la miniatura del proyector. Pestaña Convertir bloqueada.</div>
+  <div><b>Vista → Personalizar</b>Arrastra paneles, la barra y los botones a donde quieras; cambia letra, densidad y tamaño del GO. Se guarda solo. También hay vistas listas (Minimalista, Táctil, Alto contraste) y Restaurar vista. En Función queda bloqueado.</div>
   <div><b>Ayuda</b>Pulsa Ayuda (o la tecla H) y toca cualquier parte: te explica para qué sirve con palabras muy simples. En la app real cada pantalla tendrá además una guía de primeros pasos.</div>
   <div><b>Vídeo por capas</b>Prueba GO sobre los cues 2, 5 y 6: la miniatura funde el nuevo encima del anterior, nunca pasa por negro.</div>
 </div>
@@ -398,7 +480,7 @@ function go(){
 function stopAll(){playing.clear();unlocked=null;paused=false;$('#pause').setAttribute('aria-pressed','false');render();toast('Todo parado (rampa de 10 ms, sin chasquido)')}
 function fadeAll(){if(!playing.size)return;playing.forEach(p=>{if(p.fade===null)p.fade=3});toast('Fundiendo todo en 3 s');render()}
 function togglePause(){if(!playing.size)return;paused=!paused;$('#pause').setAttribute('aria-pressed',paused);toast(paused?'En pausa':'Reanudado');renderList()}
-function setMode(m){if(m===mode)return;mode=m;unlocked=null;render();toast(m==='show'?'Modo Función':'Modo Edición')}
+function setMode(m){if(m===mode)return;mode=m;unlocked=null;if(m==='show'&&customizing)endCustomize(true);render();toast(m==='show'?'Modo Función':'Modo Edición')}
 function setTab(t){
   app.classList.toggle('conv',t==='conv');
   $('#tabShow').setAttribute('aria-selected',t==='show');$('#tabConv').setAttribute('aria-selected',t==='conv');
@@ -411,7 +493,105 @@ list.addEventListener('click',e=>{
 $('#go').onclick=go;$('#stop').onclick=stopAll;$('#fade').onclick=fadeAll;$('#pause').onclick=togglePause;
 $('#mEdit').onclick=()=>setMode('edit');$('#mShow').onclick=()=>setMode('show');
 $('#tabShow').onclick=()=>setTab('show');$('#tabConv').onclick=()=>setTab('conv');
-$('#night').onclick=()=>{const r=document.documentElement;r.toggleAttribute('data-night');$('#night').textContent=r.hasAttribute('data-night')?'Modo normal':'Modo noche';renderSide()};
+// ---- Vista: la distribución es un objeto de datos; la pantalla se arma a partir de él ----
+const DEF={sidePos:'right',bar:'bottom',goRight:false,btnOrder:['pause','fade','stop'],showSide:true,goBig:false,font:14,density:'normal',theme:'normal',preset:'standard'};
+const PRESETS={
+  standard:{},
+  minimal:{showSide:false,density:'compact',font:13},
+  touch:{density:'touch',goBig:true,font:16},
+  contrast:{theme:'contrast'}
+};
+let layout=load();
+function load(){try{const s=JSON.parse(localStorage.getItem('ota-boceto-vista'));if(s)return Object.assign({},DEF,s)}catch(e){}return Object.assign({},DEF)}
+function save(){try{localStorage.setItem('ota-boceto-vista',JSON.stringify(layout))}catch(e){}}
+function applyLayout(){
+  app.classList.toggle('side-left',layout.sidePos==='left');
+  app.classList.toggle('bar-top',layout.bar==='top');
+  app.classList.toggle('go-right',layout.goRight);
+  app.classList.toggle('no-side',!layout.showSide);
+  app.classList.toggle('go-big',layout.goBig);
+  app.classList.toggle('d-compact',layout.density==='compact');
+  app.classList.toggle('d-touch',layout.density==='touch');
+  app.style.fontSize=layout.font+'px';
+  const r=document.documentElement;
+  r.toggleAttribute('data-night',layout.theme==='night');
+  r.toggleAttribute('data-contrast',layout.theme==='contrast');
+  layout.btnOrder.forEach((k,i)=>{$('#'+k).style.order=i});
+  $('#density').value=layout.density;$('#showSide').checked=layout.showSide;$('#goBig').checked=layout.goBig;
+  document.querySelectorAll('[data-preset]').forEach(b=>b.setAttribute('aria-checked',b.dataset.preset===layout.preset));
+  document.querySelector('[data-act="night"]').setAttribute('aria-checked',layout.theme==='night');
+  save();if(mode==='edit')requestAnimationFrame(()=>waveDraw(byId(selected)));
+}
+function change(p){Object.assign(layout,p,{preset:'custom'});applyLayout()}
+
+// Menú
+const menu=$('#vistaMenu');
+function openMenu(on){menu.hidden=!on;$('#vista').setAttribute('aria-expanded',on);
+  const locked=mode==='show';$('#lockNote').hidden=!locked;
+  menu.querySelectorAll('[data-preset],[data-act="customize"],[data-act="reset"]').forEach(b=>b.disabled=locked)}
+$('#vista').onclick=e=>{if(helping)return;openMenu(menu.hidden)};
+document.addEventListener('click',e=>{if(!menu.hidden&&!e.target.closest('.vista-wrap'))openMenu(false)});
+menu.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b||b.disabled)return;openMenu(false);
+  if(b.dataset.preset){const keepNight=layout.theme==='night'&&b.dataset.preset!=='contrast';layout=Object.assign({},DEF,PRESETS[b.dataset.preset],{preset:b.dataset.preset});if(keepNight)layout.theme='night';applyLayout();toast('Vista '+b.textContent.trim());return}
+  const a=b.dataset.act;
+  if(a==='customize')startCustomize();
+  else if(a==='night'){layout.theme=layout.theme==='night'?'normal':'night';applyLayout();renderSide()}
+  else if(a==='reset'){resetView()}
+});
+function resetView(){layout=Object.assign({},DEF);applyLayout();toast('Vista restaurada')}
+
+// Personalizar
+let customizing=false;
+function startCustomize(){if(mode==='show')return;if(helping)setHelp(false);customizing=true;document.body.classList.add('customizing');app.classList.add('customizing');window.scrollTo({top:0,behavior:'smooth'})}
+function endCustomize(fromMode){customizing=false;document.body.classList.remove('customizing');app.classList.remove('customizing');toast(fromMode?'Diseño guardado y bloqueado en Función':'Vista guardada')}
+$('#doneCustom').onclick=()=>endCustomize(false);
+$('#resetView').onclick=resetView;
+$('#fontMinus').onclick=()=>change({font:Math.max(12,layout.font-1)});
+$('#fontPlus').onclick=()=>change({font:Math.min(20,layout.font+1)});
+$('#density').onchange=e=>change({density:e.target.value});
+$('#showSide').onchange=e=>change({showSide:e.target.checked});
+$('#goBig').onchange=e=>change({goBig:e.target.checked});
+
+// Mientras se personaliza, los clics dentro de la app no disparan nada (salvo Vista y el cambio de modo)
+document.addEventListener('click',e=>{
+  if(!customizing||!e.target.closest('#app')||e.target.closest('.vista-wrap,.seg'))return;
+  e.preventDefault();e.stopPropagation();
+},true);
+
+// Arrastrar y soltar
+let drag=null;
+app.addEventListener('pointerdown',e=>{
+  if(!customizing)return;let el=e.target.closest('[data-drag]');if(!el)return;
+  if(el.dataset.drag==='bar')el=$('#transport');
+  e.preventDefault();drag={el,group:el.dataset.drag||'bar',x:e.clientX,y:e.clientY,over:null};
+  el.classList.add('dragging');
+});
+addEventListener('pointermove',e=>{
+  if(!drag)return;
+  drag.el.style.transform=`translate(${e.clientX-drag.x}px,${e.clientY-drag.y}px)`;
+  const t=dropTarget(e);
+  if(t!==drag.over){drag.over?.classList.remove('drop-over');t?.classList.add('drop-over');drag.over=t}
+});
+addEventListener('pointerup',endDrag);addEventListener('mouseup',endDrag);
+function dropTarget(e){
+  const under=document.elementFromPoint(e.clientX,e.clientY);
+  const t=under&&under.closest(`[data-drag="${drag.group}"],[data-drop="${drag.group}"]`);
+  return t===drag.el||(t&&drag.el.contains(t))?null:t;
+}
+function endDrag(e){
+  if(!drag)return;const {el,group}=drag;const over=dropTarget(e);drag.over?.classList.remove('drop-over');
+  el.classList.remove('dragging');el.style.transform='';over?.classList.remove('drop-over');drag=null;
+  if(!over)return;
+  if(group==='panel')change({sidePos:layout.sidePos==='right'?'left':'right'});
+  else if(group==='bar')change({bar:over.dataset.where});
+  else if(group==='btn'){
+    const a=el.dataset.key,b=over.dataset.key;
+    if(a==='go'||b==='go')change({goRight:!layout.goRight});
+    else{const o=layout.btnOrder.slice(),i=o.indexOf(a),j=o.indexOf(b);[o[i],o[j]]=[o[j],o[i]];change({btnOrder:o})}
+  }
+}
+addEventListener('pointercancel',()=>{if(drag){drag.el.classList.remove('dragging');drag.el.style.transform='';drag.over?.classList.remove('drop-over');drag=null}});
 
 const HELP={
   go:['GO','El botón más importante. Cada vez que lo tocas, empieza lo que sigue en la lista: un sonido, un vídeo o una imagen. Es como pasar la página de un cuento. También lo puedes tocar con la barra espaciadora.'],
@@ -426,7 +606,7 @@ const HELP={
   tabs:['Show y Convertir','Show es donde preparas y haces la función. Convertir sirve para cambiar archivos de audio a otro tipo, como la primera versión del programa. Para el show no hace falta usarlo: el programa prepara los archivos solo.'],
   check:['Todo listo','Antes de la función, el programa revisa solo que estén bien la tarjeta de sonido, el proyector y todos los archivos. Verde quiere decir que puedes empezar tranquilo. Si algo falla, te dice qué es y cómo arreglarlo.'],
   clock:['Reloj','La hora de ahora, para saber cuándo empieza la función.'],
-  night:['Modo noche','Pone la pantalla oscura y rojiza para que no te encandile en la cabina a oscuras ni moleste al público.']
+  vista:['Vista','Aquí eliges cómo se ve el programa. Con Personalizar mueves los bloques y los botones a donde te queden más cómodos, como acomodar los muebles de tu cuarto. Hay vistas listas, como Pantalla táctil con botones grandes, o Modo noche, oscuro y rojizo para la cabina. Si algo queda feo, Restaurar vista lo deja como al principio.']
 };
 let helping=false,bubble=null;
 function closeBubble(){if(bubble){bubble.remove();bubble=null}}
@@ -490,7 +670,7 @@ function tick(now){
     const d=new Date();$('#clock').textContent=[d.getHours(),d.getMinutes(),d.getSeconds()].map(x=>String(x).padStart(2,'0')).join(':')}
   requestAnimationFrame(tick);
 }
-render();requestAnimationFrame(tick);
+render();applyLayout();requestAnimationFrame(tick);
 addEventListener('resize',()=>{if(mode==='edit')waveDraw(byId(selected))});
 })();
 </script>
