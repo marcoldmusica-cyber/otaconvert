@@ -69,6 +69,7 @@ jobs:
         run: |
           target\release\otaconvert-motor.exe --version
           target\release\otaconvert-motor.exe --listar-salidas
+          target\release\otaconvert-motor.exe --listar-pantallas
 
       - name: Huella SHA-256 (para comprobar descargas)
         shell: pwsh

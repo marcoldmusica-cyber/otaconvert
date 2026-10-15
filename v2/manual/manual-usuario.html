@@ -145,6 +145,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <a href="#modos">Edición y Función</a>
     <a href="#botones">Los botones de la función</a>
     <a href="#teclas">Teclas rápidas</a>
+    <a href="#salidas">Elegir dónde sale el sonido y la imagen</a>
     <a href="#video">Vídeo, imágenes y proyector</a>
     <a href="#rampas">Rampas cortas</a>
     <a href="#ayuda">Consejos y Modo Ayuda</a>
@@ -301,6 +302,18 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <tr><td><kbd>Ctrl</kbd> <kbd>Z</kbd> / <kbd>Ctrl</kbd> <kbd>Y</kbd></td><td>Deshacer y rehacer (en Edición).</td></tr>
   </table></div>
   <p class="muted">Si estás escribiendo en un campo de texto, <kbd>Tab</kbd> pasa al campo siguiente en vez de cambiar de modo. Las teclas se podrán cambiar desde el menú Vista.</p>
+</section>
+
+<section class="card" id="salidas">
+  <h2>Elegir dónde sale el sonido y la imagen <span class="estado pronto">Próximamente</span></h2>
+  <p>Siempre puedes elegir <strong>por qué tarjeta de sonido</strong> sale el audio y <strong>en qué pantalla o proyector</strong> sale el vídeo. Se hace en <strong>Edición → Ajustes del show → Salidas</strong>.</p>
+  <h3>Sonido</h3>
+  <p>El show usa salidas con nombre, como <em>Principal</em> (lo que escucha el público) y <em>Auriculares</em> (para preescuchar). A cada una le eliges una tarjeta de sonido de la lista. Si no eliges nada, <em>Principal</em> usa la salida que Windows tenga por defecto.</p>
+  <h3>Imagen</h3>
+  <p>El <em>Proyector</em> se asigna a una de tus pantallas. La lista muestra el nombre del proyector o monitor, la tarjeta gráfica que lo maneja, su resolución y su frecuencia, para que no haya dudas.</p>
+  <h3>En cada teatro</h3>
+  <p>Lo que eliges se guarda en el <strong>perfil del teatro</strong>. Al llevar el show a otro teatro, el programa te propone las salidas de ese lugar, tú confirmas y queda recordado para la próxima vez.</p>
+  <div class="nota cuidado">Si la tarjeta o la pantalla elegida no está conectada, el programa <strong>te avisa</strong> y no da la luz verde. Nunca manda el sonido a los parlantes de la computadora ni el vídeo a otra pantalla sin decírtelo.</div>
 </section>
 
 <section class="card" id="video">
@@ -462,7 +475,9 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
   <div class="tabla"><table>
     <tr><th>Comando</th><th>Qué hace</th></tr>
     <tr><td><code>--version</code></td><td>Versión del motor.</td></tr>
-    <tr><td><code>--listar-salidas</code></td><td>Sistema de audio, salida predeterminada y configuración de cada salida.</td></tr>
+    <tr><td><code>--listar-salidas</code></td><td>Salidas de audio numeradas, con su configuración, cuál es la predeterminada y su identificador estable.</td></tr>
+    <tr><td><code>--listar-pantallas</code></td><td>Pantallas: nombre del monitor o proyector, tarjeta gráfica, resolución en píxeles reales, frecuencia, posición y cuál es la principal.</td></tr>
+    <tr><td><code>--salida &lt;número | nombre | id&gt;</code></td><td>Elige la salida de audio para <code>--tono</code> y <code>--prueba-vivo</code>. Si no existe, da error: nunca usa otra en silencio.</td></tr>
     <tr><td><code>--tono [s] [margen_ms]</code></td><td>Tono de 440 Hz a −12 dBFS en la salida predeterminada.</td></tr>
     <tr><td><code>--prueba-vivo [s] [margen_ms]</code></td><td>Órdenes al azar en la tarjeta real e informe; termina con código de error si encuentra problemas.</td></tr>
   </table></div>

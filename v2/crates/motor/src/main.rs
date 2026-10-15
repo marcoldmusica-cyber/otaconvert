@@ -9,6 +9,8 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use otaconvert_audio::prueba::Escenario;
 use otaconvert_audio::{crear, Ajustes, Comando, Control, Detector, Mezclador, Pista};
 
+mod pantallas;
+
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Seguridad: las DLL que se carguen después de arrancar (por nombre, sin
@@ -32,7 +34,19 @@ fn endurecer_carga_de_dll() {}
 
 fn main() -> ExitCode {
     endurecer_carga_de_dll();
-    let args: Vec<String> = std::env::args().skip(1).collect();
+    let todos: Vec<String> = std::env::args().skip(1).collect();
+    // `--salida X` puede ir en cualquier lugar; lo demás son el comando y sus números.
+    let mut salida: Option<String> = None;
+    let mut args: Vec<String> = Vec::new();
+    let mut it = todos.into_iter();
+    while let Some(a) = it.next() {
+        if a == "--salida" {
+            salida = it.next();
+        } else {
+            args.push(a);
+        }
+    }
+    let salida = salida.as_deref();
     let num = |i: usize, defecto: u64| args.get(i).and_then(|s| s.parse().ok()).unwrap_or(defecto);
     let r = match args.first().map(String::as_str) {
         Some("--version") => {
@@ -43,15 +57,21 @@ fn main() -> ExitCode {
             listar_salidas();
             Ok(true)
         }
-        Some("--tono") => tono(num(1, 3), num(2, 50)),
-        Some("--prueba-vivo") => prueba_vivo(num(1, 60), num(2, 50)),
+        Some("--listar-pantallas") => {
+            pantallas::imprimir();
+            Ok(true)
+        }
+        Some("--tono") => tono(num(1, 3), num(2, 50), salida),
+        Some("--prueba-vivo") => prueba_vivo(num(1, 60), num(2, 50), salida),
         _ => {
             println!("otaconvert-motor {VERSION}");
             println!("Uso:");
             println!("  --version");
-            println!("  --listar-salidas");
+            println!("  --listar-salidas                       salidas de audio, con número e identificador");
+            println!("  --listar-pantallas                     pantallas para la salida de vídeo");
             println!("  --tono [segundos] [margen_ms]          tono de 440 Hz a -12 dBFS");
             println!("  --prueba-vivo [segundos] [margen_ms]   órdenes al azar en la salida real");
+            println!("  --salida <número | nombre | id>        elige la salida de audio (si no, la predeterminada)");
             Ok(true)
         }
     };
@@ -65,36 +85,84 @@ fn main() -> ExitCode {
     }
 }
 
+/// Salidas de audio en el orden en que las da Windows, con su identificador estable.
+fn salidas() -> Result<Vec<(cpal::Device, String)>, String> {
+    let host = cpal::default_host();
+    let lista = host.output_devices().map_err(|e| format!("no se pudieron leer las salidas: {e}"))?;
+    Ok(lista
+        .map(|d| {
+            let id = d.id().map(|i| i.to_string()).unwrap_or_default();
+            (d, id)
+        })
+        .collect())
+}
+
 /// Lista las salidas de audio del sistema. Si no hay tarjeta (por ejemplo
 /// en los equipos de GitHub) lo dice y termina bien.
 fn listar_salidas() {
     let host = cpal::default_host();
     println!("Sistema de audio: {:?}", host.id());
-
-    match host.default_output_device() {
-        Some(d) => println!("Salida predeterminada: {d}"),
-        None => println!("Salida predeterminada: ninguna"),
-    }
-
-    let dispositivos = match host.output_devices() {
-        Ok(d) => d,
+    let predeterminada = host.default_output_device().and_then(|d| d.id().ok()).map(|i| i.to_string());
+    let lista = match salidas() {
+        Ok(l) => l,
         Err(e) => {
-            println!("No se pudieron leer las salidas: {e}");
+            println!("{e}");
             return;
         }
     };
-    let mut cuantas = 0;
-    for d in dispositivos {
-        cuantas += 1;
-        match d.default_output_config() {
-            Ok(c) => println!("- {d}: {c:?}"),
-            Err(e) => println!("- {d}: sin configuración ({e})"),
-        }
-    }
-    if cuantas == 0 {
+    if lista.is_empty() {
         println!("No hay salidas de audio.");
+        return;
+    }
+    for (n, (d, id)) in lista.iter().enumerate() {
+        let marca = if predeterminada.as_deref() == Some(id.as_str()) { " (predeterminada)" } else { "" };
+        println!("{}. {d}{marca}", n + 1);
+        match d.default_output_config() {
+            Ok(c) => println!(
+                "   {} Hz · {} canales · {:?} · búfer {:?}",
+                c.sample_rate(),
+                c.channels(),
+                c.sample_format(),
+                c.buffer_size()
+            ),
+            Err(e) => println!("   sin configuración ({e})"),
+        }
+        println!("   id: {id}");
     }
 }
+
+/// Busca la salida pedida por número de la lista, identificador exacto o parte
+/// del nombre. Sin `pedida`, la predeterminada de Windows. Si la pedida no
+/// está, es un error: nunca se cambia en silencio a otra salida.
+fn elegir_salida(pedida: Option<&str>) -> Result<cpal::Device, String> {
+    let Some(p) = pedida else {
+        return cpal::default_host()
+            .default_output_device()
+            .ok_or_else(|| "no hay salida de audio predeterminada".to_string());
+    };
+    let lista = salidas()?;
+    let nombres = || {
+        lista.iter().enumerate().map(|(n, (d, _))| format!("{}. {d}", n + 1)).collect::<Vec<_>>().join("\n  ")
+    };
+    if let Ok(n) = p.parse::<usize>() {
+        return match lista.get(n.wrapping_sub(1)) {
+            Some((d, _)) => Ok(d.clone()),
+            None => Err(format!("no existe la salida {n}. Salidas:\n  {}", nombres())),
+        };
+    }
+    if let Some((d, _)) = lista.iter().find(|(_, id)| id == p) {
+        return Ok(d.clone());
+    }
+    let p_min = p.to_lowercase();
+    let coinciden: Vec<&cpal::Device> =
+        lista.iter().filter(|(d, _)| d.to_string().to_lowercase().contains(&p_min)).map(|(d, _)| d).collect();
+    match coinciden.as_slice() {
+        [d] => Ok((*d).clone()),
+        [] => Err(format!("no se encontró la salida \"{p}\". Salidas:\n  {}", nombres())),
+        _ => Err(format!("\"{p}\" coincide con varias salidas; usa el número. Salidas:\n  {}", nombres())),
+    }
+}
+
 
 /// Lo que mide el hilo de audio, leído al final por el hilo principal.
 #[derive(Default)]
@@ -121,11 +189,10 @@ struct Salida {
     margen: u32,
 }
 
-/// Abre la salida predeterminada en modo compartido con un margen de
-/// `margen_ms` y conecta el mezclador.
-fn abrir(margen_ms: u64, umbral: impl FnOnce(u32) -> f32) -> Result<Salida, String> {
-    let host = cpal::default_host();
-    let device = host.default_output_device().ok_or("no hay salida de audio predeterminada")?;
+/// Abre la salida elegida (o la predeterminada) en modo compartido con un
+/// margen de `margen_ms` y conecta el mezclador.
+fn abrir(margen_ms: u64, salida: Option<&str>, umbral: impl FnOnce(u32) -> f32) -> Result<Salida, String> {
+    let device = elegir_salida(salida)?;
     let soportada = device.default_output_config().map_err(|e| e.to_string())?;
     if soportada.sample_format() != cpal::SampleFormat::F32 {
         return Err(format!("formato {:?} todavía no soportado", soportada.sample_format()));
@@ -194,9 +261,9 @@ fn esperar_cuadros(cuadros: u32, frecuencia: u32) {
     std::thread::sleep(Duration::from_secs_f64(cuadros as f64 / frecuencia as f64));
 }
 
-fn tono(segundos: u64, margen_ms: u64) -> Result<bool, String> {
+fn tono(segundos: u64, margen_ms: u64, salida: Option<&str>) -> Result<bool, String> {
     let amplitud = 0.25; // -12 dBFS
-    let mut s = abrir(margen_ms, |fs| Detector::umbral_para_tonos(amplitud, 440.0, fs))?;
+    let mut s = abrir(margen_ms, salida, |fs| Detector::umbral_para_tonos(amplitud, 440.0, fs))?;
     let cuadros = s.frecuencia as usize * segundos as usize;
     let pista = Arc::new(Pista::tono(440.0, amplitud, cuadros, 1, s.frecuencia));
     s.control
@@ -208,10 +275,10 @@ fn tono(segundos: u64, margen_ms: u64) -> Result<bool, String> {
     Ok(informe(&s))
 }
 
-fn prueba_vivo(segundos: u64, margen_ms: u64) -> Result<bool, String> {
+fn prueba_vivo(segundos: u64, margen_ms: u64, salida: Option<&str>) -> Result<bool, String> {
     let semilla = 1;
     let mut esc = None;
-    let mut s = abrir(margen_ms, |fs| {
+    let mut s = abrir(margen_ms, salida, |fs| {
         let e = Escenario::nuevo(semilla, fs);
         let u = e.umbral();
         esc = Some(e);
