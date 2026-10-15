@@ -118,10 +118,10 @@ La V1 como pestaña aparte, en proceso aparte con prioridad baja. Bloqueada en F
 
 - **Vista → Personalizar:** arrastrar paneles y botones con vista previa en vivo y pulsar **Listo**. Nada de ventanas con cien casillas.
 - Personalizable: pestañas y paneles visibles (lista, detalle, onda, medidores, reloj, notas) y su posición; botones de Función (orden, tamaño, color, etiqueta); columnas; teclas rápidas; tamaño de letra; densidad (compacta, normal, táctil); brillo; acento; atajos (avisa si se repiten).
-- Vistas: Estándar, Minimalista, Pantalla táctil, Alto contraste, **Modo noche** (tenue y rojizo).
+- Vistas: Estándar, Minimalista, Pantalla táctil, Alto contraste, **Modo noche** (tenue y rojizo) y **Modo día** (fondo blanco y contraste máximo para funciones al aire libre, pedido el 15/10/2026). Noche y día se pueden cambiar también en Función.
 - Perfiles por operador, exportables, viajan con el show.
 - Estética protegida: paletas diseñadas + acento libre con contraste automático; cuadrícula imantada; **Restaurar vista** siempre a mano.
-- En Función el diseño queda bloqueado (solo brillo y Modo noche).
+- En Función el diseño queda bloqueado (solo brillo, Modo noche y Modo día).
 - GO y Parar todo se pueden mover, agrandar y recolorear, **nunca ocultar**.
 - **Desde la Fase 1** la interfaz se construye con la distribución guardada como datos (qué bloque va dónde y con qué tamaño), aunque el editor de arrastrar y soltar llegue en la Fase 2. Así personalizar no obliga a rehacer la interfaz.
 - El boceto (`v2/diseno/`) incluye una demo de Vista → Personalizar: arrastrar paneles, barra y botones; letra, densidad, GO grande; vistas listas; Restaurar vista; bloqueo en Función.
@@ -195,6 +195,10 @@ mpv es GPLv2+ (LGPL con opción de compilación). ASIO con doble licencia desde 
 5. V1: ¿lista virtualizada para miles de archivos?
 6. Menor: actualizar acciones del workflow (Node 20).
 7. ¿Aprueba el boceto y los atajos propuestos?
+8. **Funciones esenciales propuestas el 15/10/2026, pendientes de aprobación** (revisión de huecos frente a QLab, SCS y MultiPlay):
+   - Fase 1: deshacer/rehacer en Edición; notas por cue (lo que ve el operador antes del GO); numeración libre de cues (1, 1.5, 2A) para coincidir con el libreto; parar o fundir un solo cue desde el panel "Sonando"; ir a cue y empezar un cue desde un punto (ensayos); protección contra doble GO (tiempo mínimo entre GOs); volumen maestro y medidor de nivel simple; "Reunir medios" (copiar todos los archivos a la carpeta del show); registro de la función (qué se disparó y cuándo, y cualquier error).
+   - Decisiones: idiomas de la interfaz (¿español e inglés como la V1?); ¿la V2 solo para Windows o también macOS?; exportar/imprimir la hoja de cues (Fase 2).
+   - Técnico: el archivo del show lleva número de versión para abrir shows viejos en versiones nuevas.
 
 ## 10. Siguiente paso
 

@@ -23,6 +23,14 @@
   --accent:#8C9BFF; --accent-h:#A4B0FF; --ok:#6EF0AE; --err:#FF8A84; --warn:#FFD27A;
   --on-accent:#000000;
 }
+/* Modo día: fondo claro y contraste máximo para leer a pleno sol */
+:root[data-day]{
+  color-scheme:light;
+  --bg:#FFFFFF; --card:#F2F4F8; --card2:#E6EAF1; --hover:#D9DFE9; --border:#A9B2C1;
+  --text:#05070C; --muted:#2E3543; --dim:#535B6B;
+  --accent:#2A3FD9; --accent-h:#2033BD; --ok:#0B7340; --err:#C0261D; --warn:#8F5A00;
+  --on-accent:#FFFFFF;
+}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{height:100%}
@@ -276,7 +284,7 @@ fieldset:disabled{opacity:.45}
       <button class="btn" id="vista" data-help="vista" aria-haspopup="true" aria-expanded="false">Vista</button>
       <div class="menu" id="vistaMenu" role="menu" hidden>
         <button role="menuitem" data-act="customize">Personalizar…</button>
-        <div class="lock-note" id="lockNote" hidden>En Función el diseño está bloqueado. Solo puedes cambiar el Modo noche.</div>
+        <div class="lock-note" id="lockNote" hidden>En Función el diseño está bloqueado. Solo puedes cambiar el Modo noche o el Modo día.</div>
         <div class="sep"></div>
         <div class="lbl">Vistas listas</div>
         <button role="menuitemradio" data-preset="standard">Estándar</button>
@@ -285,6 +293,7 @@ fieldset:disabled{opacity:.45}
         <button role="menuitemradio" data-preset="contrast">Alto contraste</button>
         <div class="sep"></div>
         <button role="menuitemcheckbox" data-act="night">Modo noche</button>
+        <button role="menuitemcheckbox" data-act="day">Modo día (al aire libre)</button>
         <div class="sep"></div>
         <button role="menuitem" data-act="reset">Restaurar vista</button>
       </div>
@@ -516,6 +525,8 @@ function applyLayout(){
   const r=document.documentElement;
   r.toggleAttribute('data-night',layout.theme==='night');
   r.toggleAttribute('data-contrast',layout.theme==='contrast');
+  r.toggleAttribute('data-day',layout.theme==='day');
+  document.querySelector('[data-act="day"]').setAttribute('aria-checked',layout.theme==='day');
   layout.btnOrder.forEach((k,i)=>{$('#'+k).style.order=i});
   $('#density').value=layout.density;$('#showSide').checked=layout.showSide;$('#goBig').checked=layout.goBig;
   document.querySelectorAll('[data-preset]').forEach(b=>b.setAttribute('aria-checked',b.dataset.preset===layout.preset));
@@ -533,10 +544,10 @@ $('#vista').onclick=e=>{if(helping)return;openMenu(menu.hidden)};
 document.addEventListener('click',e=>{if(!menu.hidden&&!e.target.closest('.vista-wrap'))openMenu(false)});
 menu.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b||b.disabled)return;openMenu(false);
-  if(b.dataset.preset){const keepNight=layout.theme==='night'&&b.dataset.preset!=='contrast';layout=Object.assign({},DEF,PRESETS[b.dataset.preset],{preset:b.dataset.preset});if(keepNight)layout.theme='night';applyLayout();toast('Vista '+b.textContent.trim());return}
+  if(b.dataset.preset){const keep=(layout.theme==='night'||layout.theme==='day')&&b.dataset.preset!=='contrast'?layout.theme:null;layout=Object.assign({},DEF,PRESETS[b.dataset.preset],{preset:b.dataset.preset});if(keep)layout.theme=keep;applyLayout();toast('Vista '+b.textContent.trim());return}
   const a=b.dataset.act;
   if(a==='customize')startCustomize();
-  else if(a==='night'){layout.theme=layout.theme==='night'?'normal':'night';applyLayout();renderSide()}
+  else if(a==='night'||a==='day'){layout.theme=layout.theme===a?'normal':a;applyLayout();renderSide();toast(layout.theme==='normal'?'Colores normales':b.textContent.trim())}
   else if(a==='reset'){resetView()}
 });
 function resetView(){layout=Object.assign({},DEF);applyLayout();toast('Vista restaurada')}
@@ -606,7 +617,7 @@ const HELP={
   tabs:['Show y Convertir','Show es donde preparas y haces la función. Convertir sirve para cambiar archivos de audio a otro tipo, como la primera versión del programa. Para el show no hace falta usarlo: el programa prepara los archivos solo.'],
   check:['Todo listo','Antes de la función, el programa revisa solo que estén bien la tarjeta de sonido, el proyector y todos los archivos. Verde quiere decir que puedes empezar tranquilo. Si algo falla, te dice qué es y cómo arreglarlo.'],
   clock:['Reloj','La hora de ahora, para saber cuándo empieza la función.'],
-  vista:['Vista','Aquí eliges cómo se ve el programa. Con Personalizar mueves los bloques y los botones a donde te queden más cómodos, como acomodar los muebles de tu cuarto. Hay vistas listas, como Pantalla táctil con botones grandes, o Modo noche, oscuro y rojizo para la cabina. Si algo queda feo, Restaurar vista lo deja como al principio.']
+  vista:['Vista','Aquí eliges cómo se ve el programa. Con Personalizar mueves los bloques y los botones a donde te queden más cómodos, como acomodar los muebles de tu cuarto. Hay vistas listas, como Pantalla táctil con botones grandes, Modo noche, oscuro y rojizo para la cabina, o Modo día, blanco y bien marcado para leerlo a pleno sol en funciones al aire libre. Si algo queda feo, Restaurar vista lo deja como al principio.']
 };
 let helping=false,bubble=null;
 function closeBubble(){if(bubble){bubble.remove();bubble=null}}
