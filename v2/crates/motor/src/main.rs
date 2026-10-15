@@ -120,7 +120,10 @@ fn abrir(margen_ms: u64, umbral: impl FnOnce(u32) -> f32) -> Result<Salida, Stri
     };
     println!("Salida: {device} · {frecuencia} Hz · {canales} canales · margen {margen_ms} ms");
 
-    let (mezclador, control) = crear(frecuencia, canales, Ajustes::para(frecuencia));
+    // Las pruebas usan todas las rampas (también al iniciar) para que el
+    // detector distinga un corte de la tarjeta de un arranque de golpe a
+    // propósito. En los shows manda lo que elija el usuario (`Ajustes::para`).
+    let (mezclador, control) = crear(frecuencia, canales, Ajustes::suaves(frecuencia));
     let medidas = Arc::new(Medidas { cuadros_min: AtomicU64::new(u64::MAX), ..Default::default() });
     let detector = Detector::nuevo(canales as usize, umbral(frecuencia));
     let limite_us = margen_ms * 1000;

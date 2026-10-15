@@ -5,23 +5,64 @@ use rtrb::{Consumer, Producer, PushError, RingBuffer};
 
 use crate::{Pista, Rampa};
 
-/// Rampas mínimas y límites del mezclador.
-#[derive(Debug, Clone, Copy)]
+/// Rampas cortas del mezclador, en cuadros. Todas las elige el usuario;
+/// 0 = de golpe. Son mínimos: el fundido de cada cue, si es más largo, manda.
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Ajustes {
-    /// Rampa de subida al iniciar, reanudar, tras un salto o al cambiar el volumen.
+    /// Subida al iniciar un cue. Por defecto 0: arranca de golpe.
     pub rampa_inicio: u32,
-    /// Rampa de bajada al parar, pausar, antes de un salto y al final del archivo.
+    /// Subida al reanudar tras una pausa.
+    pub rampa_reanudar: u32,
+    /// Bajada al pausar.
+    pub rampa_pausa: u32,
+    /// Bajada al parar (también Parar todo).
     pub rampa_parada: u32,
+    /// Bajada antes de saltar a otro punto y subida después.
+    pub rampa_salto: u32,
+    /// Duración mínima de un cambio de volumen (del cue o maestro).
+    pub rampa_volumen: u32,
+    /// Bajada sobre los últimos cuadros de un archivo que no está en bucle.
+    pub rampa_fin: u32,
     pub max_voces: usize,
 }
 
+/// Cuadros que dura `ms` milisegundos a `frecuencia`.
+pub fn ms(frecuencia: u32, ms: f32) -> u32 {
+    (frecuencia as f32 * ms / 1000.0).round() as u32
+}
+
 impl Ajustes {
-    /// 5 ms de subida y 10 ms de bajada (CLAUDE.md, sección 7).
+    /// Valores por defecto: inicio de golpe; 5 ms al reanudar, saltar y
+    /// cambiar volumen; 10 ms al pausar, parar y al final del archivo.
     pub fn para(frecuencia: u32) -> Self {
+        Self { rampa_inicio: 0, ..Self::suaves(frecuencia) }
+    }
+
+    /// Todas las rampas activas, también al iniciar.
+    pub fn suaves(frecuencia: u32) -> Self {
         Self {
-            rampa_inicio: frecuencia / 200,
-            rampa_parada: frecuencia / 100,
+            rampa_inicio: ms(frecuencia, 5.0),
+            rampa_reanudar: ms(frecuencia, 5.0),
+            rampa_pausa: ms(frecuencia, 10.0),
+            rampa_parada: ms(frecuencia, 10.0),
+            rampa_salto: ms(frecuencia, 5.0),
+            rampa_volumen: ms(frecuencia, 5.0),
+            rampa_fin: ms(frecuencia, 10.0),
             max_voces: 64,
+        }
+    }
+
+    /// Todo de golpe, sin ninguna rampa.
+    pub fn sin_rampas(frecuencia: u32) -> Self {
+        Self {
+            rampa_inicio: 0,
+            rampa_reanudar: 0,
+            rampa_pausa: 0,
+            rampa_parada: 0,
+            rampa_salto: 0,
+            rampa_volumen: 0,
+            rampa_fin: 0,
+            ..Self::suaves(frecuencia)
         }
     }
 }
@@ -29,6 +70,8 @@ impl Ajustes {
 /// Órdenes del hilo de control al hilo de audio. Los tiempos van en cuadros.
 #[derive(Debug)]
 pub enum Comando {
+    /// Cambia las rampas en vivo, sin cortar lo que suena. `max_voces` no cambia.
+    CambiarAjustes(Ajustes),
     Iniciar { id: u32, pista: Arc<Pista>, volumen: f32, desde: usize, bucle: bool, fundido: u32 },
     Parar { id: u32, fundido: u32 },
     Pausar { id: u32 },
@@ -152,12 +195,12 @@ impl Mezclador {
 
         salida.fill(0.0);
         let canales = self.canales;
-        let fin = self.ajustes.rampa_parada;
-        let inicio = self.ajustes.rampa_inicio;
+        let fin = self.ajustes.rampa_fin;
+        let salto = self.ajustes.rampa_salto;
 
         let mut i = 0;
         while i < self.voces.len() {
-            let terminada = mezclar_voz(&mut self.voces[i], salida, canales, fin, inicio);
+            let terminada = mezclar_voz(&mut self.voces[i], salida, canales, fin, salto);
             if terminada {
                 let v = self.voces.swap_remove(i);
                 self.tirar(v.pista);
@@ -214,6 +257,9 @@ impl Mezclador {
     fn aplicar(&mut self, c: Comando) {
         let a = self.ajustes;
         match c {
+            Comando::CambiarAjustes(nuevos) => {
+                self.ajustes = Ajustes { max_voces: a.max_voces, ..nuevos };
+            }
             Comando::Iniciar { id, pista, volumen, desde, bucle, fundido } => {
                 if pista.frecuencia() != self.frecuencia
                     || self.voces.len() >= self.ajustes.max_voces
@@ -245,7 +291,7 @@ impl Mezclador {
                     match v.estado {
                         Estado::Sonando | Estado::Bajando(Despues::Reanudar) => {
                             v.estado = Estado::Bajando(Despues::Pausar);
-                            v.envolvente.ir_a(0.0, a.rampa_parada);
+                            v.envolvente.ir_a(0.0, a.rampa_pausa);
                         }
                         Estado::Bajando(_) | Estado::Pausada => {}
                     }
@@ -256,7 +302,7 @@ impl Mezclador {
                     match v.estado {
                         Estado::Pausada | Estado::Bajando(Despues::Pausar) => {
                             v.estado = Estado::Sonando;
-                            v.envolvente.ir_a(1.0, a.rampa_inicio);
+                            v.envolvente.ir_a(1.0, a.rampa_reanudar);
                         }
                         Estado::Sonando | Estado::Bajando(_) => {}
                     }
@@ -264,7 +310,7 @@ impl Mezclador {
             }
             Comando::Volumen { id, volumen, cuadros } => {
                 if let Some(v) = self.voz(id) {
-                    v.volumen.ir_a(volumen, cuadros.max(a.rampa_inicio));
+                    v.volumen.ir_a(volumen, cuadros.max(a.rampa_volumen));
                 }
             }
             Comando::Saltar { id, cuadro } => {
@@ -277,7 +323,7 @@ impl Mezclador {
                         Estado::Sonando => {
                             v.salto = Some(cuadro);
                             v.estado = Estado::Bajando(Despues::Reanudar);
-                            v.envolvente.ir_a(0.0, a.rampa_parada);
+                            v.envolvente.ir_a(0.0, a.rampa_salto);
                         }
                         Estado::Bajando(_) => v.salto = Some(cuadro),
                     }
@@ -289,7 +335,7 @@ impl Mezclador {
                 }
             }
             Comando::VolumenMaestro { volumen, cuadros } => {
-                self.maestro.ir_a(volumen, cuadros.max(a.rampa_inicio));
+                self.maestro.ir_a(volumen, cuadros.max(a.rampa_volumen));
             }
         }
     }
@@ -308,7 +354,7 @@ fn parar(v: &mut Voz, cuadros: u32) {
 
 /// Suma una voz a la salida. Devuelve `true` si terminó.
 #[inline]
-fn mezclar_voz(v: &mut Voz, salida: &mut [f32], canales: usize, fin: u32, inicio: u32) -> bool {
+fn mezclar_voz(v: &mut Voz, salida: &mut [f32], canales: usize, fin: u32, salto: u32) -> bool {
     let total = v.pista.cuadros();
     for cuadro in salida.chunks_exact_mut(canales) {
         match v.estado {
@@ -356,7 +402,7 @@ fn mezclar_voz(v: &mut Voz, salida: &mut [f32], canales: usize, fin: u32, inicio
                     Despues::Parar => return true,
                     Despues::Reanudar => {
                         v.estado = Estado::Sonando;
-                        v.envolvente.ir_a(1.0, inicio);
+                        v.envolvente.ir_a(1.0, salto);
                     }
                 }
             }
@@ -422,6 +468,59 @@ mod pruebas {
         render(&mut m, 480);
         assert_eq!(c.estadisticas.rechazados.load(Relaxed), 1);
         assert_eq!(c.estadisticas.voces_activas.load(Relaxed), 0);
+    }
+
+    fn continua() -> Arc<Pista> {
+        Arc::new(Pista::nueva(vec![0.5; 48_000], 1, FS))
+    }
+
+    fn iniciar(c: &mut Control, p: Arc<Pista>) {
+        c.enviar(Comando::Iniciar { id: 1, pista: p, volumen: 1.0, desde: 0, bucle: false, fundido: 0 })
+            .unwrap();
+    }
+
+    #[test]
+    fn por_defecto_arranca_de_golpe() {
+        let (mut m, mut c) = crear(FS, 2, Ajustes::para(FS));
+        iniciar(&mut c, continua());
+        assert_eq!(render(&mut m, 1)[0], 0.5);
+    }
+
+    #[test]
+    fn con_rampa_de_inicio_sube_suave() {
+        let (mut m, mut c) = crear(FS, 2, Ajustes::suaves(FS));
+        iniciar(&mut c, continua());
+        let s = render(&mut m, 240);
+        assert_eq!(s[0], 0.0);
+        assert!(s[2 * 239] < 0.5);
+        assert_eq!(render(&mut m, 1)[0], 0.5);
+    }
+
+    #[test]
+    fn cambiar_ajustes_en_vivo() {
+        let (mut m, mut c) = crear(FS, 2, Ajustes::para(FS));
+        c.enviar(Comando::CambiarAjustes(Ajustes::suaves(FS))).unwrap();
+        iniciar(&mut c, continua());
+        assert_eq!(render(&mut m, 1)[0], 0.0);
+    }
+
+    #[test]
+    fn sin_rampas_para_de_golpe() {
+        let (mut m, mut c) = crear(FS, 2, Ajustes::sin_rampas(FS));
+        iniciar(&mut c, continua());
+        render(&mut m, 100);
+        c.enviar(Comando::Parar { id: 1, fundido: 0 }).unwrap();
+        assert!(render(&mut m, 1).iter().all(|&x| x == 0.0));
+    }
+
+    #[test]
+    fn el_fundido_del_cue_manda_sobre_la_rampa() {
+        let (mut m, mut c) = crear(FS, 2, Ajustes::para(FS));
+        c.enviar(Comando::Iniciar { id: 1, pista: continua(), volumen: 1.0, desde: 0, bucle: false, fundido: 4800 })
+            .unwrap();
+        let s = render(&mut m, 2400);
+        assert_eq!(s[0], 0.0);
+        assert!((s[2 * 2399] - 0.25).abs() < 0.01);
     }
 
     #[test]

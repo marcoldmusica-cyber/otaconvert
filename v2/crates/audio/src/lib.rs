@@ -4,8 +4,10 @@
 //! - No pide ni libera memoria: los comandos llegan por una cola sin bloqueo
 //!   y los audios que dejan de sonar se devuelven al hilo de control para
 //!   liberarlos allí.
-//! - Nunca cambia el volumen de golpe: todo inicio, parada, pausa, salto y
-//!   cambio de volumen pasa por una rampa.
+//! - Cada inicio, parada, pausa, reanudación, salto, cambio de volumen y
+//!   final de archivo usa la rampa que elija el usuario (`Ajustes`, también
+//!   en vivo con `Comando::CambiarAjustes`); 0 = de golpe. Por defecto el
+//!   inicio es de golpe y lo demás lleva una rampa corta.
 //! - No remuestrea: rechaza audios que no estén a la frecuencia de la salida.
 
 mod detector;
@@ -15,6 +17,6 @@ pub mod prueba;
 mod rampa;
 
 pub use detector::Detector;
-pub use mezclador::{crear, Ajustes, Comando, Control, Estadisticas, Mezclador};
+pub use mezclador::{crear, ms, Ajustes, Comando, Control, Estadisticas, Mezclador};
 pub use pista::Pista;
 pub use rampa::Rampa;

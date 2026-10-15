@@ -1,5 +1,6 @@
-//! Prueba de estrés: 10 minutos de órdenes al azar con bloques de tamaño
-//! variable. Si aparece un solo chasquido, recorte o valor inválido, falla.
+//! Prueba de estrés con todas las rampas activas (`Ajustes::suaves`):
+//! 10 minutos de órdenes al azar con bloques de tamaño variable. Si aparece
+//! un solo chasquido, recorte o valor inválido, falla.
 
 use std::sync::atomic::Ordering::Relaxed;
 
@@ -51,7 +52,7 @@ fn correr(ajustes: Ajustes, segundos: u64, semilla: u64) -> Resultado {
 #[test]
 fn diez_minutos_sin_chasquidos() {
     for semilla in [1, 2, 3] {
-        let r = correr(Ajustes::para(FS), 600, semilla);
+        let r = correr(Ajustes::suaves(FS), 600, semilla);
         let d = &r.detector;
         println!(
             "semilla {semilla}: {} órdenes, {} cuadros, discontinuidad máxima {:.5} (umbral {:.5})",
@@ -72,8 +73,7 @@ fn diez_minutos_sin_chasquidos() {
 /// Comprueba que el detector sirve: sin rampas debe encontrar muchos chasquidos.
 #[test]
 fn sin_rampas_el_detector_avisa() {
-    let ajustes = Ajustes { rampa_inicio: 0, rampa_parada: 0, ..Ajustes::para(FS) };
-    let r = correr(ajustes, 120, 1);
+    let r = correr(Ajustes::sin_rampas(FS), 120, 1);
     println!("sin rampas: {} discontinuidades en {} órdenes", r.detector.discontinuidades, r.ordenes);
     assert!(r.detector.discontinuidades > 50);
 }

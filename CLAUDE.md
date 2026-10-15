@@ -140,7 +140,26 @@ La V1 como pestaña aparte, en proceso aparte con prioridad baja. Bloqueada en F
 | No eliminable | Actualizaciones de Windows: la comprobación previa avisa y recomienda pausarlas. |
 
 ### Audio
-Mezcla en float 32; limitador maestro transparente activo por defecto; rampas de 5–10 ms en todo inicio, parada, pausa, salto y cambio de volumen; medición de picos al preparar (la comprobación previa marca > 0 dB, opción de normalizar); **sin remuestreo en vivo** (todo preparado a la frecuencia real de la tarjeta, leída sola); loops sin hueco. Si el teatro trabaja a otra frecuencia, re-preparación en segundo plano con barra; sin luz verde hasta terminar.
+Mezcla en float 32; limitador maestro transparente activo por defecto; **rampas cortas configurables** (ver "Rampas cortas" abajo; decidido por el usuario el 15/10/2026: los audios arrancan de golpe por defecto); medición de picos al preparar (la comprobación previa marca > 0 dB, opción de normalizar); **sin remuestreo en vivo** (todo preparado a la frecuencia real de la tarjeta, leída sola); loops sin hueco. Si el teatro trabaja a otra frecuencia, re-preparación en segundo plano con barra; sin luz verde hasta terminar.
+
+#### Rampas cortas (decidido el 15/10/2026)
+El usuario pidió que **por defecto los audios arranquen de golpe** (sin rampa al iniciar) y que **todas** las rampas cortas sean opcionales y configurables. Cada una va de 0 (de golpe) a lo que elija el usuario:
+
+| Rampa | Por defecto | Cuándo actúa |
+|---|---|---|
+| Inicio | **0 ms (de golpe)** | Al disparar un cue. |
+| Reanudar | 5 ms | Al quitar la pausa. |
+| Pausa | 10 ms | Al pausar. |
+| Parada | 10 ms | Al parar un cue y en Parar todo. |
+| Salto | 5 ms | Bajada antes de saltar a otro punto y subida después. |
+| Volumen | 5 ms | Duración mínima de un cambio de volumen (cue o maestro). |
+| Final del archivo | 10 ms | Últimos ms de un audio que no está en bucle. |
+
+- Son **mínimos**: si el cue tiene un fundido (de entrada o de salida) más largo, manda el fundido. Fundido de entrada 0 + rampa de inicio 0 = arranque de golpe.
+- Se cambian **en vivo** sin cortar lo que suena (`Comando::CambiarAjustes`).
+- Preajustes en código: `Ajustes::para` (por defecto), `Ajustes::suaves` (todas activas, también inicio 5 ms), `Ajustes::sin_rampas` (todo de golpe).
+- Riesgo que hay que explicar en la Ayuda (no se elimina, se avisa): arrancar de golpe solo suena limpio si el archivo empieza en silencio o en un ataque pensado así; si el cue empieza desde un punto intermedio (`desde` > 0) o el archivo empieza a mitad de onda, puede oírse un clic. La comprobación previa debería avisar de los cues con inicio de golpe cuyo primer cuadro no es ~0 (pendiente).
+- Interfaz (Fase 1): en Preferencias del show, sección "Rampas cortas", una fila por rampa con un valor en ms y un interruptor; además, en cada cue, fundido de entrada y de salida. Guardado en el archivo del show. Ayuda para principiantes: "Una rampa es una subida o bajada de volumen tan corta que no se nota, pero evita el clic. Si la pones en 0, el sonido empieza o se corta de golpe".
 
 ### Salidas lógicas y perfiles de teatro
 El show guarda nombres lógicos (*Principal*, *Auriculares*; luego *Sala*, *Efectos*…); cada teatro tiene un **perfil** que los empareja con tarjeta y canales. Evitar el "primer cue mudo" al cambiar de máquina. Por defecto nada que configurar: *Principal* → salida predeterminada de Windows. El emparejamiento aparece solo cuando hace falta; la app propone coincidencias por nombre, el usuario confirma, se recuerda por teatro. Sin luz verde hasta que cada salida tenga destino. Si faltan salidas: mezcla a estéreo y avisa. Buffer calibrado con la Prueba de hardware y guardado en el perfil. V2.0: solo *Principal* y *Auriculares*; matriz multicanal en Fase 3.
@@ -225,12 +244,12 @@ Regla: si una prueba automática falla, no se avanza.
 
 ### Paso 2: prototipo de audio (15/10/2026, en curso)
 - `crates/audio` (`otaconvert-audio`, sin dependencias salvo `rtrb` 0.4.0, cola sin bloqueo): `Rampa`, `Pista` (audio entero en memoria, f32 intercalado), `Mezclador`/`Control` (`crear`), `Detector`, `prueba::Escenario`.
-  - Comandos: Iniciar (volumen, desde, bucle, fundido), Parar, Pausar, Reanudar, Volumen, Saltar, PararTodo, VolumenMaestro. Rampas mínimas 5 ms subida / 10 ms bajada (`Ajustes::para`); rampa de 10 ms sobre el final del archivo si no es bucle; salto = bajar, mover, subir.
+  - Comandos: Iniciar (volumen, desde, bucle, fundido), Parar, Pausar, Reanudar, Volumen, Saltar, PararTodo, VolumenMaestro. Además `CambiarAjustes`. Siete rampas separadas en `Ajustes` (ver tabla "Rampas cortas", sección 7); por defecto inicio de golpe. Salto = bajar, mover, subir.
   - El hilo de audio no pide ni libera memoria: los `Arc<Pista>` que dejan de sonar vuelven por una cola "basura" y se liberan en el hilo de control. Rechaza pistas a otra frecuencia (sin remuestreo en vivo).
   - Salida recortada a ±1 y contada como "recortes". **Pendiente: limitador maestro transparente.**
   - Detector: segunda diferencia `x[n]-2x[n-1]+x[n-2]` por canal; umbral para tonos `1,5·A·(2·sin(πf/fs))² + 0,002`.
-- Pruebas (`cargo test --release`): estrés de 10 min × 3 semillas (~1.850 órdenes cada una, bloques de 1–1024 cuadros): 0 discontinuidades (máxima 0,0023, umbral 0,0127), 0 recortes, 0 rechazos. Control: sin rampas el detector encuentra 568 en 2 min. `sin_memoria`: asignador que cuenta en el hilo de `procesar` (comprobado que falla si se pide memoria).
-- Motor: `--tono [s] [margen_ms]` y `--prueba-vivo [s] [margen_ms]` (salida predeterminada, modo compartido, `BufferSize::Fixed(margen)`; mide intervalos entre llamadas, cortes probables = intervalo > margen, discontinuidades, recortes, errores; termina con "RESULTADO: BIEN" o código de error). cpal con feature `realtime` (MMCSS).
+- Pruebas (`cargo test --release`, 16): arranque de golpe por defecto, rampa de inicio opcional, cambio de ajustes en vivo, parada de golpe sin rampas, fundido del cue por encima de la rampa; estrés con `Ajustes::suaves` de 10 min × 3 semillas (~1.850 órdenes cada una, bloques de 1–1024 cuadros): 0 discontinuidades (máxima 0,0023, umbral 0,0127), 0 recortes, 0 rechazos. Control: sin rampas el detector encuentra 568 en 2 min. `sin_memoria`: asignador que cuenta en el hilo de `procesar` (comprobado que falla si se pide memoria).
+- Motor: `--tono [s] [margen_ms]` y `--prueba-vivo [s] [margen_ms]` (salida predeterminada, modo compartido, `BufferSize::Fixed(margen)`, con `Ajustes::suaves` para que el detector no confunda un arranque de golpe con un corte; mide intervalos entre llamadas, cortes probables = intervalo > margen, discontinuidades, recortes, errores; termina con "RESULTADO: BIEN" o código de error). cpal con feature `realtime` (MMCSS).
 - Verificado en el código de cpal 0.18.2 (`host/wasapi`): solo modo compartido; el periodo de llamada es siempre `GetDevicePeriod` (10 ms) y el `BufferSize::Fixed` solo agranda el búfer de WASAPI (más margen y más latencia); cada llamada llena todo el hueco libre. Solo F32 por ahora.
 - Compilar en la PC del usuario: no tiene Visual Studio. Toolchain temporal GNU en `%TEMP%\otr` (sirve para `cargo test -p otaconvert-audio` y `cargo check`; el motor no enlaza con GNU porque falta `as.exe`). Ruta corta obligatoria: el scratchpad supera MAX_PATH. El ejecutable real sale de GitHub Actions (MSVC).
 - Pendiente del paso 2: ejecutar `--prueba-vivo` en la PC del usuario con el exe de Actions y decidir el margen por defecto.
