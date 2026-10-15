@@ -11,6 +11,7 @@ use otaconvert_audio::{crear, Ajustes, Comando, Control, Detector, Mezclador, Pi
 
 mod componentes;
 mod pantallas;
+mod vigilante;
 #[cfg(windows)]
 mod prueba_video;
 
@@ -43,6 +44,7 @@ fn main() -> ExitCode {
     let mut pantalla: Option<String> = None;
     let mut carpeta: Option<String> = None;
     let mut archivo: Option<String> = None;
+    let mut fallo: Option<(String, u64)> = None;
     let mut args: Vec<String> = Vec::new();
     let mut it = todos.into_iter();
     while let Some(a) = it.next() {
@@ -54,6 +56,10 @@ fn main() -> ExitCode {
             carpeta = it.next();
         } else if a == "--archivo" {
             archivo = it.next();
+        } else if a == "--fallo" {
+            let tipo = it.next().unwrap_or_default();
+            let en = it.next().and_then(|s| s.parse().ok()).unwrap_or(2000);
+            fallo = Some((tipo, en));
         } else {
             args.push(a);
         }
@@ -75,6 +81,9 @@ fn main() -> ExitCode {
             pantallas::imprimir();
             Ok(true)
         }
+        Some("--prueba-vigilante") => vigilante::prueba(num(1, 10), salida),
+        // Uso interno del vigilante: el motor hijo que se vigila.
+        Some("--hijo-audio") => vigilante::hijo(salida, num(1, 0), fallo),
         Some("--tono") => tono(num(1, 3), num(2, 50), salida),
         Some("--prueba-vivo") => prueba_vivo(num(1, 60), num(2, 50), salida),
         #[cfg(windows)]
@@ -91,6 +100,7 @@ fn main() -> ExitCode {
             println!("  --comprobar                            componentes necesarios: qué hay y qué falta");
             println!("  --listar-salidas                       salidas de audio, con número e identificador");
             println!("  --listar-pantallas                     pantallas para la salida de vídeo");
+            println!("  --prueba-vigilante [fallos]            caídas y cuelgues a propósito; mide el tiempo sin sonido");
             println!("  --tono [segundos] [margen_ms]          tono de 440 Hz a -12 dBFS");
             println!("  --prueba-vivo [segundos] [margen_ms]   órdenes al azar en la salida real");
             println!("  --prueba-video [cambios]               cambios de vídeo por capas, contando cuadros negros");

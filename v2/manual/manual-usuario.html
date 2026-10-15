@@ -418,7 +418,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
   <details open><summary>Toqué GO de más</summary>
     <p>Pulsa <kbd>Esc</kbd> (Parar todo) o para solo ese cue desde el panel Sonando. Con <kbd>↑</kbd> <kbd>↓</kbd> vuelves a elegir el cue que sigue.</p></details>
   <details open><summary>El programa se cerró</summary>
-    <p>Un vigilante lo vuelve a abrir solo y recarga el show. El trabajo se guarda solo cada poco tiempo, con copias de seguridad.</p></details>
+    <p>Un vigilante lo vuelve a abrir solo, en menos de un segundo, y el sonido sigue desde donde iba. El trabajo se guarda solo cada poco tiempo, con copias de seguridad.</p></details>
 </section>
 
 <section class="card" id="ayuda">
@@ -446,7 +446,8 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
   <h3>Plataforma y distribución</h3>
   <ul>
     <li>Windows 10 y 11 de 64 bits (x86-64). Sin administrador. Instalador por usuario y versión portable (<code>portable.txt</code> junto al exe → configuración en esa carpeta, sin registro).</li>
-    <li>Motor en Rust, en proceso aparte de la ventana; un vigilante lo reinicia y recarga el show si se cae (objetivo &lt; 1 s, a verificar).</li>
+    <li>Motor en Rust, en proceso aparte de la ventana; un vigilante lo reinicia y recarga el show si se cae (objetivo &lt; 1 s). <span class="estado ya">Probado</span> 10 fallos a propósito: si el motor se cierra, vuelve a sonar en 86 ms como máximo; si se congela, en 401 ms como máximo, y el sonido sigue desde donde iba.</li>
+    <li>Pensado para funcionar bien en equipos modestos sin recortar funciones: la tarjeta gráfica decodifica el vídeo, el audio se prepara en memoria y no se remuestrea en vivo. La Prueba de hardware mide qué aguanta cada equipo.</li>
     <li>Runtime de C enlazado estáticamente (<code>+crt-static</code>): no requiere el VC++ Redistributable. <span class="estado ya">Comprobado en la compilación</span></li>
     <li>Interfaz servida por el motor; sin WebView2 se abre en el navegador.</li>
     <li>100 % sin conexión. Sin telemetría. Búsqueda de actualizaciones apagada por defecto.</li>
@@ -511,6 +512,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <tr><td><code>--pantalla &lt;número | nombre | id&gt;</code></td><td>Pantalla de la proyección; si no se indica, la que no es principal.</td></tr>
     <tr><td><code>--carpeta &lt;ruta&gt;</code></td><td>Vídeos de prueba llamados con el color de su centro (<code>RRGGBB.mp4</code>).</td></tr>
     <tr><td><code>--salida &lt;número | nombre | id&gt;</code></td><td>Elige la salida de audio para <code>--tono</code> y <code>--prueba-vivo</code>. Si no existe, da error: nunca usa otra en silencio.</td></tr>
+    <tr><td><code>--prueba-vigilante [fallos]</code></td><td>Provoca caídas y cuelgues del motor a propósito y mide cuánto tarda en volver a sonar (objetivo: menos de 1 segundo).</td></tr>
     <tr><td><code>--tono [s] [margen_ms]</code></td><td>Tono de 440 Hz a −12 dBFS en la salida predeterminada.</td></tr>
     <tr><td><code>--prueba-vivo [s] [margen_ms]</code></td><td>Órdenes al azar en la tarjeta real e informe; termina con código de error si encuentra problemas.</td></tr>
   </table></div>
