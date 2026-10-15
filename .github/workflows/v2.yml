@@ -11,18 +11,30 @@ on:
     paths:
       - "v2/**"
       - ".github/workflows/v2.yml"
+  # Cada lunes: revisar si alguna librería usada tiene una vulnerabilidad nueva.
+  schedule:
+    - cron: "0 6 * * 1"
 
+# Seguridad: el token de GitHub solo puede leer el repositorio.
 permissions:
   contents: read
 
+# Seguridad: las acciones de terceros van fijadas por su commit (SHA), no
+# por etiqueta, para que nadie pueda cambiar lo que se ejecuta aquí.
+#   actions/checkout        v7.0.1
+#   actions/upload-artifact v7.0.2
+
 jobs:
   windows:
+    if: github.event_name != 'schedule'
     runs-on: windows-latest
     defaults:
       run:
         working-directory: v2
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
 
       - name: Versión de Rust
         run: rustc --version; cargo --version
@@ -33,16 +45,23 @@ jobs:
       - name: Pruebas automáticas
         run: cargo test --release --locked
 
-      - name: Comprobar que no pide el VC++ Redistributable
+      - name: Comprobar runtime de C y carga segura de DLL
         shell: pwsh
         run: |
           $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
           $dumpbin = Get-ChildItem "$vs\VC\Tools\MSVC" -Recurse -Filter dumpbin.exe |
             Where-Object FullName -like '*Hostx64\x64*' | Select-Object -First 1
-          $deps = & $dumpbin.FullName /nologo /dependents target\release\otaconvert-motor.exe
+          $exe = "target\release\otaconvert-motor.exe"
+          $deps = & $dumpbin.FullName /nologo /dependents $exe
           $deps
           if ($deps -match 'VCRUNTIME|MSVCP|api-ms-win-crt') {
             Write-Error "El motor depende del runtime de C externo"
+            exit 1
+          }
+          $cfg = & $dumpbin.FullName /nologo /loadconfig $exe | Select-String -Pattern 'Dependent Load Flag'
+          $cfg
+          if (-not ($cfg -match '800')) {
+            Write-Error "Falta /DEPENDENTLOADFLAG:0x800 (carga de DLL solo desde System32)"
             exit 1
           }
 
@@ -51,7 +70,29 @@ jobs:
           target\release\otaconvert-motor.exe --version
           target\release\otaconvert-motor.exe --listar-salidas
 
-      - uses: actions/upload-artifact@v7
+      - name: Huella SHA-256 (para comprobar descargas)
+        shell: pwsh
+        run: Get-FileHash target\release\otaconvert-motor.exe -Algorithm SHA256 | Format-List
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: Otaconvert-V2-motor
           path: v2/target/release/otaconvert-motor.exe
+
+  vulnerabilidades:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v2
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Instalar cargo-audit
+        run: cargo install cargo-audit --locked
+
+      # Compara Cargo.lock con la base de avisos de seguridad de Rust (RustSec).
+      # Falla si alguna librería tiene una vulnerabilidad conocida.
+      - name: Revisar librerías
+        run: cargo audit --deny warnings

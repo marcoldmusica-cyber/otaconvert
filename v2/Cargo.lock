@@ -476,6 +476,7 @@ version = "0.0.1"
 dependencies = [
  "cpal",
  "otaconvert-audio",
+ "windows-sys",
 ]
 
 [[package]]

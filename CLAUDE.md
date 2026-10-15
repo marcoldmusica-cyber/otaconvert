@@ -228,6 +228,33 @@ Instalador + portable con todo dentro (motor, vídeo, decodificadores, **runtime
 
 ---
 
+### Seguridad (revisión del 15/10/2026, pedida por el usuario)
+Objetivo: que el programa no abra puertas a gente malintencionada de fuera. Principio: **nada escucha en la red, nada se ejecuta desde un archivo de show y nada se carga desde carpetas que otro pueda escribir**, salvo lo que el usuario active a propósito.
+
+**Hecho y comprobado**
+- **Carga de DLL (motor V2):** `/DEPENDENTLOADFLAG:0x800` en `v2/.cargo/config.toml` (importaciones del exe solo desde System32; documentado por Microsoft, Windows 10 1607+) y `SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS)` al arrancar (cargas posteriores solo desde la carpeta del programa y System32, nunca la carpeta actual ni el PATH). El workflow falla si `dumpbin /loadconfig` no muestra el 0x800. Evita que una DLL falsa dejada en Descargas o en la carpeta del show se cuele.
+- **Librerías Rust:** las 92 de `v2/Cargo.lock` consultadas en OSV (incluye RustSec): 0 vulnerabilidades conocidas. Se comprobó que la consulta detecta una real (`time` 0.1.43 → RUSTSEC-2020-0071). El workflow V2 corre `cargo audit --deny warnings` en cada cambio y **cada lunes** (job `vulnerabilidades`, en Linux). En la PC del usuario no se puede instalar cargo-audit (falta `as.exe`); para revisar a mano: consulta por lotes a `https://api.osv.dev/v1/querybatch`.
+- **Workflow V2:** token de solo lectura (`permissions: contents: read`); acciones fijadas por SHA (checkout v7.0.1 `3d3c42e…`, upload-artifact v7.0.2 `cf430e0…`); `persist-credentials: false`; sin secretos; los PR de forks corren sin secretos ni escritura. Imprime la huella SHA-256 del exe.
+- **Motor V2 hoy:** no abre puertos, no usa internet, no lee archivos de show todavía; el hilo de audio no pide memoria; `unsafe` solo en la llamada a `SetDefaultDllDirectories` y en el asignador de la prueba `sin_memoria`.
+- **V1 (Python):** FFmpeg se llama con lista de argumentos (sin `shell=True`) y rutas absolutas (un nombre de archivo no puede pasar por opción); la configuración JSON se lee con `try/except` y no ejecuta nada; no hay red.
+- **Repositorio (GitHub):** público; escaneo de secretos y bloqueo de subida de secretos **activados**; permisos por defecto de los workflows: solo lectura.
+
+**Pendiente: necesita el permiso del usuario (ajustes de GitHub)**
+- Activar **Dependabot alerts** (avisos de vulnerabilidades; hoy desactivado).
+- Proteger la rama `main` contra borrado y `force push`.
+- `main.yml` (V1): fijar acciones por SHA y dar `contents: write` solo al paso de Release. No se tocó porque el plan decía no modificarlo.
+- V1: `requirements.txt` usa `>=` (cada compilación baja la última versión). Fijar versiones exactas haría las compilaciones repetibles.
+
+**Reglas para lo que viene (obligatorias al implementar)**
+1. **Interfaz servida por el motor:** escuchar solo en `127.0.0.1` (nunca `0.0.0.0`), puerto al azar, **token secreto por sesión** que solo conoce la ventana; rechazar peticiones con `Host` u `Origin` distintos (contra páginas web maliciosas y *DNS rebinding*); sin CORS abierto.
+2. **GO desde el celular / OSC / MIDI por red (Fase 5):** **apagados por defecto**; al activarlos, emparejar con un código o PIN que se muestra en pantalla, solo red local, solo órdenes de show (GO, Parar, Pausa), nunca acceso a archivos ni ajustes; indicador visible mientras estén activos; límite de órdenes por segundo; el aviso del Firewall de Windows aparece solo entonces.
+3. **Archivo del show:** formato de datos (JSON), sin scripts ni nada ejecutable; límites de tamaño; rutas relativas **dentro** de la carpeta del show (rechazar `..`, rutas absolutas inesperadas y rutas de red `\servidor\…`, que pueden filtrar la contraseña de Windows); un show dañado o malicioso nunca debe colgar ni cerrar el programa, solo avisar.
+4. **Vídeo con libmpv:** decodificar en proceso aparte (ya decidido); configurarlo solo para archivos locales: `config=no`, `load-scripts=no`, `ytdl=no`, sin servidor IPC, sin OSC/teclado de mpv, protocolos limitados a archivo; libmpv cargada con **ruta completa** desde la carpeta del programa. La DLL de terceros (shinchiro) se fija por SHA-256 y se guarda copia propia; actualizarla cuando FFmpeg/mpv publiquen arreglos de seguridad.
+5. **Sin administrador** (ya decidido) y **sin telemetría**. Buscar actualizaciones solo si el usuario lo activa, por HTTPS, y nunca instalar sin preguntar.
+6. **Distribución:** publicar la huella SHA-256 de cada descarga en la Release; firmar el instalador cuando sea posible (para software libre existe la firma gratuita de SignPath Foundation; verificar requisitos antes de pedirla); certificados de origen de GitHub (*artifact attestations*) al publicar Releases.
+7. **Registro de la función:** sin datos personales ni rutas privadas fuera de la carpeta del show.
+8. Cada función nueva que toque red, archivos de fuera o DLL se revisa contra esta lista antes de subirla.
+
 ## 8. Hoja de ruta V2
 
 - **Fase 0 — Prueba técnica del motor y Prueba de hardware.** Prototipo Rust (WASAPI/ASIO + libmpv) en procesos separados. Prueba de hardware con informe estándar (tarjeta, canales, frecuencias, cortes, latencia, tono por salida, estrés, vídeo 1080p 60 s contando cuadros perdidos, GPU por salida, cambio 44,1/48 midiendo chasquidos y deriva). Pruebas automáticas de cientos de cambios de cue (cuadros negros, discontinuidades, picos): si una falla, no se avanza. Pruebas de horas. Verificar vigilante < 1 s, runtime de C, D3D11VA con vuelta a CPU, ASIO opcional. Lista de equipos probados. Ideal: notebook con dos GPU.

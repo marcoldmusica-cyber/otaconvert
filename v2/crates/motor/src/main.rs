@@ -11,7 +11,27 @@ use otaconvert_audio::{crear, Ajustes, Comando, Control, Detector, Mezclador, Pi
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
+/// Seguridad: las DLL que se carguen después de arrancar (por nombre, sin
+/// ruta completa) solo se buscan en la carpeta del programa y en System32,
+/// nunca en la carpeta actual ni en el PATH. Evita que una DLL falsa dejada
+/// en Descargas o en la carpeta del show se cuele en el motor.
+#[cfg(windows)]
+fn endurecer_carga_de_dll() {
+    use windows_sys::Win32::System::LibraryLoader::{
+        SetDefaultDllDirectories, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS,
+    };
+    // SAFETY: llamada sin punteros; solo cambia la política del proceso.
+    let ok = unsafe { SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS) };
+    if ok == 0 {
+        println!("Aviso: no se pudo restringir la carga de DLL");
+    }
+}
+
+#[cfg(not(windows))]
+fn endurecer_carga_de_dll() {}
+
 fn main() -> ExitCode {
+    endurecer_carga_de_dll();
     let args: Vec<String> = std::env::args().skip(1).collect();
     let num = |i: usize, defecto: u64| args.get(i).and_then(|s| s.parse().ok()).unwrap_or(defecto);
     let r = match args.first().map(String::as_str) {

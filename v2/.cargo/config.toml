@@ -1,4 +1,12 @@
-# Runtime de C dentro del ejecutable: el teatro no necesita instalar
-# el "Microsoft Visual C++ Redistributable".
 [target.x86_64-pc-windows-msvc]
-rustflags = ["-C", "target-feature=+crt-static"]
+rustflags = [
+    # Runtime de C dentro del ejecutable: el teatro no necesita instalar
+    # el "Microsoft Visual C++ Redistributable".
+    "-C", "target-feature=+crt-static",
+    # Seguridad: las DLL que el exe importa al arrancar solo se buscan en
+    # System32 (LOAD_LIBRARY_SEARCH_SYSTEM32). Nadie puede colar una DLL
+    # falsa junto al exe o en la carpeta actual. Windows 10 1607 o posterior.
+    # Cuando llegue libmpv (en la carpeta del programa) se cargará con ruta
+    # completa, no como importación.
+    "-C", "link-arg=/DEPENDENTLOADFLAG:0x800",
+]
