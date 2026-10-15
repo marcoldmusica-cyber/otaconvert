@@ -12,6 +12,7 @@ Léelo entero antes de proponer o tocar nada. Si algo de aquí choca con el cód
 - Ser honesto sobre lo **no** probado: distinguir lo comprobado de lo pendiente.
 - Si pide respuestas rápidas, respetarlo.
 - Cuando el usuario dice **"el manual"** o "el registro del proyecto" se refiere a **este archivo (CLAUDE.md)**. Toda decisión, función y opción nueva se anota aquí.
+- **Manual de usuario** (creado el 15/10/2026): `v2/manual/manual-usuario.html` + `v2/manual/manual-usuario.pdf`, con la estética del programa (el PDF y la impresión usan **siempre el tema oscuro normal**, nunca fondo blanco: decisión del usuario). **Regla:** cada cambio (correcciones de esta versión y versiones futuras) se anota en CLAUDE.md **y** en el manual de usuario, y después se regenera el PDF con `v2/manual/generar-pdf.ps1` (usa Edge, que viene con Windows). Lo que aún no funciona se marca "Próximamente" y lo que sí, "Ya funciona".
 - **Sin botones de ajustes sueltos (15/10/2026):** los ajustes del programa (mostrar consejos, idioma, vistas, ajustes del show) van en la barra de menús de arriba (sección 6), no como botones en la ventana.
 - **Regla de interfaz (15/10/2026):** cada opción configurable lleva un **mensaje emergente sutil** (al pasar el ratón o tocar "?") que recomienda en qué casos activarla o desactivarla y qué valor usar. Cada mensaje incluye **ejemplos de escena** ("si en una escena pasa X, actívala para Y"), uno para activar y otro para desactivar. **Idioma:** los mensajes salen siempre en el idioma configurado del programa; si el programa está en inglés todo está en inglés, y lo mismo en español (nunca mezclados). **Opcionales:** se pueden ocultar (para usuarios avanzados) con la casilla **Ayuda → Mostrar consejos** de la barra de menús; activados por defecto y **siempre se pueden volver a activar** (esa casilla nunca se oculta, ni siquiera con Vista → Personalizar).
  Los textos viven en el código, en español e inglés, junto a la opción, y se resumen en este archivo.
@@ -261,6 +262,11 @@ Objetivo: que el programa no abra puertas a gente malintencionada de fuera. Prin
 6. **Distribución:** publicar la huella SHA-256 de cada descarga en la Release; firmar el instalador cuando sea posible (para software libre existe la firma gratuita de SignPath Foundation; verificar requisitos antes de pedirla); certificados de origen de GitHub (*artifact attestations*) al publicar Releases.
 7. **Registro de la función:** sin datos personales ni rutas privadas fuera de la carpeta del show.
 8. Cada función nueva que toque red, archivos de fuera o DLL se revisa contra esta lista antes de subirla.
+
+### Manual de usuario (15/10/2026)
+- Para no expertos, en español; secciones: bienvenida, "Hecho por amor al arte" (libre y gratuito, GPLv3, frase **"Nadie se salva solo."** al principio y al final), qué es, instalar y portable, carpeta del show, la pantalla (con `img/pantalla-inicio.png`), primer show, Edición y Función, botones, teclas, vídeo y proyector, rampas cortas con ejemplos, consejos y Modo Ayuda, Vista, antes de la función, si algo sale mal, Convertir, y **Especificaciones técnicas** para usuarios avanzados (plataforma, audio, pruebas, vídeo, seguridad, comandos del motor, licencias).
+- Sin nada de internet (funciona sin conexión). Botón Oscuro/Día solo para leer en pantalla; PDF siempre oscuro. 16 páginas; páginas revisadas como imagen con la API de PDF de Windows.
+- Pendiente: versión en inglés del manual (la interfaz es es/en); incluirlo en el instalador y en la portable; abrirlo desde Ayuda.
 
 ## 8. Hoja de ruta V2
 

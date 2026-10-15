@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manual de Otaconvert</title>
+<!-- Manual de usuario de Otaconvert V2. Funciona sin internet: no carga nada de fuera.
+     Misma estética que el programa (paleta y medidas de la V1). -->
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0E1117; --card:#151921; --card2:#1B2029; --hover:#252B37; --border:#262C38;
+  --text:#E9ECF2; --muted:#9098A8; --dim:#5D6677;
+  --accent:#6F80FF; --accent-h:#5C6DEE; --ok:#58D69A; --err:#F27A74; --warn:#F2C46B;
+  --on-accent:#0E1117;
+  --font:"Segoe UI","SF Pro Display",system-ui,Helvetica,Arial,sans-serif;
+  --mono:"Cascadia Mono",Consolas,ui-monospace,monospace;
+}
+:root[data-day]{
+  color-scheme:light;
+  --bg:#FFFFFF; --card:#F2F4F8; --card2:#E6EAF1; --hover:#D9DFE9; --border:#A9B2C1;
+  --text:#05070C; --muted:#2E3543; --dim:#535B6B;
+  --accent:#2A3FD9; --accent-h:#2033BD; --ok:#0B7340; --err:#C0261D; --warn:#8F5A00;
+  --on-accent:#FFFFFF;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:16px}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.6 var(--font)}
+a{color:var(--accent)}
+a:hover{color:var(--accent-h)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.num,code,kbd{font-variant-numeric:tabular-nums}
+code{font:13px var(--mono);background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:1px 6px}
+kbd{font:12px var(--mono);background:var(--card2);border:1px solid var(--border);border-bottom-width:2px;border-radius:6px;padding:1px 6px;color:var(--text);white-space:nowrap}
+
+.layout{max-width:1180px;margin:0 auto;padding:16px;display:grid;grid-template-columns:260px minmax(0,1fr);gap:16px;align-items:start}
+
+/* Índice */
+.toc{position:sticky;top:16px;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px;max-height:calc(100vh - 32px);overflow:auto}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.bars{display:flex;align-items:center;gap:3px;height:24px}
+.bars i{display:block;width:4px;border-radius:2px;background:var(--accent);height:calc(var(--h)*100%)}
+.brand strong{font-size:16px}
+.brand span{display:block;font-size:12px;color:var(--muted)}
+.toc nav{display:flex;flex-direction:column;gap:2px}
+.toc a{color:var(--muted);text-decoration:none;padding:6px 10px;border-radius:10px;font-size:14px}
+.toc a:hover{background:var(--hover);color:var(--text)}
+.toc .grupo{font-size:12px;color:var(--dim);padding:12px 10px 4px}
+.toc .vista{display:flex;gap:4px;margin-top:14px;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:3px}
+.toc .vista button{flex:1;border:0;background:none;color:var(--muted);font:inherit;font-size:13px;padding:6px;border-radius:9px;cursor:pointer}
+.toc .vista button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
+
+/* Contenido */
+main{display:flex;flex-direction:column;gap:16px;min-width:0}
+.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:22px 26px}
+h1{font-size:30px;line-height:1.2;margin:0 0 8px}
+h2{font-size:22px;margin:0 0 10px}
+h3{font-size:16px;margin:20px 0 6px}
+p{margin:8px 0}
+.lead{color:var(--muted);font-size:16px;margin:0}
+ul,ol{padding-left:22px;margin:8px 0}
+li{margin:4px 0}
+.muted{color:var(--muted)}
+
+.hero{display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+.hero .bars{height:64px;gap:7px}
+.hero .bars i{width:10px;border-radius:5px}
+
+.amor{border-color:var(--accent);background:linear-gradient(0deg,var(--card),var(--card2))}
+.amor .frase{font-size:20px;font-weight:600;margin-top:12px}
+
+.estado{display:inline-block;font-size:12px;border-radius:99px;padding:2px 10px;border:1px solid var(--border);color:var(--muted);vertical-align:middle;margin-left:6px;font-weight:400}
+.estado.ya{border-color:var(--ok);color:var(--ok)}
+.estado.pronto{border-color:var(--warn);color:var(--warn)}
+
+.pasos{counter-reset:paso;list-style:none;padding:0;display:flex;flex-direction:column;gap:10px}
+.pasos li{counter-increment:paso;display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;align-items:start;background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin:0}
+.pasos li::before{content:counter(paso);width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--on-accent);font-weight:700;display:flex;align-items:center;justify-content:center}
+
+.botones{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:10px}
+.boton{border:1px solid var(--border);background:var(--card2);border-radius:16px;padding:14px}
+.boton .nombre{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:700;font-size:17px;margin-bottom:4px}
+.boton.go{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.boton.go kbd{color:var(--text)}
+.boton.parar{border-color:var(--err)}
+.boton.parar .nombre{color:var(--err)}
+
+.nota{border-left:3px solid var(--accent);background:var(--card2);border-radius:0 12px 12px 0;padding:10px 14px;margin:12px 0}
+.nota.cuidado{border-left-color:var(--warn)}
+
+figure{margin:12px 0}
+figure img{width:100%;height:auto;border-radius:14px;border:1px solid var(--border);display:block}
+figcaption{font-size:13px;color:var(--muted);margin-top:6px}
+
+.tabla{overflow-x:auto;margin:10px 0}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+th{color:var(--muted);font-weight:600}
+td:first-child{white-space:nowrap}
+
+details{background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:10px 14px;margin:8px 0}
+summary{cursor:pointer;font-weight:600}
+details[open] summary{margin-bottom:6px}
+
+.tecnico{border-style:dashed}
+.tecnico h3{color:var(--accent)}
+
+footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
+
+@media (max-width:860px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  .toc{position:static;max-height:none}
+  .card{padding:18px 16px}
+  h1{font-size:24px}
+}
+/* PDF e impresión: mismo tema oscuro que el programa en su modo normal (decidido por el usuario). */
+@page{margin:12mm;background:#0E1117}
+@media print{
+  :root{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  :root[data-day]{color-scheme:dark;--bg:#0E1117;--card:#151921;--card2:#1B2029;--hover:#252B37;--border:#262C38;--text:#E9ECF2;--muted:#9098A8;--dim:#5D6677;--accent:#6F80FF;--accent-h:#5C6DEE;--ok:#58D69A;--err:#F27A74;--warn:#F2C46B;--on-accent:#0E1117}
+  .toc{display:none}
+  .layout{display:block;padding:0}
+  .card{break-inside:avoid-page;margin-bottom:12px}
+  .card{border-radius:12px}
+  .tabla{overflow:visible}
+  details{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc" aria-label="Índice">
+  <div class="brand">
+    <div class="bars" aria-hidden="true"><i style="--h:.38"></i><i style="--h:.72"></i><i style="--h:1"></i><i style="--h:.58"></i><i style="--h:.84"></i><i style="--h:.46"></i></div>
+    <div><strong>Otaconvert</strong><span>Manual de usuario</span></div>
+  </div>
+  <nav>
+    <a href="#bienvenida">Bienvenida</a>
+    <a href="#que-es">Qué es Otaconvert</a>
+    <a href="#instalar">Instalar o usar sin instalar</a>
+    <a href="#carpeta">La carpeta del show</a>
+    <a href="#pantalla">La pantalla</a>
+    <a href="#primer-show">Tu primer show</a>
+    <a href="#modos">Edición y Función</a>
+    <a href="#botones">Los botones de la función</a>
+    <a href="#teclas">Teclas rápidas</a>
+    <a href="#video">Vídeo, imágenes y proyector</a>
+    <a href="#rampas">Rampas cortas</a>
+    <a href="#ayuda">Consejos y Modo Ayuda</a>
+    <a href="#vista">Cómo se ve el programa</a>
+    <a href="#antes">Antes de la función</a>
+    <a href="#problemas">Si algo sale mal</a>
+    <a href="#convertir">Convertir archivos</a>
+    <div class="grupo">Para usuarios avanzados</div>
+    <a href="#tecnico">Especificaciones técnicas</a>
+    <div class="grupo">Otaconvert</div>
+    <a href="#libre">Libre y gratuito</a>
+  </nav>
+  <div class="vista" role="group" aria-label="Colores del manual">
+    <button type="button" id="oscuro" aria-pressed="true">Oscuro</button>
+    <button type="button" id="dia" aria-pressed="false">Día</button>
+  </div>
+</aside>
+
+<main>
+
+<section class="card" id="bienvenida">
+  <div class="hero">
+    <div class="bars" aria-hidden="true"><i style="--h:.38"></i><i style="--h:.72"></i><i style="--h:1"></i><i style="--h:.58"></i><i style="--h:.84"></i><i style="--h:.46"></i></div>
+    <div>
+      <h1>Manual de Otaconvert</h1>
+      <p class="lead">Todo lo que necesitas para hacer sonar músicas, efectos, vídeos e imágenes en tu función, explicado paso a paso.</p>
+    </div>
+  </div>
+  <div class="nota">
+    <strong>Este manual crece junto con el programa.</strong> Otaconvert V2 se está construyendo por partes.
+    Lo que ya funciona está marcado <span class="estado ya">Ya funciona</span> y lo que todavía se está haciendo,
+    <span class="estado pronto">Próximamente</span>. Lo que no tiene marca es cómo funcionará el programa terminado.
+  </div>
+</section>
+
+<section class="card amor" id="libre-intro">
+  <h2>Hecho por amor al arte</h2>
+  <p>Otaconvert se desarrolló por amor al arte, para que cualquier teatro, grande o chico, pueda tener una herramienta buena sin pagar nada.</p>
+  <p><strong>Es de uso libre y gratuito.</strong> Puedes usarlo, copiarlo y compartirlo con quien quieras, en todos los teatros que quieras.</p>
+  <p class="frase">Nadie se salva solo.</p>
+</section>
+
+<section class="card" id="que-es">
+  <h2>Qué es Otaconvert</h2>
+  <p>Otaconvert es un <strong>reproductor de cues</strong> para teatro. Un <strong>cue</strong> es cada cosa que pasa en el show: una música, un ruido de lluvia, un vídeo, una foto. Tú preparas la lista de cues en orden, como una receta paso a paso, y en la función solo tocas <strong>GO</strong> para que salga el siguiente.</p>
+  <ul>
+    <li><strong>Sonido sin clics ni cortes.</strong> Todo está pensado para que no se escuchen chasquidos en los altavoces.</li>
+    <li><strong>Vídeo sin pantallazos negros.</strong> Al pasar de un vídeo a otro, el nuevo aparece encima del anterior; nunca se ve el negro del medio.</li>
+    <li><strong>Funciona sin internet.</strong> Internet solo hace falta para descargarlo.</li>
+    <li><strong>Es fácil de usar.</strong> Pocos botones, y cada uno explica qué hace si se lo preguntas.</li>
+  </ul>
+  <p class="muted">Funciona en Windows 10 y Windows 11 de 64 bits.</p>
+</section>
+
+<section class="card" id="instalar">
+  <h2>Instalar o usar sin instalar <span class="estado pronto">Próximamente</span></h2>
+  <p>Hay dos formas de tenerlo. Las dos hacen exactamente lo mismo.</p>
+  <h3>Con instalador</h3>
+  <ol class="pasos">
+    <li><div>Descarga <code>Otaconvert-Setup.exe</code>.</div></li>
+    <li><div>Ábrelo con doble clic. Si Windows muestra un aviso azul, toca <strong>Más información</strong> y después <strong>Ejecutar de todas formas</strong>. Aparece porque el programa es nuevo, no porque sea peligroso.</div></li>
+    <li><div>Sigue los pasos. No pide contraseña de administrador.</div></li>
+  </ol>
+  <h3>Portable (sin instalar)</h3>
+  <ol class="pasos">
+    <li><div>Descarga el archivo <code>.zip</code> portable.</div></li>
+    <li><div>Descomprímelo en una carpeta tuya, por ejemplo en Documentos o en un pendrive.</div></li>
+    <li><div>Abre <code>Otaconvert.exe</code>. Toda tu configuración se guarda dentro de esa misma carpeta, así que te la puedes llevar a otro equipo.</div></li>
+  </ol>
+  <div class="nota cuidado">No lo descomprimas dentro de <em>Archivos de programa</em>: ahí no podría guardar tu configuración. Si pasa, el programa te avisa.</div>
+  <p>No hace falta instalar nada más: ni códecs, ni Python, ni otros programas. Todo viene incluido.</p>
+</section>
+
+<section class="card" id="carpeta">
+  <h2>La carpeta del show</h2>
+  <p>Cada show es <strong>una carpeta</strong>. Adentro está el archivo del show y todo el material: músicas, efectos, vídeos e imágenes.</p>
+  <ol class="pasos">
+    <li><div>Crea una carpeta para tu obra, por ejemplo <code>Bodas de sangre</code>.</div></li>
+    <li><div>Pon adentro todos los audios, vídeos e imágenes que vas a usar.</div></li>
+    <li><div>Desde Otaconvert, agrega esos archivos como cues.</div></li>
+  </ol>
+  <p>Si agregaste algo que estaba en otro lugar, usa <strong>Archivo → Reunir medios</strong>: copia todo a la carpeta del show. Así la carpeta queda completa y la puedes llevar a cualquier teatro.</p>
+  <div class="nota cuidado">Para la función, deja la carpeta del show en el disco del equipo, no en un pendrive. Los audios se cargan en la memoria antes de sonar, pero los vídeos se leen del disco mientras se ven: si el pendrive es lento o se sale, el vídeo falla. La comprobación previa te avisa.</div>
+</section>
+
+<section class="card" id="pantalla">
+  <h2>La pantalla</h2>
+  <figure>
+    <img src="img/pantalla-inicio.png" alt="Pantalla principal de Otaconvert: menús arriba, lista de cues a la izquierda, detalle del cue a la derecha y botones GO, Pausa, Fundir todo y Parar todo abajo." width="1366" height="768">
+    <figcaption>Boceto de la pantalla principal al abrir el programa. La línea de teclas de arriba de todo es una nota del boceto.</figcaption>
+  </figure>
+  <div class="tabla"><table>
+    <tr><th>Parte</th><th>Para qué sirve</th></tr>
+    <tr><td>Menús de arriba</td><td><strong>Archivo</strong> (abrir y guardar), <strong>Edición</strong> (deshacer y ajustes del show), <strong>Vista</strong> (cómo se ve) y <strong>Ayuda</strong>. Aquí están guardados los ajustes, para que la pantalla quede limpia.</td></tr>
+    <tr><td>Nombre del show</td><td>La obra que tienes abierta y el teatro donde estás.</td></tr>
+    <tr><td>Show · Convertir</td><td>Show es donde preparas y haces la función. Convertir sirve para cambiar archivos de audio de formato.</td></tr>
+    <tr><td>Edición · Función</td><td>Las dos formas de usar el programa. Se cambia con la tecla <kbd>Tab</kbd>.</td></tr>
+    <tr><td>Todo listo</td><td>La luz verde: el programa revisó la tarjeta de sonido, el proyector y los archivos.</td></tr>
+    <tr><td>Lista de cues</td><td>Todos los cues en orden. El que tiene el borde de color es el que sale con el próximo GO.</td></tr>
+    <tr><td>Panel derecho</td><td>En Edición, los ajustes del cue elegido. En Función, lo que está sonando y lo que viene.</td></tr>
+    <tr><td>GO y botones</td><td>Los botones de la función. Están siempre en el mismo lugar.</td></tr>
+  </table></div>
+</section>
+
+<section class="card" id="primer-show">
+  <h2>Tu primer show en 5 pasos</h2>
+  <ol class="pasos">
+    <li><div><strong>Archivo → Nuevo show</strong> y elige la carpeta de tu obra.</div></li>
+    <li><div>Arrastra tus archivos a la lista de cues. Cada archivo se convierte en un cue.</div></li>
+    <li><div>Ordénalos como van en la obra. Si quieres, ponles el mismo número que en el libreto (1, 1.5, 2A…) y una nota para acordarte de cuándo van.</div></li>
+    <li><div>Toca un cue y ajusta en el panel derecho: volumen, si aparece despacito (fundido), si se repite (bucle).</div></li>
+    <li><div>Pulsa <kbd>Tab</kbd> para pasar a <strong>Función</strong> y toca <strong>GO</strong> (o la barra espaciadora) cada vez que quieras que salga el siguiente.</div></li>
+  </ol>
+  <p>El programa guarda solo cada poco tiempo, y también puedes usar <strong>Archivo → Guardar</strong> o <kbd>Ctrl</kbd> <kbd>S</kbd>.</p>
+</section>
+
+<section class="card" id="modos">
+  <h2>Edición y Función</h2>
+  <p><strong>Edición</strong> es para preparar el show, como armar los juguetes antes de jugar. Ves todos los ajustes, la forma de onda del sonido y puedes cambiar todo.</p>
+  <p><strong>Función</strong> es para el show de verdad. Se esconde lo que no hace falta y se agrandan el cue que suena y el que viene, para que no te equivoques.</p>
+  <ul>
+    <li>Cambias de modo con <kbd>Tab</kbd> en cualquier momento. <strong>El sonido no se corta</strong> al cambiar.</li>
+    <li>GO y Parar todo funcionan en los dos modos.</li>
+    <li>En Edición, un cue que está sonando aparece bloqueado: para cambiarlo, primero lo paras o confirmas.</li>
+    <li>Si quieres más seguridad, activa <strong>Proteger Función</strong> en el menú Vista: para salir de Función hay que mantener <kbd>Tab</kbd> apretado medio segundo.</li>
+  </ul>
+</section>
+
+<section class="card" id="botones">
+  <h2>Los botones de la función</h2>
+  <div class="botones">
+    <div class="boton go"><div class="nombre">GO <kbd>Espacio</kbd></div>Empieza el cue que sigue en la lista. Es como pasar la página de un cuento.</div>
+    <div class="boton"><div class="nombre">Pausa <kbd>P</kbd></div>Congela todo. Lo tocas otra vez y sigue desde donde quedó.</div>
+    <div class="boton"><div class="nombre">Fundir todo <kbd>F</kbd></div>Baja el sonido y apaga la imagen despacito, hasta que no queda nada.</div>
+    <div class="boton parar"><div class="nombre">Parar todo <kbd>Esc</kbd></div>El botón de emergencia. Apaga todo al instante, sin ruidos feos en los altavoces.</div>
+  </div>
+  <p>Con <kbd>Mayús</kbd> + <kbd>F</kbd> se funde solo el último cue que empezó; lo demás sigue sonando.</p>
+  <p>En el panel <strong>Sonando</strong> también puedes parar o fundir un solo cue.</p>
+  <div class="nota">El programa no deja que un doble toque de GO dispare dos cues sin querer: entre un GO y el siguiente hay un tiempo mínimo, que puedes ajustar.</div>
+</section>
+
+<section class="card" id="teclas">
+  <h2>Teclas rápidas</h2>
+  <div class="tabla"><table>
+    <tr><th>Tecla</th><th>Qué hace</th></tr>
+    <tr><td><kbd>Espacio</kbd></td><td>GO: empieza el siguiente cue.</td></tr>
+    <tr><td><kbd>Esc</kbd></td><td>Parar todo.</td></tr>
+    <tr><td><kbd>P</kbd></td><td>Pausa y seguir.</td></tr>
+    <tr><td><kbd>F</kbd></td><td>Fundir todo.</td></tr>
+    <tr><td><kbd>Mayús</kbd> + <kbd>F</kbd></td><td>Fundir solo el último cue que empezó.</td></tr>
+    <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Elegir qué cue sale con el próximo GO.</td></tr>
+    <tr><td><kbd>Tab</kbd></td><td>Cambiar entre Edición y Función.</td></tr>
+    <tr><td><kbd>H</kbd></td><td>Modo Ayuda.</td></tr>
+    <tr><td><kbd>Ctrl</kbd> <kbd>Z</kbd> / <kbd>Ctrl</kbd> <kbd>Y</kbd></td><td>Deshacer y rehacer (en Edición).</td></tr>
+  </table></div>
+  <p class="muted">Si estás escribiendo en un campo de texto, <kbd>Tab</kbd> pasa al campo siguiente en vez de cambiar de modo. Las teclas se podrán cambiar desde el menú Vista.</p>
+</section>
+
+<section class="card" id="video">
+  <h2>Vídeo, imágenes y proyector</h2>
+  <p>Los vídeos y las imágenes salen por el <strong>Proyector</strong>: la pantalla o proyector que conectaste al equipo. En el programa ves una miniatura con lo mismo que está saliendo, para no tener que darte vuelta.</p>
+  <ul>
+    <li>Cuando no hay nada proyectando, el proyector muestra <strong>negro</strong>: nunca el escritorio de Windows, ni avisos, ni el ratón.</li>
+    <li>Cuando un vídeo termina, por defecto se queda en el último cuadro. También puedes elegir que se funda a negro o que se corte.</li>
+    <li>Windows tiene que estar en modo <strong>Extender</strong> (no Duplicar). La comprobación previa lo revisa.</li>
+  </ul>
+  <h3>Proyectar sobre una figura del escenario</h3>
+  <p>Puedes acomodar la imagen sobre un telón, un árbol o cualquier forma, moviendo sus 4 esquinas hasta que encaje. Esa forma se llama <strong>superficie</strong> y le pones un nombre (por ejemplo <em>Telón</em>). La posición exacta se guarda para cada teatro. Más adelante también se podrá proyectar sobre formas curvas.</p>
+</section>
+
+<section class="card" id="rampas">
+  <h2>Rampas cortas</h2>
+  <p>Una <strong>rampa</strong> es una subida o bajada de volumen tan corta que no se nota, pero evita el clic. Si la pones en 0, el sonido empieza o se corta de golpe.</p>
+  <p>Se ajustan en <strong>Edición → Ajustes del show</strong>. Cada una tiene su mensaje con consejos. Si un cue tiene un fundido más largo, manda el fundido.</p>
+  <div class="tabla"><table>
+    <tr><th>Rampa</th><th>Por defecto</th><th>Cuándo activarla</th><th>Cuándo dejarla en 0</th></tr>
+    <tr><td>Al iniciar</td><td class="num">0 ms (de golpe)</td><td>5 ms si el cue empieza a mitad del archivo. Ej.: al abrir el telón la música entra desde el estribillo.</td><td>Golpes, disparos, portazos. Ej.: el disparo de la escena final, exacto con la acción.</td></tr>
+    <tr><td>Al reanudar</td><td class="num">5 ms</td><td>Casi siempre. Ej.: retomas la lluvia de fondo después de un parlamento.</td><td>Ej.: una radio en escena que se "enciende" de golpe.</td></tr>
+    <tr><td>Al pausar</td><td class="num">10 ms</td><td>Casi siempre; 20 a 50 ms para una pausa más suave. Ej.: congelar la música de una coreografía.</td><td>Ej.: un efecto de "tiempo detenido".</td></tr>
+    <tr><td>Al parar</td><td class="num">10 ms</td><td>Casi siempre. Ej.: Parar todo cuando un actor se adelanta.</td><td>Ej.: un apagón total, con el sonido cortado junto con la luz.</td></tr>
+    <tr><td>Al saltar</td><td class="num">5 ms</td><td>Siempre. Ej.: en el ensayo, repetir desde el minuto 2.</td><td>Casi nunca.</td></tr>
+    <tr><td>De volumen</td><td class="num">5 ms</td><td>Siempre. Ej.: bajar el ambiente de la fiesta cuando empieza un diálogo.</td><td>Solo pruebas técnicas.</td></tr>
+    <tr><td>Final del archivo</td><td class="num">10 ms</td><td>Si el archivo termina de golpe. Ej.: un ruido de motor recortado a mano.</td><td>Si ya termina en silencio. Ej.: una canción con su final completo.</td></tr>
+  </table></div>
+  <div class="nota cuidado">Si un sonido empieza de golpe desde la mitad del archivo, puede oírse un clic. Para eso está la rampa al iniciar.</div>
+</section>
+
+<section class="card" id="ayuda">
+  <h2>Consejos y Modo Ayuda</h2>
+  <h3>Consejos</h3>
+  <p>Al pasar el ratón por una opción, o al tocar su <strong>?</strong>, aparece un mensaje corto que te dice cuándo conviene usarla, con un ejemplo de escena. Siempre salen en el idioma del programa.</p>
+  <p>Si ya conoces el programa y te molestan, desactívalos en <strong>Ayuda → Mostrar consejos</strong>. Esa misma casilla los vuelve a activar cuando quieras: nunca desaparece.</p>
+  <h3>Modo Ayuda</h3>
+  <p>Pulsa <kbd>H</kbd> o elige <strong>Ayuda → Modo Ayuda</strong>. Después toca cualquier parte de la pantalla y te explica qué hace. Mientras está activo, tocar algo no lo pone en marcha. Para salir, pulsa <kbd>H</kbd> o <kbd>Esc</kbd>.</p>
+  <h3>Primeros pasos</h3>
+  <p>En <strong>Ayuda → Primeros pasos</strong> hay una guía corta para armar tu primer show.</p>
+</section>
+
+<section class="card" id="vista">
+  <h2>Cómo se ve el programa</h2>
+  <p>En el menú <strong>Vista</strong> eliges cómo se ve:</p>
+  <ul>
+    <li><strong>Vistas listas:</strong> Estándar, Minimalista, Pantalla táctil (botones grandes) y Alto contraste.</li>
+    <li><strong>Modo noche:</strong> todo oscuro y rojizo, para no encandilar en la cabina.</li>
+    <li><strong>Modo día:</strong> fondo blanco y máximo contraste, para funciones al aire libre.</li>
+    <li><strong>Idioma:</strong> Español o English. Todo el programa, la ayuda y los consejos cambian juntos.</li>
+    <li><strong>Personalizar:</strong> arrastras los paneles y los botones a donde te queden más cómodos y tocas <strong>Listo</strong>. GO y Parar todo se pueden mover y agrandar, pero nunca esconder.</li>
+    <li><strong>Restaurar vista</strong> vuelve todo a como venía.</li>
+  </ul>
+  <p>En Función el diseño queda bloqueado para que no lo cambies sin querer; solo se pueden cambiar el brillo y los modos noche y día.</p>
+</section>
+
+<section class="card" id="antes">
+  <h2>Antes de la función</h2>
+  <h3>La luz verde</h3>
+  <p>Arriba ves <strong>Todo listo</strong> en verde cuando el programa revisó que:</p>
+  <ul>
+    <li>la tarjeta de sonido está conectada y cada salida tiene su lugar;</li>
+    <li>el proyector está en modo Extender y con la resolución correcta;</li>
+    <li>todos los archivos están y se pueden leer;</li>
+    <li>ningún sonido pasa del volumen máximo.</li>
+  </ul>
+  <p>Si algo falla, te dice qué es y cómo arreglarlo. Si la tarjeta de sonido se desconecta en medio del show, el programa avisa fuerte: nunca pasa el sonido a los parlantes de la computadora sin decirte.</p>
+  <h3>Prueba de hardware <span class="estado pronto">Próximamente</span></h3>
+  <p>En <strong>Ayuda → Prueba de hardware</strong> el programa prueba tu tarjeta de sonido, tus pantallas y el vídeo, y hace un informe. Conviene hacerla una vez en cada equipo o teatro nuevo, mejor una semana antes del estreno.</p>
+  <h3>Lista para el día de la función</h3>
+  <ol class="pasos">
+    <li><div>Equipo limpio: cierra los demás programas.</div></li>
+    <li><div>Desconecta internet si puedes. Otaconvert no lo necesita.</div></li>
+    <li><div>Pausa las actualizaciones de Windows para que no se reinicie solo. La comprobación previa te lo recuerda.</div></li>
+    <li><div>Enchufa la computadora a la corriente.</div></li>
+    <li><div>Espera la luz verde y prueba el primer cue a bajo volumen.</div></li>
+  </ol>
+  <p>En Función, el programa evita que la computadora se suspenda o que aparezca el salvapantallas.</p>
+</section>
+
+<section class="card" id="problemas">
+  <h2>Si algo sale mal</h2>
+  <details open><summary>No se escucha nada</summary>
+    <p>Mira la luz de arriba: si no está verde, te dice qué falta. Revisa que la tarjeta de sonido esté conectada y que en <strong>Edición → Ajustes del show</strong> la salida <em>Principal</em> apunte a ella. Revisa también el volumen maestro.</p></details>
+  <details open><summary>Se escucha un clic al empezar un sonido</summary>
+    <p>Pasa si el sonido empieza a la mitad del archivo. Activa la <a href="#rampas">rampa al iniciar</a> (5 ms) o ponle un fundido de entrada a ese cue.</p></details>
+  <details open><summary>El sonido se corta o tartamudea</summary>
+    <p>Cierra otros programas. Si sigue, haz la Prueba de hardware: te dice si conviene darle más margen al audio en ese equipo.</p></details>
+  <details open><summary>El vídeo sale en la pantalla equivocada</summary>
+    <p>Windows a veces reordena las pantallas. Revisa que esté en modo Extender. El programa vuelve a ubicar el Proyector solo; si no, elige la pantalla correcta en los ajustes del teatro.</p></details>
+  <details open><summary>Toqué GO de más</summary>
+    <p>Pulsa <kbd>Esc</kbd> (Parar todo) o para solo ese cue desde el panel Sonando. Con <kbd>↑</kbd> <kbd>↓</kbd> vuelves a elegir el cue que sigue.</p></details>
+  <details open><summary>El programa se cerró</summary>
+    <p>Un vigilante lo vuelve a abrir solo y recarga el show. El trabajo se guarda solo cada poco tiempo, con copias de seguridad.</p></details>
+</section>
+
+<section class="card" id="convertir">
+  <h2>Convertir archivos <span class="estado pronto">Próximamente</span></h2>
+  <p class="muted">Hoy ya funciona como programa aparte (Otaconvert versión 1). Dentro de la versión 2 llegará como pestaña.</p>
+  <p>La pestaña <strong>Convertir</strong> cambia muchos archivos de audio a otro formato de una vez: arrastras los archivos o una carpeta, eliges el formato y tocas convertir. Nunca borra ni sobrescribe tus originales.</p>
+  <p>Para el show <strong>no hace falta convertir nada</strong>: el programa prepara cada audio solo. Mientras estás en Función, la conversión se pausa para no molestar.</p>
+</section>
+
+<section class="card tecnico" id="tecnico">
+  <h2>Especificaciones técnicas</h2>
+  <p class="muted">Para técnicos y usuarios avanzados. Estado al 15/10/2026: Fase 0 (prueba técnica del motor).</p>
+
+  <h3>Plataforma y distribución</h3>
+  <ul>
+    <li>Windows 10 y 11 de 64 bits (x86-64). Sin administrador. Instalador por usuario y versión portable (<code>portable.txt</code> junto al exe → configuración en esa carpeta, sin registro).</li>
+    <li>Motor en Rust, en proceso aparte de la ventana; un vigilante lo reinicia y recarga el show si se cae (objetivo &lt; 1 s, a verificar).</li>
+    <li>Runtime de C enlazado estáticamente (<code>+crt-static</code>): no requiere el VC++ Redistributable. <span class="estado ya">Comprobado en la compilación</span></li>
+    <li>Interfaz servida por el motor; sin WebView2 se abre en el navegador.</li>
+    <li>100 % sin conexión. Sin telemetría. Búsqueda de actualizaciones apagada por defecto.</li>
+  </ul>
+
+  <h3>Audio</h3>
+  <div class="tabla"><table>
+    <tr><th>Elemento</th><th>Especificación</th></tr>
+    <tr><td>API</td><td>WASAPI modo compartido por defecto (crate <code>cpal</code> 0.18.2); ASIO opcional. <span class="estado ya">Ya funciona: WASAPI</span></td></tr>
+    <tr><td>Formato interno</td><td>float 32 intercalado; mezcla en float 32.</td></tr>
+    <tr><td>Frecuencia</td><td>La de la tarjeta, leída al abrir. Sin remuestreo en vivo: cada audio se prepara entero en memoria a esa frecuencia; un audio a otra frecuencia se rechaza.</td></tr>
+    <tr><td>Periodo y margen</td><td>WASAPI llama cada <code>GetDevicePeriod</code> (10 ms típico). El margen (<code>BufferSize::Fixed</code>) agranda el búfer de WASAPI: más seguridad y más latencia. Margen por defecto a decidir con la Prueba de hardware.</td></tr>
+    <tr><td>Prioridad</td><td>Hilo de audio con prioridad de tiempo real de Windows (MMCSS, feature <code>realtime</code> de cpal).</td></tr>
+    <tr><td>Tiempo real</td><td>El hilo de audio no bloquea ni pide o libera memoria: comandos por cola sin bloqueo (<code>rtrb</code>); los audios que dejan de sonar vuelven al hilo de control para liberarse. Verificado con un asignador que cuenta.</td></tr>
+    <tr><td>Rampas</td><td>Lineales, en cuadros. Por defecto: inicio 0, reanudar 5 ms, pausa 10 ms, parada 10 ms, salto 5 + 5 ms, volumen 5 ms, final de archivo 10 ms. Configurables de 0 en adelante y cambiables en vivo.</td></tr>
+    <tr><td>Salida</td><td>Por ahora estéreo; valores fuera de ±1 se recortan y se cuentan. Limitador maestro transparente: <span class="estado pronto">Próximamente</span></td></tr>
+    <tr><td>Salidas lógicas</td><td>El show guarda nombres (<em>Principal</em>, <em>Auriculares</em>); cada teatro tiene un perfil que los empareja con tarjeta y canales.</td></tr>
+  </table></div>
+
+  <h3>Pruebas automáticas del audio <span class="estado ya">Ya funciona</span></h3>
+  <ul>
+    <li>Detector de chasquidos por segunda diferencia <code>x[n] − 2·x[n−1] + x[n−2]</code>; umbral para tonos <code>1,5·A·(2·sin(π·f/fs))² + 0,002</code>.</li>
+    <li>Estrés: 3 × 10 min a 48 kHz, unas 1.850 órdenes al azar cada una (iniciar, parar, pausar, reanudar, saltar, volumen, parar todo, maestro), bloques de 1 a 1024 cuadros: 0 discontinuidades (máxima 0,0023 frente a un umbral de 0,0127), 0 recortes.</li>
+    <li>Control del detector: sin rampas encuentra cientos de chasquidos en 2 minutos.</li>
+    <li>Prueba en vivo en la tarjeta real: <code>otaconvert-motor --prueba-vivo [segundos] [margen_ms]</code> (intervalos entre llamadas, cortes probables, discontinuidades, recortes, errores).</li>
+  </ul>
+
+  <h3>Vídeo <span class="estado pronto">Próximamente</span></h3>
+  <ul>
+    <li>libmpv con <code>vo=gpu-next</code>, <code>gpu-context=d3d11</code>, <code>hwdec=d3d11va</code>; si la GPU no decodifica, pasa a CPU.</li>
+    <li>Precarga del cue en espera y los 2 o 3 siguientes, con el primer cuadro listo en la GPU. Capas: el nuevo se dibuja encima y el anterior se retira cuando el nuevo ya muestra imagen.</li>
+    <li>Ventana de proyección en proceso aparte, negra en reposo. El reloj de la tarjeta de sonido manda.</li>
+    <li>Contenedores MP4, MOV, MKV con decodificadores incluidos; Hap opcional.</li>
+    <li>Mapeo: contenido → recorte → deformación (4 puntos; malla en la Fase 3) → máscara → bordes, todo en la GPU en un solo paso.</li>
+  </ul>
+
+  <h3>Seguridad</h3>
+  <ul>
+    <li>No abre puertos ni usa internet. Las funciones de red futuras (GO desde el celular, OSC, MIDI por red) vendrán apagadas y con emparejamiento.</li>
+    <li>DLL: <code>/DEPENDENTLOADFLAG:0x800</code> y <code>SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS)</code>, para que una DLL falsa junto al programa o en la carpeta actual no se cargue. <span class="estado ya">Comprobado en la compilación</span></li>
+    <li>El archivo del show es solo datos: no ejecuta nada y no lee fuera de su carpeta.</li>
+    <li>Librerías revisadas contra la base de vulnerabilidades RustSec/OSV en cada cambio y cada semana.</li>
+    <li>Cada descarga se publica con su huella SHA-256.</li>
+  </ul>
+
+  <h3>Comandos del motor (Fase 0)</h3>
+  <div class="tabla"><table>
+    <tr><th>Comando</th><th>Qué hace</th></tr>
+    <tr><td><code>--version</code></td><td>Versión del motor.</td></tr>
+    <tr><td><code>--listar-salidas</code></td><td>Sistema de audio, salida predeterminada y configuración de cada salida.</td></tr>
+    <tr><td><code>--tono [s] [margen_ms]</code></td><td>Tono de 440 Hz a −12 dBFS en la salida predeterminada.</td></tr>
+    <tr><td><code>--prueba-vivo [s] [margen_ms]</code></td><td>Órdenes al azar en la tarjeta real e informe; termina con código de error si encuentra problemas.</td></tr>
+  </table></div>
+
+  <h3>Código y licencias</h3>
+  <ul>
+    <li>Código fuente: <code>github.com/marcoldmusica-cyber/otaconvert</code> (carpeta <code>v2/</code>). Compilación automática en GitHub Actions.</li>
+    <li>Otaconvert V2: GPLv3 o posterior.</li>
+    <li>Terceros: cpal (Apache-2.0), rtrb (MIT o Apache-2.0); mpv/libmpv (GPLv2 o posterior) y FFmpeg cuando llegue el vídeo; ASIO SDK de Steinberg (GPLv3) si se compila con ASIO. La versión 1 incluye FFmpeg, CustomTkinter, tkinterdnd2, imageio-ffmpeg y Python (ver <code>THIRD_PARTY.txt</code>).</li>
+  </ul>
+</section>
+
+<section class="card amor" id="libre">
+  <h2>Libre y gratuito</h2>
+  <p>Otaconvert fue desarrollado por amor al arte. Es software libre y gratuito, con licencia GPLv3: puedes usarlo sin pagar, copiarlo, compartirlo, estudiar cómo está hecho y mejorarlo, siempre que lo que compartas siga siendo libre.</p>
+  <p>Si te sirve, compártelo con otros teatros, otros técnicos, otros grupos. Si encuentras un error o tienes una idea, cuéntalo: así mejora para todos.</p>
+  <p class="frase">Nadie se salva solo.</p>
+</section>
+
+<footer>Otaconvert · Manual de usuario · Versión de borrador del 15/10/2026</footer>
+
+</main>
+</div>
+<script>
+// Colores del manual: oscuro como el programa o Día para leer con mucha luz.
+(function(){
+  var raiz=document.documentElement, osc=document.getElementById('oscuro'), dia=document.getElementById('dia');
+  function poner(d){
+    if(d)raiz.setAttribute('data-day','');else raiz.removeAttribute('data-day');
+    osc.setAttribute('aria-pressed',!d);dia.setAttribute('aria-pressed',d);
+    try{localStorage.setItem('otaconvert-manual-dia',d?'1':'0')}catch(e){}
+  }
+  var guardado=null;try{guardado=localStorage.getItem('otaconvert-manual-dia')}catch(e){}
+  poner(guardado==='1');
+  osc.onclick=function(){poner(false)};dia.onclick=function(){poner(true)};
+})();
+</script>
+</body>
+</html>
