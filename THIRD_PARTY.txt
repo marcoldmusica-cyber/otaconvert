@@ -1,0 +1,8 @@
+Otaconvert incluye estos componentes de terceros:
+
+- FFmpeg (https://ffmpeg.org): motor de conversión de audio. Licencia LGPL/GPL según la compilación.
+  Se ejecuta como programa independiente; su código fuente está disponible en https://ffmpeg.org/download.html
+  (empaquetado mediante imageio-ffmpeg, BSD-2-Clause).
+- CustomTkinter (https://github.com/TomSchimansky/CustomTkinter): interfaz gráfica. Licencia MIT.
+- tkinterdnd2 (https://github.com/Eliav2/tkinterdnd2): arrastrar y soltar. Licencia MIT.
+- Python (https://www.python.org): licencia PSF.
