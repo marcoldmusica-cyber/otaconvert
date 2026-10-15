@@ -134,7 +134,7 @@ La V1 como pestaña aparte, en proceso aparte con prioridad baja. Bloqueada en F
 | Disco/decodificación en el GO | Cada audio **entero en memoria** al quedar "en espera". |
 | ASIO difícil | **WASAPI por defecto**, **ASIO opcional**. Lista de tarjetas, sin DLLs. **Buffers grandes**. Candidato: crate Rust **cpal** (WASAPI + feature ASIO). Verificar en Fase 0. |
 | Tarjetas distintas | **Prueba de hardware** + **comprobación previa**. Si la tarjeta se desconecta: aviso fuerte, nunca cambiar en silencio a los altavoces del PC. |
-| Interfaz | La sirve el propio motor. **Mínimo Windows 10 64 bits** (WebView2 dejó de actualizarse en 7/8; última compatible 109). Sin WebView2, se abre en el navegador. |
+| Interfaz | La sirve el propio motor. ~~Mínimo Windows 10 64 bits~~ **Reemplazado:** debe funcionar desde Windows 7 (ver sección 9, "Decidido"); se propone una interfaz dibujada por el propio programa en lugar de WebView2. |
 | Caídas | **Vigilante** que reinicia el motor y recarga el show (objetivo < 1 s, a verificar). En Función se bloquean suspensión y salvapantallas. Guardado automático con copias. Más adelante modo respaldo con segundo PC. |
 | Validación | Pruebas automáticas de muchas horas y piloto en 1–2 teatros. |
 | No eliminable | Actualizaciones de Windows: la comprobación previa avisa y recomienda pausarlas. |
@@ -195,10 +195,17 @@ mpv es GPLv2+ (LGPL con opción de compilación). ASIO con doble licencia desde 
 5. V1: ¿lista virtualizada para miles de archivos?
 6. Menor: actualizar acciones del workflow (Node 20).
 7. ¿Aprueba el boceto y los atajos propuestos?
-8. ¿La V2 solo para Windows o también macOS? (Recomendación: Windows primero; en Mac ya existe QLab.)
+8. ¿Tiene una PC con Windows 7 para probar? ¿Hace falta Windows 7 de 32 bits o alcanza con 64 bits?
+9. ¿La V1 también debe funcionar en Windows 7? (Hoy no: está compilada con Python 3.12; la última versión de Python para Windows 7 es la 3.8.)
 
 ### Decidido el 15/10/2026
 - **Idiomas de la interfaz: español e inglés** (también la Ayuda).
+- **Solo Windows. Debe funcionar en Windows 7, 10, 11 y posteriores** (decisión del usuario). Esto reemplaza el "mínimo Windows 10" de la sección 7. Impacto verificado (búsqueda del 15/10/2026):
+  - Rust: desde la 1.78 el mínimo de los targets normales es Windows 10; para Windows 7 existe el target `x86_64-win7-windows-msvc`, de nivel 3 (sin binarios oficiales: compilar con nightly + `build-std`). Hay que fijar la versión de nightly y probar en Windows 7 real.
+  - WebView2: la 109 es la última para Windows 7 y no recibe parches. **Propuesta:** interfaz dibujada por el propio programa (sin WebView2 ni navegador), la misma en todas las versiones de Windows.
+  - mpv: según un issue en GitHub (#16607, cerrado como "not planned"), la última versión que funciona en Windows 7 es la 0.36. Opciones: libmpv 0.36 congelada o decodificar con FFmpeg y dibujar con D3D11 propio. Decidir en la Fase 0 con pruebas; verificar que la versión de FFmpeg elegida siga funcionando en Windows 7.
+  - WASAPI y ASIO existen en Windows 7. D3D11 existe en Windows 7 SP1 (verificar la actualización de plataforma necesaria).
+  - GitHub Actions no tiene Windows 7: las pruebas en Windows 7 se hacen en una PC o máquina virtual real con la Prueba de hardware.
 - El usuario delega en Claude el reparto de funciones entre fases, siempre que sea lo mejor para el proyecto. Las 9 funciones esenciales pasaron a la Fase 1; la hoja de cues a la Fase 2.
 
 ## 10. Siguiente paso
