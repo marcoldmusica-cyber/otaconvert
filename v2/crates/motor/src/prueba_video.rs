@@ -47,6 +47,8 @@ struct Cuenta {
     raros: u64,
     sin_cambio: u64,
     latencias_ms: Vec<f64>,
+    /// Los primeros colores raros vistos (r, g, b), para entender qué pasó.
+    ejemplos_raros: Vec<(i32, i32, i32)>,
 }
 
 impl Cuenta {
@@ -58,6 +60,9 @@ impl Cuenta {
             self.negros += 1;
         } else if !valido.iter().any(|&v| parecido(c, v)) {
             self.raros += 1;
+            if self.ejemplos_raros.len() < 5 {
+                self.ejemplos_raros.push(canales_pantalla(c));
+            }
         }
         c
     }
@@ -207,6 +212,9 @@ pub fn ejecutar(cambios: u64, pantalla: Option<&str>, carpeta: Option<&Path>) ->
     );
     println!("Muestras negras: {}", cuenta.negros);
     println!("Muestras de otro color: {}", cuenta.raros);
+    if !cuenta.ejemplos_raros.is_empty() {
+        println!("  Ejemplos (r, g, b): {:?}", cuenta.ejemplos_raros);
+    }
     println!("Cambios que no se vieron en 1 s: {}", cuenta.sin_cambio);
     println!("Tiempo del GO a la imagen nueva: media {media:.1} ms · máxima {maxima:.1} ms");
     for (n, r) in reps.iter().enumerate() {

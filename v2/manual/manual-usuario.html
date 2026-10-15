@@ -481,6 +481,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <li>libmpv (API 2.x) se carga con su ruta completa desde la carpeta del programa; cada reproductor queda limitado a archivos locales: sin scripts, sin configuración externa, sin internet, sin teclado ni cursor propios. El sonido de los vídeos lo maneja el motor de audio.</li>
     <li>Precarga del cue en espera y los 2 o 3 siguientes, con el primer cuadro listo en la GPU. Capas: el nuevo se dibuja encima y el anterior se retira cuando el nuevo ya muestra imagen.</li>
     <li>Prueba automática (15/10/2026, GeForce GTX 1050 Ti, 1920 × 1080 a 60 Hz): 300 cambios entre vídeos H.264 1080p60 reales con dos capas, mirando la pantalla unas 57 veces por segundo: <strong>0 cuadros negros</strong>, 0 cuadros perdidos, decodificación por la tarjeta gráfica (d3d11va), del GO a la imagen 18 ms de media y 26 ms como máximo.</li>
+    <li>El programa compilado por GitHub, probado en el mismo equipo: 100 cambios con vídeos reales, 0 cuadros negros, 0 perdidos, 18 ms del GO a la imagen. En un equipo sin tarjeta gráfica (máquina virtual) tampoco hubo negros, pero se pierden cuadros y tarda unos 60 ms: para funciones conviene una tarjeta gráfica.</li>
     <li>libmpv necesita <code>vulkan-1.dll</code>, que instalan los drivers de la tarjeta gráfica; la Prueba de hardware avisará si falta.</li>
     <li>Ventana de proyección en proceso aparte, negra en reposo. El reloj de la tarjeta de sonido manda.</li>
     <li>Contenedores MP4, MOV, MKV con decodificadores incluidos; Hap opcional.</li>
