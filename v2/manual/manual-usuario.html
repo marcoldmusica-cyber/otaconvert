@@ -309,6 +309,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
 
 <section class="card" id="video">
   <h2>Vídeo, imágenes y proyector</h2>
+  <p class="muted">Funciona con proyectores y pantallas de hasta 4K.</p>
   <p>Los vídeos y las imágenes salen por el <strong>Proyector</strong>: la pantalla o proyector que conectaste al equipo. En el programa ves una miniatura con lo mismo que está saliendo, para no tener que darte vuelta.</p>
   <ul>
     <li>Cuando no hay nada proyectando, el proyector muestra <strong>negro</strong>: nunca el escritorio de Windows, ni avisos, ni el ratón.</li>
@@ -484,6 +485,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <li>El programa compilado por GitHub, probado en el mismo equipo: 100 cambios con vídeos reales, 0 cuadros negros, 0 perdidos, 18 ms del GO a la imagen. En un equipo sin tarjeta gráfica (máquina virtual) tampoco hubo negros, pero se pierden cuadros y tarda unos 60 ms: para funciones conviene una tarjeta gráfica.</li>
     <li>libmpv necesita <code>vulkan-1.dll</code>, que instalan los drivers de la tarjeta gráfica; la Prueba de hardware avisará si falta.</li>
     <li>Ventana de proyección en proceso aparte, negra en reposo. El reloj de la tarjeta de sonido manda.</li>
+    <li>Salida de hasta <strong>4K</strong> (3840 × 2160), objetivo 60 Hz, con vídeos H.264 y HEVC de hasta 4K60 decodificados por la tarjeta gráfica. Probado: 20 cambios con 4K60 H.264 y 20 con 4K60 HEVC en una GTX 1050 Ti, sin negros ni cuadros perdidos (en un monitor 1080p; falta probar una pantalla 4K real).</li>
     <li>Contenedores MP4, MOV, MKV con decodificadores incluidos; Hap opcional.</li>
     <li>Mapeo: contenido → recorte → deformación (4 puntos; malla en la Fase 3) → máscara → bordes, todo en la GPU en un solo paso.</li>
   </ul>
