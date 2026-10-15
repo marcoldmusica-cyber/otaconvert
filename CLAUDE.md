@@ -12,7 +12,8 @@ Léelo entero antes de proponer o tocar nada. Si algo de aquí choca con el cód
 - Ser honesto sobre lo **no** probado: distinguir lo comprobado de lo pendiente.
 - Si pide respuestas rápidas, respetarlo.
 - Cuando el usuario dice **"el manual"** o "el registro del proyecto" se refiere a **este archivo (CLAUDE.md)**. Toda decisión, función y opción nueva se anota aquí.
-- **Regla de interfaz (15/10/2026):** cada opción configurable lleva un **mensaje emergente sutil** (al pasar el ratón o tocar "?") que recomienda en qué casos activarla o desactivarla y qué valor usar. Cada mensaje incluye **ejemplos de escena** ("si en una escena pasa X, actívala para Y"), uno para activar y otro para desactivar. **Idioma:** los mensajes salen siempre en el idioma configurado del programa; si el programa está en inglés todo está en inglés, y lo mismo en español (nunca mezclados). **Opcionales:** se pueden ocultar (para usuarios avanzados) con un interruptor "Mostrar consejos" en Vista y en Ayuda; activados por defecto y **siempre se pueden volver a activar** (ese interruptor nunca se oculta, ni siquiera con Vista → Personalizar).
+- **Sin botones de ajustes sueltos (15/10/2026):** los ajustes del programa (mostrar consejos, idioma, vistas, ajustes del show) van en la barra de menús de arriba (sección 6), no como botones en la ventana.
+- **Regla de interfaz (15/10/2026):** cada opción configurable lleva un **mensaje emergente sutil** (al pasar el ratón o tocar "?") que recomienda en qué casos activarla o desactivarla y qué valor usar. Cada mensaje incluye **ejemplos de escena** ("si en una escena pasa X, actívala para Y"), uno para activar y otro para desactivar. **Idioma:** los mensajes salen siempre en el idioma configurado del programa; si el programa está en inglés todo está en inglés, y lo mismo en español (nunca mezclados). **Opcionales:** se pueden ocultar (para usuarios avanzados) con la casilla **Ayuda → Mostrar consejos** de la barra de menús; activados por defecto y **siempre se pueden volver a activar** (esa casilla nunca se oculta, ni siquiera con Vista → Personalizar).
  Los textos viven en el código, en español e inglés, junto a la opción, y se resumen en este archivo.
 - El usuario quiere que Claude maneje GitHub de forma automática (commits, subidas, compilaciones). Avisar antes de cada `git push` salvo que diga lo contrario.
 
@@ -117,7 +118,23 @@ Atajos aprobados por el usuario (15/10/2026): Espacio GO, Esc Parar todo, P Paus
 
 La V1 como pestaña aparte, en proceso aparte con prioridad baja. Bloqueada en Función; si se entra en Función con una conversión en curso, termina el archivo actual y pausa el resto. Los cues **no** necesitan convertirse antes: el motor prepara cada audio en segundo plano (decodifica a memoria a la frecuencia de la tarjeta). Preajuste "Vídeo para función" para equipos que no aguanten ciertos vídeos.
 
-## 6. Menú Vista
+## 6. Barra de menús y menú Vista
+
+### Barra de menús (decidido el 15/10/2026)
+El usuario pidió **no llenar la ventana de botones** para ajustes del tipo "mostrar/ocultar mensajes". Esos ajustes van en una **barra de menús desplegables arriba de todo** (como Archivo · Edición · Vista · Ayuda en cualquier programa). En la ventana solo quedan los botones de trabajo: GO, Pausa, Fundir todo, Parar todo, el indicador Edición/Función y las pestañas Show/Convertir. Solo los menús necesarios:
+
+| Menú | Contenido |
+|---|---|
+| **Archivo** | Nuevo show · Abrir… · Abrir reciente ▸ · Guardar · Guardar como… · Reunir medios… · Salir |
+| **Edición** | Deshacer · Rehacer · Copiar · Pegar · Eliminar cue · **Ajustes del show…** (rampas cortas, salidas y perfiles de teatro, protección contra doble GO) |
+| **Vista** | Personalizar… · Vistas listas ▸ · Modo noche · Modo día · Idioma ▸ (Español / English) · Restaurar vista |
+| **Ayuda** | Modo Ayuda (H) · Primeros pasos · **Mostrar consejos** ✓ · Atajos de teclado · Prueba de hardware… · Acerca de Otaconvert |
+
+- Cada opción aparece **una sola vez** (nada repetido en dos menús ni como botón suelto).
+- En Función los menús siguen ahí pero lo que edita queda gris: solo Vista → Modo noche/Modo día/brillo, Archivo → Guardar y todo Ayuda. Abrir un menú nunca roba Espacio (GO) ni Esc (Parar todo): Esc primero cierra el menú y un segundo Esc para todo (a verificar en Fase 1 que no retrasa el pánico; si lo retrasa, Esc para todo siempre y el menú se cierra a la vez).
+- Pendiente: el boceto aprobado (`v2/diseno/`) todavía tiene Vista y Ayuda como botones en la cabecera; pasarlos a esta barra cuando se retome el boceto o en la Fase 1.
+
+### Menú Vista
 
 - **Vista → Personalizar:** arrastrar paneles y botones con vista previa en vivo y pulsar **Listo**. Nada de ventanas con cien casillas.
 - Personalizable: pestañas y paneles visibles (lista, detalle, onda, medidores, reloj, notas) y su posición; botones de Función (orden, tamaño, color, etiqueta); columnas; teclas rápidas; tamaño de letra; densidad (compacta, normal, táctil); brillo; acento; atajos (avisa si se repiten).
@@ -126,7 +143,7 @@ La V1 como pestaña aparte, en proceso aparte con prioridad baja. Bloqueada en F
 - Estética protegida: paletas diseñadas + acento libre con contraste automático; cuadrícula imantada; **Restaurar vista** siempre a mano.
 - En Función el diseño queda bloqueado (solo brillo, Modo noche y Modo día).
 - GO y Parar todo se pueden mover, agrandar y recolorear, **nunca ocultar**.
-- Interruptor **"Mostrar consejos"** (mensajes emergentes con recomendaciones y ejemplos de escena), activado por defecto, en Vista y en Ayuda. Igual que GO y Parar todo, **nunca se puede ocultar**: siempre se pueden volver a activar los consejos. Los consejos siguen el idioma del programa.
+- La casilla **Ayuda → Mostrar consejos** (mensajes emergentes con recomendaciones y ejemplos de escena), activada por defecto. Igual que GO y Parar todo, **nunca se puede ocultar**: siempre se pueden volver a activar los consejos. Los consejos siguen el idioma del programa.
 - **Desde la Fase 1** la interfaz se construye con la distribución guardada como datos (qué bloque va dónde y con qué tamaño), aunque el editor de arrastrar y soltar llegue en la Fase 2. Así personalizar no obliga a rehacer la interfaz.
 - El boceto (`v2/diseno/`) incluye una demo de Vista → Personalizar: arrastrar paneles, barra y botones; letra, densidad, GO grande; vistas listas; Restaurar vista; bloqueo en Función.
 
@@ -176,7 +193,7 @@ El usuario pidió que **por defecto los audios arranquen de golpe** (sin rampa a
 | Final del archivo | 10 ms si termina de golpe. *Un efecto de motor recortado a mano que acaba en pleno ruido.* | Si ya termina en silencio. *Una canción con su final desvanecido completo.* |
 
 
-- Interfaz (Fase 1): en Preferencias del show, sección "Rampas cortas", una fila por rampa con un valor en ms y un interruptor; además, en cada cue, fundido de entrada y de salida. Guardado en el archivo del show. Ayuda para principiantes: "Una rampa es una subida o bajada de volumen tan corta que no se nota, pero evita el clic. Si la pones en 0, el sonido empieza o se corta de golpe".
+- Interfaz (Fase 1): en **Edición → Ajustes del show…**, sección "Rampas cortas", una fila por rampa con un valor en ms y un interruptor; además, en cada cue, fundido de entrada y de salida. Guardado en el archivo del show. Ayuda para principiantes: "Una rampa es una subida o bajada de volumen tan corta que no se nota, pero evita el clic. Si la pones en 0, el sonido empieza o se corta de golpe".
 
 ### Salidas lógicas y perfiles de teatro
 El show guarda nombres lógicos (*Principal*, *Auriculares*; luego *Sala*, *Efectos*…); cada teatro tiene un **perfil** que los empareja con tarjeta y canales. Evitar el "primer cue mudo" al cambiar de máquina. Por defecto nada que configurar: *Principal* → salida predeterminada de Windows. El emparejamiento aparece solo cuando hace falta; la app propone coincidencias por nombre, el usuario confirma, se recuerda por teatro. Sin luz verde hasta que cada salida tenga destino. Si faltan salidas: mezcla a estéreo y avisa. Buffer calibrado con la Prueba de hardware y guardado en el perfil. V2.0: solo *Principal* y *Auriculares*; matriz multicanal en Fase 3.
