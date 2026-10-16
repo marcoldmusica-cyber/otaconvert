@@ -221,3 +221,134 @@ fn sin_proyeccion_el_go_avanza_y_avisa() {
     assert!(s.go());
     assert!(s.aviso.as_ref().unwrap().contiene("no hay proyección"));
 }
+
+// ---- Etapa 4B: el sonido de los vídeos va por nuestro mezclador ----
+
+use otaconvert_audio::Comando;
+use otaconvert_servidor::{Destino, Sonido};
+
+#[derive(Clone, Default)]
+struct SonidoFalso {
+    recibido: Arc<Mutex<Vec<(Destino, Comando)>>>,
+}
+
+impl Sonido for SonidoFalso {
+    fn frecuencia(&self) -> u32 {
+        48_000
+    }
+    fn tiene_auriculares(&self) -> bool {
+        false
+    }
+    fn enviar(&mut self, d: Destino, c: Comando) -> Result<(), String> {
+        self.recibido.lock().unwrap().push((d, c));
+        Ok(())
+    }
+    fn recoger_basura(&mut self) {}
+}
+
+impl SonidoFalso {
+    /// Las voces que se mandaron a sonar: (voz, hasta, bucle).
+    fn iniciados(&self) -> Vec<(u32, Option<usize>, bool)> {
+        self.recibido
+            .lock()
+            .unwrap()
+            .iter()
+            .filter_map(|(_, c)| match c {
+                Comando::IniciarCue { id, hasta, bucle, .. } => Some((*id, *hasta, *bucle)),
+                _ => None,
+            })
+            .collect()
+    }
+    fn parados(&self) -> Vec<(u32, u32)> {
+        self.recibido
+            .lock()
+            .unwrap()
+            .iter()
+            .filter_map(|(_, c)| if let Comando::Parar { id, fundido } = c { Some((*id, *fundido)) } else { None })
+            .collect()
+    }
+}
+
+/// Carpeta con dos vídeos de verdad: uno con sonido (1 s de tono) y uno mudo.
+fn carpeta_con_videos() -> PathBuf {
+    let d = carpeta();
+    let datos = Path::new(env!("CARGO_MANIFEST_DIR")).join("../audio/tests/datos");
+    std::fs::copy(datos.join("tono-video.mp4"), d.join("video/con-sonido.mp4")).unwrap();
+    std::fs::copy(datos.join("video-mudo.mp4"), d.join("video/mudo.mp4")).unwrap();
+    d
+}
+
+fn abrir_con_sonido(d: &Path, cues: Vec<Cue>) -> (Sesion, Falso, SonidoFalso) {
+    let show = Show { nombre: "Vídeos".into(), cues, ..Default::default() };
+    guardar(&show, &d.join("s.otashow"), "20261016-000000").unwrap();
+    let mut s = Sesion::abrir(d).unwrap();
+    let son = SonidoFalso::default();
+    s.conectar_sonido(Box::new(son.clone()));
+    son.recibido.lock().unwrap().clear();
+    let f = Falso::default();
+    s.conectar_proyector(Box::new(f.clone()));
+    (s, f, son)
+}
+
+/// Prepara todo lo que pide la sesión (lo que hace el hilo preparador).
+fn preparar_todo(s: &mut Sesion) {
+    while let Some((i, ruta, fs)) = s.siguiente_a_preparar() {
+        s.resultado_preparar(i, otaconvert_audio::preparar::preparar(&ruta, fs));
+    }
+}
+
+#[test]
+fn el_video_con_sonido_suena_por_el_mezclador_y_en_bucle_vuelve_con_la_imagen() {
+    let d = carpeta_con_videos();
+    let cue = Cue { bucle: true, ..visual("1", "video/con-sonido.mp4", TipoCue::Video) };
+    let (mut s, f, son) = abrir_con_sonido(&d, vec![cue]);
+    // Pide la imagen y empieza a preparar el sonido (todavía sin terminar).
+    let (i, ruta, fs) = s.siguiente_a_preparar().expect("el sonido del vídeo se prepara");
+    f.avisar(AvisoProyector::Listo { id: 0, duracion: Some(0.9) });
+    s.limpiar();
+    // La imagen está, pero el sonido no: no dispara.
+    let e: serde_json::Value = serde_json::from_str(&s.estado_json()).unwrap();
+    assert_eq!(e["cues"][0]["preparacion"], "preparando");
+    assert!(!s.go());
+    s.resultado_preparar(i, otaconvert_audio::preparar::preparar(&ruta, fs));
+    preparar_todo(&mut s);
+    let e: serde_json::Value = serde_json::from_str(&s.estado_json()).unwrap();
+    assert_eq!(e["cues"][0]["preparacion"], "listo");
+    assert!((e["cues"][0]["duracion_s"].as_f64().unwrap() - 0.9).abs() < 0.001, "manda la duración del vídeo");
+    f.tomar();
+    assert!(s.go());
+    assert_eq!(f.tomar(), vec![OrdenProyector::Mostrar { id: 0 }]);
+    // El sonido arranca a la vez, en bucle, y vuelve donde vuelve la imagen (0,9 s = 43.200 cuadros).
+    match son.iniciados().as_slice() {
+        [(_, Some(hasta), true)] => assert_eq!(*hasta, 43_200),
+        x => panic!("{x:?}"),
+    }
+    // Mayús+F funde la imagen y también su sonido.
+    s.fundir_ultimo();
+    assert_eq!(f.tomar(), vec![OrdenProyector::Fundir { ms: 3000 }]);
+    let voz = son.iniciados()[0].0;
+    assert_eq!(son.parados(), vec![(voz, 3000 * 48)]);
+}
+
+#[test]
+fn un_video_mudo_no_espera_sonido_y_un_video_nuevo_para_el_sonido_del_anterior() {
+    let d = carpeta_con_videos();
+    let (mut s, f, son) = abrir_con_sonido(
+        &d,
+        vec![visual("1", "video/con-sonido.mp4", TipoCue::Video), visual("2", "video/mudo.mp4", TipoCue::Video)],
+    );
+    preparar_todo(&mut s);
+    f.avisar(AvisoProyector::Listo { id: 0, duracion: Some(1.0) });
+    f.avisar(AvisoProyector::Listo { id: 1, duracion: Some(1.0) });
+    s.limpiar();
+    let e: serde_json::Value = serde_json::from_str(&s.estado_json()).unwrap();
+    assert_eq!(e["cues"][1]["mudo"], true);
+    assert_eq!(e["cues"][1]["preparacion"], "listo", "un vídeo mudo no espera sonido");
+    assert!(e["cues"][1]["error"].is_null(), "mudo no es un error");
+    assert!(s.go());
+    let voz = son.iniciados()[0].0;
+    std::thread::sleep(std::time::Duration::from_millis(350));
+    assert!(s.go(), "el vídeo mudo se muestra");
+    assert_eq!(son.iniciados().len(), 1, "el mudo no manda sonido");
+    assert_eq!(son.parados(), vec![(voz, 0)], "el sonido del vídeo anterior se para");
+}

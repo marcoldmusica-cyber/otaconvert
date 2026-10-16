@@ -42,6 +42,8 @@ struct Sonando {
     fundiendo: bool,
     /// Es un vídeo o una imagen (va por la proyección, no por el mezclador).
     visual: bool,
+    /// Tiene una voz en el mezclador con el `id` de arriba (un audio, o el sonido de un vídeo).
+    voz: bool,
 }
 
 /// Edición prepara el show; Función es para la función de verdad: el motor
@@ -83,6 +85,8 @@ pub struct Sesion {
     visuales: HashMap<usize, Visual>,
     /// Tras reiniciarse la proyección: el cue que se veía, para volver a mostrarlo.
     remostrar: Option<usize>,
+    /// Vídeos sin sonido (no es un error).
+    mudos: std::collections::HashSet<usize>,
 }
 
 /// Busca el archivo del show: la ruta misma, o el único `.otashow` de la carpeta.
@@ -141,6 +145,7 @@ impl Sesion {
             proyector: None,
             visuales: HashMap::new(),
             remostrar: None,
+            mudos: std::collections::HashSet::new(),
         })
     }
 
@@ -175,6 +180,7 @@ impl Sesion {
         self.sonido = Some(s);
         self.preparados.clear();
         self.errores.clear();
+        self.mudos.clear();
     }
 
     fn describir(&self, i: usize) -> String {
@@ -274,7 +280,25 @@ impl Sesion {
                     ));
                     self.registro.anotar("ERROR", &format!("{d}: no hay proyección"));
                 }
-                (true, Some(Visual::Listo { duracion })) => self.mostrar_visual(i, duracion),
+                (true, Some(Visual::Listo { .. })) if !self.sonido_del_video_listo(i) => {
+                    // La imagen está, pero el sonido del vídeo todavía se prepara.
+                    self.aviso = Some(t(
+                        format!("{d} todavía se está preparando; vuelve a dar GO en un momento."),
+                        format!("{den} is still being prepared; press GO again in a moment."),
+                    ));
+                    self.registro.anotar("IGNORADO", &format!("{d} sin preparar (sonido)"));
+                    return false;
+                }
+                (true, Some(Visual::Listo { duracion })) => {
+                    self.mostrar_visual(i, duracion);
+                    if let Some(e) = self.errores.get(&i).cloned().filter(|_| self.show.cues[i].tipo == TipoCue::Video) {
+                        // El vídeo se ve igual; solo su sonido no se puede reproducir.
+                        self.aviso = Some(t(
+                            format!("{d}: el vídeo se ve, pero su sonido no se puede reproducir: {}", e.es),
+                            format!("{den}: the video is shown, but its sound can't be played: {}", e.en),
+                        ));
+                    }
+                }
                 (true, Some(Visual::Error(e))) => {
                     self.aviso = Some(t(format!("{d} no se vio: {}", e.es), format!("{den} was not shown: {}", e.en)));
                     self.registro.anotar("ERROR", &format!("{d}: {}", e.es));
@@ -309,15 +333,47 @@ impl Sesion {
         }
     }
 
+    /// ¿El sonido de un vídeo está listo? (o el vídeo es mudo, o su sonido
+    /// falló, o no hay salida de sonido: en esos casos no se espera).
+    fn sonido_del_video_listo(&self, i: usize) -> bool {
+        self.show.cues[i].tipo != TipoCue::Video
+            || self.sonido.is_none()
+            || self.preparados.contains_key(&i)
+            || self.mudos.contains(&i)
+            || self.errores.contains_key(&i)
+    }
+
+    /// Resultado de preparar el sonido del cue `i`: un vídeo sin sonido no es
+    /// un error (queda "mudo"); lo demás va a `preparado`.
+    pub fn resultado_preparar(&mut self, i: usize, r: Result<otaconvert_audio::preparar::Preparado, otaconvert_audio::preparar::ErrorPreparar>) {
+        match r {
+            Err(otaconvert_audio::preparar::ErrorPreparar::SinAudio) if self.show.cues.get(i).is_some_and(|c| c.tipo == TipoCue::Video) => {
+                if self.preparando == Some(i) {
+                    self.preparando = None;
+                }
+                self.mudos.insert(i);
+            }
+            r => self.preparado(i, r.map_err(Texto::from)),
+        }
+    }
+
     /// GO de un vídeo o imagen ya precargado: sube encima y el anterior se retira.
+    /// Si es un vídeo con sonido, el sonido arranca a la vez por el mezclador.
     fn mostrar_visual(&mut self, i: usize, duracion: Option<f64>) {
         self.al_proyector(OrdenProyector::Mostrar { id: i as u64 });
-        // Una sola superficie (Proyector) por ahora: lo que se veía deja de verse.
+        // Una sola superficie (Proyector) por ahora: lo que se veía deja de verse,
+        // y si tenía sonido, su sonido se para (con la rampa de parada).
+        let viejas: Vec<(u32, Destino)> = self.sonando.iter().filter(|s| s.visual && s.voz).map(|s| (s.id, s.destino)).collect();
+        for (id, destino) in viejas {
+            if let Some(son) = self.sonido.as_mut() {
+                let _ = son.enviar(destino, Comando::Parar { id, fundido: 0 });
+            }
+        }
         self.sonando.retain(|s| !s.visual);
         // Ya no está precargado: está a la vista (si se vuelve a él, se precarga de nuevo).
         self.visuales.remove(&i);
         // Lo que dura una vuelta del vídeo, con su inicio y su fin.
-        let c = &self.show.cues[i];
+        let c = self.show.cues[i].clone();
         let largo = match duracion {
             Some(d) if c.tipo == TipoCue::Video => {
                 let fin = c.fin_ms.map(|f| (f as f64 / 1000.0).min(d)).unwrap_or(d);
@@ -325,18 +381,35 @@ impl Sesion {
             }
             _ => Duration::ZERO,
         };
-        let id = self.siguiente_id;
-        self.siguiente_id = self.siguiente_id.wrapping_add(1).max(1);
+        // El sonido del vídeo, a la vez que la imagen. En bucle, vuelve a
+        // empezar donde vuelve la imagen (fin del vídeo según mpv).
+        let fin_video = match (c.tipo, duracion) {
+            (TipoCue::Video, Some(d)) => Some(c.fin_ms.map(|f| (f as f64 / 1000.0).min(d)).unwrap_or(d)),
+            _ => None,
+        };
+        let voz = match self.preparados.get(&i).cloned() {
+            Some(p) if c.tipo == TipoCue::Video => self.iniciar_voz(i, p, fin_video),
+            _ => None,
+        };
+        let (id, destino) = match voz {
+            Some((id, destino, _)) => (id, destino),
+            None => {
+                let id = self.siguiente_id;
+                self.siguiente_id = self.siguiente_id.wrapping_add(1).max(1);
+                (id, Destino::Principal)
+            }
+        };
         self.sonando.push(Sonando {
             id,
             cue: i,
-            destino: Destino::Principal,
+            destino,
             inicio: Instant::now(),
             // Termina con el aviso Fin del proyector (vídeo sin bucle) o al parar.
             duracion: None,
             largo,
             fundiendo: false,
             visual: true,
+            voz: voz.is_some(),
         });
     }
 
@@ -429,12 +502,37 @@ impl Sesion {
 
     fn disparar(&mut self, i: usize, pista: Arc<Pista>) {
         let c = self.show.cues[i].clone();
+        if let Some((id, destino, largo)) = self.iniciar_voz(i, pista, None) {
+            self.sonando.push(Sonando {
+                id,
+                cue: i,
+                destino,
+                inicio: Instant::now(),
+                duracion: (!c.bucle).then_some(largo),
+                largo,
+                fundiendo: false,
+                visual: false,
+                voz: true,
+            });
+        }
+    }
+
+    /// Manda al mezclador el sonido del cue `i` (un audio o el sonido de un
+    /// vídeo) con su volumen, salida, inicio, fin, fundidos y bucle.
+    /// `fin_s`: fin forzado en segundos (el del vídeo, para que en bucle el
+    /// sonido vuelva a empezar junto con la imagen). Devuelve (voz, salida, largo).
+    fn iniciar_voz(&mut self, i: usize, pista: Arc<Pista>, fin_s: Option<f64>) -> Option<(u32, Destino, Duration)> {
+        let c = self.show.cues[i].clone();
         let destino = self.destino_de(i);
         let id = self.siguiente_id;
         self.siguiente_id = self.siguiente_id.wrapping_add(1).max(1);
         let total = pista.cuadros();
         let inicio = self.cuadros(c.inicio_ms).min(total.saturating_sub(1));
-        let hasta = c.fin_ms.map(|f| self.cuadros(f).min(total));
+        let hasta = match fin_s {
+            Some(f) => Some(((f * pista.frecuencia() as f64) as usize).min(total)),
+            None => c.fin_ms.map(|f| self.cuadros(f).min(total)),
+        }
+        .filter(|&h| h > inicio);
         let fin = hasta.unwrap_or(total);
         let fs = pista.frecuencia() as f64;
         let comando = Comando::IniciarCue {
@@ -449,21 +547,14 @@ impl Sesion {
             fundido_salida: self.cuadros(c.fundido_salida_ms as u64) as u32,
         };
         let enviado = self.sonido.as_mut().map(|s| s.enviar(destino, comando));
-        if let Some(Err(e)) = enviado {
-            self.aviso = Some(Texto::nuevo(format!("No se pudo disparar: {e}"), format!("Could not fire the cue: {e}")));
-            return;
+        match enviado {
+            Some(Ok(())) => Some((id, destino, Duration::from_secs_f64(fin.saturating_sub(inicio) as f64 / fs))),
+            Some(Err(e)) => {
+                self.aviso = Some(Texto::nuevo(format!("No se pudo disparar: {e}"), format!("Could not fire the cue: {e}")));
+                None
+            }
+            None => None,
         }
-        let largo = Duration::from_secs_f64(fin.saturating_sub(inicio) as f64 / fs);
-        self.sonando.push(Sonando {
-            id,
-            cue: i,
-            destino,
-            inicio: Instant::now(),
-            duracion: (!c.bucle).then_some(largo),
-            largo,
-            fundiendo: false,
-            visual: false,
-        });
     }
 
     /// Cambia entre Edición y Función (Tab). Nunca toca lo que suena.
@@ -619,12 +710,16 @@ impl Sesion {
             self.aviso = Some(Texto::nuevo("No hay nada sonando para fundir.", "Nothing is playing to fade out."));
             return;
         };
-        let (id, destino, cue, visual) = (s.id, s.destino, s.cue, s.visual);
+        let (id, destino, cue, visual, voz) = (s.id, s.destino, s.cue, s.visual, s.voz);
         let f = self.cuadros(self.show.ajustes.fundir_todo_ms as u64) as u32;
         if visual {
             self.al_proyector(OrdenProyector::Fundir { ms: self.show.ajustes.fundir_todo_ms as u64 });
-        } else if let Some(son) = self.sonido.as_mut() {
-            let _ = son.enviar(destino, Comando::Parar { id, fundido: f });
+        }
+        // Un audio, o el sonido de un vídeo: baja junto con la imagen.
+        if voz {
+            if let Some(son) = self.sonido.as_mut() {
+                let _ = son.enviar(destino, Comando::Parar { id, fundido: f });
+            }
         }
         let d = self.describir(cue);
         self.registro.anotar("FUNDIR", &format!("solo {d}"));
@@ -749,14 +844,14 @@ impl Sesion {
         self.precargar_visuales();
         let fs = self.sonido.as_ref()?.frecuencia();
         let quiero: Vec<usize> = (self.en_espera..self.show.cues.len())
-            .filter(|&i| self.show.cues[i].tipo == TipoCue::Audio)
+            .filter(|&i| matches!(self.show.cues[i].tipo, TipoCue::Audio | TipoCue::Video))
             .take(PREPARAR_ADELANTE)
             .collect();
         let sonando: Vec<usize> = self.sonando.iter().map(|s| s.cue).collect();
         self.preparados.retain(|i, _| quiero.contains(i) || sonando.contains(i));
         let carpeta = self.carpeta();
         for i in quiero {
-            if self.preparados.contains_key(&i) || self.errores.contains_key(&i) || self.preparando == Some(i) {
+            if self.preparados.contains_key(&i) || self.errores.contains_key(&i) || self.mudos.contains(&i) || self.preparando == Some(i) {
                 continue;
             }
             match rutas::resolver(&carpeta, &self.show.cues[i].archivo) {
@@ -817,6 +912,8 @@ impl Sesion {
                 let preparacion = if c.tipo != TipoCue::Audio {
                     match visual {
                         Some(Visual::Pidiendo) => "preparando",
+                        // Un vídeo está listo cuando también lo está su sonido.
+                        Some(Visual::Listo { .. }) if !self.sonido_del_video_listo(i) => "preparando",
                         Some(Visual::Listo { .. }) => "listo",
                         Some(Visual::Error(_)) => "error",
                         None => "",
@@ -840,15 +937,17 @@ impl Sesion {
                     let fin = c.fin_ms.map(|f| (f as f64 / 1000.0).min(total)).unwrap_or(total);
                     (fin - ini).max(0.0)
                 });
-                // Vídeo: lo que dice la proyección al precargarlo (ya con inicio y fin).
-                let duracion_s = duracion_s.or(match visual {
+                // Vídeo: manda lo que dice la proyección al precargarlo (ya con
+                // inicio y fin); el sonido del vídeo puede durar un poco distinto.
+                let del_video = match visual {
                     Some(Visual::Listo { duracion: Some(d) }) if c.tipo == TipoCue::Video => {
                         let ini = c.inicio_ms as f64 / 1000.0;
                         let fin = c.fin_ms.map(|f| (f as f64 / 1000.0).min(*d)).unwrap_or(*d);
                         Some((fin - ini).max(0.0))
                     }
                     _ => None,
-                });
+                };
+                let duracion_s = if c.tipo == TipoCue::Video { del_video.or(duracion_s) } else { duracion_s };
                 let error = match visual {
                     Some(Visual::Error(e)) => Some(e.en_idioma(self.idioma)),
                     _ => self.errores.get(&i).map(|e| e.en_idioma(self.idioma)),
@@ -867,6 +966,8 @@ impl Sesion {
                     "duracion_s": duracion_s,
                     "preparacion": preparacion,
                     "error": error,
+                    // Vídeo sin sonido (no es un error).
+                    "mudo": self.mudos.contains(&i),
                 })
             })
             .collect();

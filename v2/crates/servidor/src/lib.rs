@@ -119,9 +119,9 @@ impl Servidor {
             let tarea = c3.sesion.lock().ok().and_then(|mut s| s.siguiente_a_preparar());
             match tarea {
                 Some((i, ruta, fs)) => {
-                    let r = otaconvert_audio::preparar::preparar(&ruta, fs).map_err(Texto::from);
+                    let r = otaconvert_audio::preparar::preparar(&ruta, fs);
                     let estado = c3.sesion.lock().ok().map(|mut s| {
-                        s.preparado(i, r);
+                        s.resultado_preparar(i, r);
                         s.estado_json()
                     });
                     if let Some(e) = estado {

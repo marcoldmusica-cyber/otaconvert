@@ -195,7 +195,9 @@ pub fn ejecutar(args: &[String]) -> Result<bool, String> {
         // 3. Fundido a negro: brillo de 0 a −100 y, al final, el telón.
         if let Some(f) = &fundido {
             let t = (ahora.duration_since(f.inicio).as_secs_f64() / f.dur.as_secs_f64().max(0.001)).min(1.0);
-            let _ = capas[f.capa].rep.propiedad("brightness", &format!("{:.1}", -100.0 * t));
+            // Curva t²: el brillo de mpv oscurece rápido al principio; así la
+            // bajada se ve pareja (a la mitad del tiempo, todavía se ve bien).
+            let _ = capas[f.capa].rep.propiedad("brightness", &format!("{:.1}", -100.0 * t * t));
             if t >= 1.0 {
                 fundido = None;
                 negro(&proy, &mut capas);

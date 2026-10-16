@@ -522,7 +522,10 @@ fieldset:disabled{opacity:.45}
     fs.appendChild(campo("nota", nota, "fNota", "nota"));
     var arch = el("div", "field"); arch.appendChild(el("span", "k", T("archivo_campo"))); arch.appendChild(el("span", "val", c.archivo)); arch.title = c.archivo;
     fs.appendChild(arch);
-    if (c.tipo === "audio") {
+    // Un vídeo con sonido se ajusta igual que un audio (su sonido va por el mezclador).
+    var conSonido = c.tipo === "audio" || (c.tipo === "video" && !c.mudo);
+    if (c.tipo === "video") fs.appendChild(el("p", "note-small", c.mudo ? T("video_mudo") : T("video_pronto")));
+    if (conSonido) {
       var sal = el("select");
       ["Principal", "Auriculares"].forEach(function (o) { var op = el("option", "", salidaTexto(o)); op.value = o; op.selected = o === c.salida; sal.appendChild(op); });
       sal.onchange = function () { editar({ salida: sal.value }); };
@@ -541,16 +544,16 @@ fieldset:disabled{opacity:.45}
       tg.appendChild(cb); tg.appendChild(document.createTextNode(T("repetir_bucle"))); tg.appendChild(botonConsejo("bucle"));
       fs.appendChild(tg);
       if (c.duracion_s != null) fs.appendChild(el("p", "note-small", T("duracion", { d: mmss(c.duracion_s) }) + (c.bucle ? T("por_vuelta") : "")));
-      fs.appendChild(el("p", "note-small", T("onda_pronto")));
+      if (c.tipo === "audio") fs.appendChild(el("p", "note-small", T("onda_pronto")));
+    } else if (c.tipo === "video") {
+      // Vídeo mudo: solo el bucle y la duración.
+      var tgv = el("label", "toggle"), cbv = el("input"); cbv.type = "checkbox"; cbv.checked = c.bucle;
+      cbv.onchange = function () { editar({ bucle: cbv.checked }); };
+      tgv.appendChild(cbv); tgv.appendChild(document.createTextNode(T("repetir_bucle"))); tgv.appendChild(botonConsejo("bucle"));
+      fs.appendChild(tgv);
+      if (c.duracion_s != null) fs.appendChild(el("p", "note-small", T("duracion", { d: mmss(c.duracion_s) }) + (c.bucle ? T("por_vuelta") : "")));
     } else {
-      if (c.tipo === "video") {
-        var tgv = el("label", "toggle"), cbv = el("input"); cbv.type = "checkbox"; cbv.checked = c.bucle;
-        cbv.onchange = function () { editar({ bucle: cbv.checked }); };
-        tgv.appendChild(cbv); tgv.appendChild(document.createTextNode(T("repetir_bucle"))); tgv.appendChild(botonConsejo("bucle"));
-        fs.appendChild(tgv);
-        if (c.duracion_s != null) fs.appendChild(el("p", "note-small", T("duracion", { d: mmss(c.duracion_s) }) + (c.bucle ? T("por_vuelta") : "")));
-      }
-      fs.appendChild(el("p", "note-small", c.tipo === "video" ? T("video_pronto") : T("proyector")));
+      fs.appendChild(el("p", "note-small", T("proyector")));
     }
     props.appendChild(fs);
     lado.appendChild(props);
