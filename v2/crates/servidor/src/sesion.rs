@@ -325,6 +325,11 @@ impl Sesion {
         self.registro.anotar("ERROR", texto);
     }
 
+    /// Anota un evento cualquiera en el registro de la función.
+    pub fn anotar(&mut self, tipo: &str, texto: &str) {
+        self.registro.anotar(tipo, texto);
+    }
+
     /// Quita de "sonando" lo que ya terminó y libera memoria del mezclador.
     pub fn limpiar(&mut self) {
         let ahora = Instant::now();

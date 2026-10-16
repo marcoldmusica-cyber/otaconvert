@@ -58,7 +58,12 @@ jobs:
             Write-Error "El motor depende del runtime de C externo"
             exit 1
           }
-          $cfg = & $dumpbin.FullName /nologo /loadconfig $exe | Select-String -Pattern 'Dependent Load Flag'
+          # El cargador de WebView2 debe ir dentro del exe (estático con MSVC).
+          if ($deps -match 'WebView2Loader') {
+            Write-Error "El motor depende de WebView2Loader.dll externa"
+            exit 1
+          }
+          $cfg =& $dumpbin.FullName /nologo /loadconfig $exe | Select-String -Pattern 'Dependent Load Flag'
           $cfg
           if (-not ($cfg -match '800')) {
             Write-Error "Falta /DEPENDENTLOADFLAG:0x800 (carga de DLL solo desde System32)"

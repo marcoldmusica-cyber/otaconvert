@@ -13,6 +13,7 @@ mod componentes;
 mod equipo;
 mod pantallas;
 mod show_cmd;
+mod ventana_ui;
 mod sonido_cpal;
 mod prueba_hardware;
 mod vigilante;
@@ -85,7 +86,15 @@ fn main() -> ExitCode {
         args.push("--prueba-hardware".into());
     }
     let sin_pausa = args.iter().any(|a| a == "--sin-pausa");
-    let sin_navegador = args.iter().any(|a| a == "--sin-navegador");
+    // Interfaz: ventana propia por defecto; --navegador la abre en el
+    // navegador; --sin-navegador no abre nada (pruebas).
+    let interfaz = if args.iter().any(|a| a == "--sin-navegador") {
+        show_cmd::Interfaz::Ninguna
+    } else if args.iter().any(|a| a == "--navegador") {
+        show_cmd::Interfaz::Navegador
+    } else {
+        show_cmd::Interfaz::Ventana
+    };
     let num = |i: usize, defecto: u64| args.get(i).and_then(|s| s.parse().ok()).unwrap_or(defecto);
     let r = match args.first().map(String::as_str) {
         Some("--version") => {
@@ -104,13 +113,15 @@ fn main() -> ExitCode {
         Some("--abrir-show") => match args.get(1) {
             Some(r) => show_cmd::abrir(
                 std::path::Path::new(r),
-                !sin_navegador,
+                interfaz,
                 salida,
                 auriculares.as_deref(),
                 margen.as_deref().and_then(|m| m.parse().ok()).unwrap_or(50),
             ),
             None => Err("falta el show: --abrir-show <carpeta o archivo .otashow>".into()),
         },
+        // Uso interno: el proceso de la ventana (lee la dirección por la entrada estándar).
+        Some("--ventana") => return ventana_ui::ejecutar(),
         Some("--info-equipo") => {
             equipo::imprimir();
             Ok(true)
@@ -139,7 +150,7 @@ fn main() -> ExitCode {
             println!("  --prueba-hardware [--sin-pausa]        todas las pruebas en orden, con informe (también con doble clic en \"Prueba de hardware.exe\")");
             println!("  --info-equipo                          Windows, procesador, memoria, tarjetas gráficas, corriente");
             println!("  --show-ejemplo <carpeta>               crea un show de ejemplo");
-            println!("  --abrir-show <carpeta | .otashow> [--salida X] [--auriculares Y] [--margen ms] [--sin-navegador]   abre el show con sonido");
+            println!("  --abrir-show <carpeta | .otashow> [--salida X] [--auriculares Y] [--margen ms] [--navegador | --sin-navegador]   abre el show con sonido en su ventana");
             println!("  --comprobar                            componentes necesarios: qué hay y qué falta");
             println!("  --listar-salidas                       salidas de audio, con número e identificador");
             println!("  --listar-pantallas                     pantallas para la salida de vídeo");

@@ -476,7 +476,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <li>Motor en Rust, en proceso aparte de la ventana; un vigilante lo reinicia y recarga el show si se cae (objetivo &lt; 1 s). <span class="estado ya">Probado</span> 10 fallos a propósito: si el motor se cierra, vuelve a sonar en 86 ms como máximo; si se congela, en 401 ms como máximo, y el sonido sigue desde donde iba.</li>
     <li>Pensado para funcionar bien en equipos modestos sin recortar funciones: la tarjeta gráfica decodifica el vídeo, el audio se prepara en memoria y no se remuestrea en vivo. La Prueba de hardware mide qué aguanta cada equipo.</li>
     <li>Runtime de C enlazado estáticamente (<code>+crt-static</code>): no requiere el VC++ Redistributable. <span class="estado ya">Comprobado en la compilación</span></li>
-    <li>Interfaz servida por el motor; sin WebView2 se abre en el navegador.</li>
+    <li>Interfaz servida por el motor, en su propia ventana (proceso aparte: si la ventana falla, el sonido sigue); sin WebView2 se abre en el navegador. <span class="estado ya">Ya funciona</span></li>
     <li>100 % sin conexión. Sin telemetría. Búsqueda de actualizaciones apagada por defecto.</li>
   </ul>
 
@@ -540,7 +540,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <tr><td><code>--prueba-hardware [--sin-pausa]</code></td><td>Todas las pruebas en orden (equipo, componentes, sonido por cada salida, pantallas, cambios de vídeo, reproducción 1080p y 4K, vigilante) con informe de texto. También con doble clic en <code>Prueba de hardware.exe</code>.</td></tr>
     <tr><td><code>--info-equipo</code></td><td>Windows, procesador, memoria, tarjetas gráficas y si está enchufado.</td></tr>
     <tr><td><code>--show-ejemplo &lt;carpeta&gt;</code></td><td>Crea un show de ejemplo (6 cues y una página de botonera) para probar.</td></tr>
-    <tr><td><code>--abrir-show &lt;show&gt; [--salida X] [--auriculares Y] [--margen ms] [--sin-navegador]</code></td><td>Abre el show con sonido y la interfaz mínima en el navegador: GO, Pausa (P), Fundir todo (F), Mayús+F, Parar todo (Esc). Si una tarjeta da errores, avisa fuerte. La ventana propia llega más adelante.</td></tr>
+    <tr><td><code>--abrir-show &lt;show&gt; [--salida X] [--auriculares Y] [--margen ms] [--navegador | --sin-navegador]</code></td><td>Abre el show con sonido en la <strong>ventana propia de Otaconvert</strong> (WebView2, en un proceso aparte): GO, Pausa (P), Fundir todo (F), Mayús+F, Parar todo (Esc). Si la ventana se cae, vuelve a abrirse sola sin cortar el sonido (medido: 130 ms); si WebView2 falta o se cae más de 3 veces en un minuto, se abre la misma interfaz en el navegador con un aviso. Cerrar la ventana termina el programa y guarda lo que haya cambiado. <code>--navegador</code> la abre en el navegador; <code>--sin-navegador</code> no abre nada (pruebas). Si una tarjeta da errores, avisa fuerte.</td></tr>
     <tr><td><code>--comprobar</code></td><td>Revisa los componentes: Windows 10/11, libmpv, Vulkan y WebView2. Dice qué falta y cómo se arregla; código de error si falta algo.</td></tr>
     <tr><td><code>--listar-salidas</code></td><td>Salidas de audio numeradas, con su configuración, cuál es la predeterminada y su identificador estable.</td></tr>
     <tr><td><code>--listar-pantallas</code></td><td>Pantallas: nombre del monitor o proyector, tarjeta gráfica, resolución en píxeles reales, frecuencia, posición y cuál es la principal.</td></tr>
@@ -558,6 +558,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
   <ul>
     <li>Código fuente: <code>github.com/marcoldmusica-cyber/otaconvert</code> (carpeta <code>v2/</code>). Compilación automática en GitHub Actions. Las piezas de terceros se guardan con su huella en la versión publicada <code>dependencias-2026-10-15</code> del mismo repositorio, para que la compilación nunca dependa de que otros las borren.</li>
     <li>Otaconvert V2: GPLv3 o posterior.</li>
+    <li>Ventana: wry (Apache-2.0 o MIT) y tao (Apache-2.0); el cargador de WebView2 de Microsoft (BSD-3-Clause) va dentro del exe. La ventana solo puede mostrar la interfaz del propio motor: no abre otras páginas, ventanas nuevas ni descargas, no pide cámara ni micrófono y no tiene atajos de navegador. Sus datos (caché) se guardan en <code>%LOCALAPPDATA%\Otaconvert\WebView2</code>, o en la carpeta <code>datos</code> junto al programa en la versión portable.</li>
     <li>Terceros: cpal (Apache-2.0), rtrb (MIT o Apache-2.0); mpv/libmpv (GPLv2 o posterior) y FFmpeg (compilación de shinchiro/mpv-winbuild-cmake); cargador de Vulkan (MIT y Apache-2.0, de LunarG); WebView2 de Microsoft (instalador oficial, sin modificar); ASIO SDK de Steinberg (GPLv3) si se compila con ASIO. La versión 1 incluye FFmpeg, CustomTkinter, tkinterdnd2, imageio-ffmpeg y Python (ver <code>THIRD_PARTY.txt</code>).</li>
   </ul>
 </section>

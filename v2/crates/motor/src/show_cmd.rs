@@ -1,6 +1,5 @@
-//! Etapa 1 de la Fase 1: crear un show de ejemplo y abrir un show con la
-//! interfaz mínima. La interfaz se abre en el navegador predeterminado; la
-//! ventana propia (WebView2) llega en la etapa 3.
+//! Crear un show de ejemplo y abrir un show con sonido y su interfaz: la
+//! ventana propia (WebView2, en proceso aparte) o, si no se puede, el navegador.
 
 use std::path::Path;
 use std::sync::{Arc, Mutex};
@@ -61,8 +60,18 @@ fn abrir_navegador(url: &str) {
 #[cfg(not(windows))]
 fn abrir_navegador(_url: &str) {}
 
+/// Dónde se muestra la interfaz.
+#[derive(Clone, Copy, PartialEq)]
+pub enum Interfaz {
+    /// Ventana propia con WebView2 (por defecto); si falla, el navegador.
+    Ventana,
+    Navegador,
+    /// No se abre nada (pruebas): se imprime la dirección.
+    Ninguna,
+}
+
 /// Abre el show con sonido y sirve la interfaz hasta que se cierre el programa.
-pub fn abrir(ruta: &Path, navegador: bool, salida: Option<&str>, auriculares: Option<&str>, margen_ms: u64) -> Result<bool, String> {
+pub fn abrir(ruta: &Path, interfaz: Interfaz, salida: Option<&str>, auriculares: Option<&str>, margen_ms: u64) -> Result<bool, String> {
     let mut sesion = Sesion::abrir(ruta).map_err(|e| e.to_string())?;
     println!("Show: {} ({} cues) · {}", sesion.show.nombre, sesion.show.cues.len(), sesion.ruta.display());
     // Las salidas viven aquí, en el hilo principal, mientras dure el programa.
@@ -96,11 +105,20 @@ pub fn abrir(ruta: &Path, navegador: bool, salida: Option<&str>, auriculares: Op
     let srv = Servidor::iniciar(sesion.clone()).map_err(|e| e.to_string())?;
     println!("Interfaz en {}", srv.url().split("?t=").next().unwrap_or(""));
     println!("(La dirección completa lleva una clave secreta; ábrela solo desde aquí.)");
-    if navegador {
-        abrir_navegador(&srv.url());
-        println!("Se abrió el navegador. Para terminar, cierra esta ventana.");
-    } else {
-        println!("{}", srv.url());
+    let mut ventana = None;
+    match interfaz {
+        Interfaz::Ventana => match crate::ventana_ui::Ventana::abrir(&srv.url()) {
+            Ok(v) => {
+                ventana = Some(v);
+                println!("Se abrió la ventana de Otaconvert. Al cerrarla, el programa termina.");
+            }
+            Err(e) => usar_navegador(&sesion, &srv.url(), &e),
+        },
+        Interfaz::Navegador => {
+            abrir_navegador(&srv.url());
+            println!("Se abrió el navegador. Para terminar, cierra esta ventana.");
+        }
+        Interfaz::Ninguna => println!("{}", srv.url()),
     }
     // Si una tarjeta da errores (por ejemplo, se desconectó), avisar fuerte:
     // nunca se cambia en silencio a otra salida.
@@ -119,6 +137,34 @@ pub fn abrir(ruta: &Path, navegador: bool, salida: Option<&str>, auriculares: Op
                 }
             }
         }
-        let _ = &salidas;
+        if let Some(v) = ventana.as_mut() {
+            match v.revisar() {
+                crate::ventana_ui::Estado::Abierta => {}
+                crate::ventana_ui::Estado::Cerrada => {
+                    if let Ok(mut s) = sesion.lock() {
+                        // Antes de salir se guarda lo que haya cambiado.
+                        s.guardar_si_hace_falta();
+                        s.anotar("CERRAR", "Ventana cerrada por el usuario");
+                    }
+                    drop(salidas);
+                    return Ok(true);
+                }
+                crate::ventana_ui::Estado::UsarNavegador(motivo) => {
+                    ventana = None;
+                    usar_navegador(&sesion, &srv.url(), &motivo);
+                }
+            }
+        }
     }
+}
+
+/// La ventana propia no se pudo usar: se avisa (consola, ventana y registro)
+/// y se abre la misma interfaz en el navegador. El sonido no se toca.
+fn usar_navegador(sesion: &Arc<Mutex<Sesion>>, url: &str, motivo: &str) {
+    println!("{motivo}");
+    if let Ok(mut s) = sesion.lock() {
+        s.anotar("AVISO", motivo);
+        s.aviso = Some(motivo.to_string());
+    }
+    abrir_navegador(url);
 }
