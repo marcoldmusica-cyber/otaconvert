@@ -507,7 +507,8 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <li>Precarga del cue en espera y los 2 o 3 siguientes, con el primer cuadro listo en la GPU. Capas: el nuevo se dibuja encima y el anterior se retira cuando el nuevo ya muestra imagen.</li>
     <li>Prueba automática (15/10/2026, GeForce GTX 1050 Ti, 1920 × 1080 a 60 Hz): 300 cambios entre vídeos H.264 1080p60 reales con dos capas, mirando la pantalla unas 57 veces por segundo: <strong>0 cuadros negros</strong>, 0 cuadros perdidos, decodificación por la tarjeta gráfica (d3d11va), del GO a la imagen 18 ms de media y 26 ms como máximo.</li>
     <li>El programa compilado por GitHub, probado en el mismo equipo: 100 cambios con vídeos reales, 0 cuadros negros, 0 perdidos, 18 ms del GO a la imagen. En un equipo sin tarjeta gráfica (máquina virtual) tampoco hubo negros, pero se pierden cuadros y tarda unos 60 ms: para funciones conviene una tarjeta gráfica.</li>
-    <li>libmpv necesita <code>vulkan-1.dll</code>, que instalan los drivers de la tarjeta gráfica; la Prueba de hardware avisará si falta.</li>
+    <li>libmpv necesita <code>vulkan-1.dll</code>: viene incluida con el programa (Vulkan Runtime 1.4.363.0 de LunarG), así funciona aunque el equipo no la tenga.</li>
+    <li>Si al equipo le falta Microsoft Edge WebView2 (lo que muestra la ventana), su instalador viene incluido en el instalador y en la versión portable, y se instala sin internet con el botón "Instalar lo que falta".</li>
     <li>Ventana de proyección en proceso aparte, negra en reposo. El reloj de la tarjeta de sonido manda.</li>
     <li>Salida de hasta <strong>4K</strong> (3840 × 2160), objetivo 60 Hz, con vídeos H.264 y HEVC de hasta 4K60 decodificados por la tarjeta gráfica. Probado: 20 cambios con 4K60 H.264 y 20 con 4K60 HEVC en una GTX 1050 Ti, sin negros ni cuadros perdidos; y 60 s seguidos de 4K60 H.264 y de 4K60 HEVC a 60 cuadros por segundo, 0 cuadros perdidos, con la tarjeta a 41 °C como máximo (en un monitor 1080p; falta probar una pantalla 4K real).</li>
     <li>Contenedores MP4, MOV, MKV con decodificadores incluidos; Hap opcional.</li>
@@ -544,9 +545,9 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
 
   <h3>Código y licencias</h3>
   <ul>
-    <li>Código fuente: <code>github.com/marcoldmusica-cyber/otaconvert</code> (carpeta <code>v2/</code>). Compilación automática en GitHub Actions.</li>
+    <li>Código fuente: <code>github.com/marcoldmusica-cyber/otaconvert</code> (carpeta <code>v2/</code>). Compilación automática en GitHub Actions. Las piezas de terceros se guardan con su huella en la versión publicada <code>dependencias-2026-10-15</code> del mismo repositorio, para que la compilación nunca dependa de que otros las borren.</li>
     <li>Otaconvert V2: GPLv3 o posterior.</li>
-    <li>Terceros: cpal (Apache-2.0), rtrb (MIT o Apache-2.0); mpv/libmpv (GPLv2 o posterior) y FFmpeg (compilación de shinchiro/mpv-winbuild-cmake); ASIO SDK de Steinberg (GPLv3) si se compila con ASIO. La versión 1 incluye FFmpeg, CustomTkinter, tkinterdnd2, imageio-ffmpeg y Python (ver <code>THIRD_PARTY.txt</code>).</li>
+    <li>Terceros: cpal (Apache-2.0), rtrb (MIT o Apache-2.0); mpv/libmpv (GPLv2 o posterior) y FFmpeg (compilación de shinchiro/mpv-winbuild-cmake); cargador de Vulkan (MIT y Apache-2.0, de LunarG); WebView2 de Microsoft (instalador oficial, sin modificar); ASIO SDK de Steinberg (GPLv3) si se compila con ASIO. La versión 1 incluye FFmpeg, CustomTkinter, tkinterdnd2, imageio-ffmpeg y Python (ver <code>THIRD_PARTY.txt</code>).</li>
   </ul>
 </section>
 

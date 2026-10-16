@@ -33,6 +33,8 @@ QUÉ HAY EN ESTA CARPETA
 
 - Prueba de hardware.exe   la prueba
 - libmpv-2.dll             el reproductor de vídeo (no lo borres)
+- vulkan-1.dll             lo necesita el reproductor de vídeo (no lo borres)
+- VulkanRT-Licencia.txt    licencia de vulkan-1.dll
 - pruebas\                 vídeos de prueba (1080p y 4K)
 - LEEME.txt                este archivo
 

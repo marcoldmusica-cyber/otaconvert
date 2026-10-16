@@ -71,13 +71,16 @@ jobs:
           target\release\otaconvert-motor.exe --listar-salidas
           target\release\otaconvert-motor.exe --listar-pantallas
 
-      # libmpv de shinchiro/mpv-winbuild-cmake, versión fijada y comprobada por
-      # su huella. Esas compilaciones diarias se borran a las ~30: hay que
-      # guardar una copia propia (pendiente, ver CLAUDE.md).
-      - name: Descargar libmpv (versión fijada)
+      # Dependencias de terceros desde la copia propia (Release
+      # "dependencias-2026-10-15" de este repositorio), comprobadas por su huella.
+      # Origen: libmpv y FFmpeg de shinchiro/mpv-winbuild-cmake 20261015;
+      # Vulkan Runtime 1.4.363.0 de LunarG.
+      - name: Descargar libmpv y Vulkan (versiones fijadas)
         shell: pwsh
         env:
-          MPV_URL: https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20261015/mpv-dev-x86_64-20261015-git-492bae0768.7z
+          MPV_URL: https://github.com/marcoldmusica-cyber/otaconvert/releases/download/dependencias-2026-10-15/mpv-dev-x86_64-20261015-git-492bae0768.7z
+          VK_URL: https://github.com/marcoldmusica-cyber/otaconvert/releases/download/dependencias-2026-10-15/vulkan-runtime-components-1.4.363.0.zip
+          VK_SHA256: a25a927aa8b9f0371048f1861cf88ac3b9bc9b1fb332c42d897c8ab32695769a
           MPV_SHA256: 5db58c1768587b35f2d8daa11b53de4aec58197c00ea1d676f998f183a358ba8
         run: |
           Invoke-WebRequest $env:MPV_URL -OutFile mpv-dev.7z
@@ -85,6 +88,12 @@ jobs:
           if ($h -ne $env:MPV_SHA256) { Write-Error "libmpv: huella distinta ($h)"; exit 1 }
           7z x mpv-dev.7z -ompv-dev libmpv-2.dll | Out-Null
           Copy-Item mpv-dev\libmpv-2.dll target\release\
+          Invoke-WebRequest $env:VK_URL -OutFile vk.zip
+          $h = (Get-FileHash vk.zip -Algorithm SHA256).Hash
+          if ($h -ne $env:VK_SHA256) { Write-Error "vulkan: huella distinta ($h)"; exit 1 }
+          Expand-Archive vk.zip -DestinationPath vk
+          Copy-Item (Get-ChildItem vk -Recurse -Filter vulkan-1.dll | Where-Object FullName -like '*\x64\*').FullName target\release\
+          Copy-Item (Get-ChildItem vk -Recurse -Filter VulkanRT-License.txt).FullName target\release\VulkanRT-Licencia.txt
 
       # El equipo de GitHub no tiene tarjeta gráfica: la prueba de vídeo puede
       # no funcionar aquí. Se ejecuta para ver hasta dónde llega; la que manda
@@ -93,12 +102,12 @@ jobs:
         continue-on-error: true
         run: target\release\otaconvert-motor.exe --comprobar
 
-      # FFmpeg de la misma fuente, fijado por su huella. Solo se usa aquí para
-      # crear los vídeos de prueba; no va dentro del programa.
+      # FFmpeg desde la copia propia, fijado por su huella. Solo se usa aquí
+      # para crear los vídeos de prueba; no va dentro del programa.
       - name: Crear vídeos de prueba
         shell: pwsh
         env:
-          FF_URL: https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20261015/ffmpeg-x86_64-git-ee8cbd7db.7z
+          FF_URL: https://github.com/marcoldmusica-cyber/otaconvert/releases/download/dependencias-2026-10-15/ffmpeg-x86_64-git-ee8cbd7db.7z
           FF_SHA256: dc123b3ef138915c7c7b9fd1afaddce815c3163c496a5eaa63cf7945e7e475ab
         run: |
           Invoke-WebRequest $env:FF_URL -OutFile ff.7z
@@ -123,7 +132,7 @@ jobs:
         run: |
           $p = "paquete\Otaconvert-Prueba-de-hardware"
           Copy-Item target\release\otaconvert-motor.exe "$p\Prueba de hardware.exe"
-          Copy-Item target\release\libmpv-2.dll $p
+          Copy-Item target\release\libmpv-2.dll, target\release\vulkan-1.dll, target\release\VulkanRT-Licencia.txt $p
           Copy-Item prueba-hardware\LEEME.txt $p
           Get-ChildItem -Recurse $p | Select-Object FullName, Length
 
@@ -140,7 +149,7 @@ jobs:
 
       - name: Huella SHA-256 (para comprobar descargas)
         shell: pwsh
-        run: Get-FileHash target\release\otaconvert-motor.exe, target\release\libmpv-2.dll -Algorithm SHA256 | Format-List
+        run: Get-FileHash target\release\otaconvert-motor.exe, target\release\libmpv-2.dll, target\release\vulkan-1.dll -Algorithm SHA256 | Format-List
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
@@ -148,6 +157,8 @@ jobs:
           path: |
             v2/target/release/otaconvert-motor.exe
             v2/target/release/libmpv-2.dll
+            v2/target/release/vulkan-1.dll
+            v2/target/release/VulkanRT-Licencia.txt
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
