@@ -427,7 +427,33 @@ Regla: si una prueba automática falla, no se avanza.
   3. Certificado comercial OV/EV de una autoridad (pago anual, validación de identidad). No investigado en detalle.
 - **Recomendación:** pedir **SignPath Foundation** cuando haya una versión del programa publicada (requisito "ya publicado"; la Prueba de hardware podría servir). Mientras tanto, medidas gratis sin firma: (a) **datos de versión** en el exe (nombre, editor, versión, descripción, icono) y manifiesto; (b) nada que se parezca a malware: sin compresores tipo UPX, sin descargar ni ejecutar código; (c) **enviar cada versión a Microsoft** para análisis de falso positivo si Defender la marcara (portal de Microsoft Security Intelligence; lo envía el usuario o con su permiso); (d) publicar siempre en el mismo lugar con huella SHA-256.
 - Ni siquiera con firma desaparece SmartScreen al instante: la reputación se gana con descargas. Lo que sí cambia es que el aviso muestra un editor verificado. (Afirmación general, sin comprobar con documentación de Microsoft.)
-- Pendiente: que el usuario elija la opción de firma.
+- Elegida por el usuario (15/10/2026): **SignPath Foundation**.
+
+### Solicitud de firma a SignPath Foundation (preparada el 15/10/2026, noche)
+- **Requisitos oficiales** (https://signpath.org/terms, leídos el 15/10/2026): licencia OSI sin doble licencia comercial en **todos** los componentes; sin código propietario; proyecto mantenido y **ya publicado** en la forma a firmar; funcionalidad descrita en la página de descarga; el equipo firma solo sus propios binarios (DLL de terceros sin firmar se pueden incluir); **MFA obligatorio** en GitHub y SignPath para todo el equipo; roles autores/revisores/aprobadores; cada firma aprobada a mano; compilación verificable desde el repositorio (CI cuenta como código); metadatos del archivo: **nombre del producto = nombre del proyecto** y versión igual en cada compilación; en la página principal y en la de descarga, una sección o enlace **"Code signing policy"** con la frase "Free code signing provided by SignPath.io, certificate by SignPath Foundation", la lista de roles y un enlace de privacidad o la frase de que no transfiere datos; desinstalación documentada.
+- **Hecho para cumplirlos:** licencia **GPLv3 para todo el repositorio** (`LICENSE` en la raíz; decisión del usuario: también la V1); `README.md` raíz reescrito con V1 + V2, descargas, licencia, **Code signing policy** (firma solicitada, qué se firma, roles: committers/reviewers y approvers = marcoldmusica-cyber, MFA), **Privacy policy** (frase en inglés exigida + explicación) y **Desinstalar**; notas de la Release `prueba-hardware-0.0.1` con sección "Code signing policy"; descripción del repositorio en GitHub; **datos de versión, icono y manifiesto en el exe** con `winresource` 0.1.34 (`v2/crates/motor/build.rs`, `otaconvert.manifest`: `asInvoker`, Windows 10/11, DPI por monitor V2, rutas largas): ProductName "Otaconvert", versión del `Cargo.toml`; el workflow falla si no coinciden. Comprobado en la PC del usuario (Windows muestra los datos; `--comprobar` y `--prueba-video 10` BIEN). Para compilar local con llvm-mingw: variables `WINDRES` (`x86_64-w64-mingw32-windres.exe`) y `AR_PARA_RECURSOS` (`llvm-ar.exe`).
+- **Formulario** (https://signpath.org/apply; campos leídos sin rellenar). Respuestas propuestas:
+  | Campo | Respuesta |
+  |---|---|
+  | Project Name | Otaconvert |
+  | Repository URL | https://github.com/marcoldmusica-cyber/otaconvert |
+  | Homepage URL | https://github.com/marcoldmusica-cyber/otaconvert |
+  | Download URL | https://github.com/marcoldmusica-cyber/otaconvert/releases |
+  | Privacy Policy URL | https://github.com/marcoldmusica-cyber/otaconvert#privacy-policy |
+  | Wikipedia URL | (vacío) |
+  | Tagline | Free and open-source cue player and audio converter for theater technicians on Windows. |
+  | Category | la más cercana a audio/vídeo/multimedia (lista desplegable; la elige el usuario) |
+  | Description | Otaconvert is a free, GPLv3 Windows toolkit for theater sound and video technicians. Version 1 is a batch audio converter. Version 2, in development, is a cue player for live shows (audio, video up to 4K and projection mapping) built in Rust, with glitch-free audio, no black frames between videos, and a hardware test tool that checks whether a computer is ready for a performance. It works fully offline and collects no data. |
+  | Reputation | New project: first public release in October 2026 (hardware test tool 0.0.1). Developed for theater technicians; builds are automated with GitHub Actions and every download is published with its SHA-256 hash. |
+  | Maintainer Type | Individual (persona) |
+  | Build System | GitHub Actions |
+  | First/Last name, Email | los del usuario |
+  | Company Name | (vacío) |
+  | Primary Discovery Channel | lo elige el usuario |
+  | Casillas | Code of Conduct (obligatoria, leerla antes) y almacenamiento de datos personales (obligatoria); la de comunicaciones es opcional |
+- **Lo que hace el usuario:** (1) activar la verificación en dos pasos en GitHub (Settings → Password and authentication → Enable two-factor authentication); (2) leer el Code of Conduct de SignPath Foundation; (3) completar y enviar el formulario con estas respuestas (no lo envía Claude: datos personales y aceptación de términos); (4) esperar la respuesta por correo; al recibir la cuenta, activar también la verificación en dos pasos en SignPath.
+- **Después de la aprobación (lo hace Claude con el usuario):** conectar el workflow con la acción oficial de SignPath para enviar el exe a firmar, configurar la aprobación manual de cada firma y publicar las versiones firmadas. Firmar `Prueba de hardware.exe` y, en la Fase 1, el instalador y la portable.
+
 
 
 

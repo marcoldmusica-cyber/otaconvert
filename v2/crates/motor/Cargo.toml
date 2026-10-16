@@ -25,3 +25,8 @@ windows-sys = { version = "0.61.2", features = [
     "Win32_System_SystemInformation",
     "Win32_UI_HiDpi",
 ] }
+
+[build-dependencies]
+# Datos de versión, icono y manifiesto dentro del exe (los pide la firma
+# de código de SignPath y ayudan a que Windows sepa qué programa es).
+winresource = "0.1.34"

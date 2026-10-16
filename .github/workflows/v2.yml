@@ -65,6 +65,19 @@ jobs:
             exit 1
           }
 
+      # SignPath exige que el producto se llame como el proyecto y que la
+      # versión sea la del código.
+      - name: Comprobar datos de versión del exe
+        shell: pwsh
+        run: |
+          $v = (Get-Item target\release\otaconvert-motor.exe).VersionInfo
+          $v | Select-Object ProductName, FileDescription, ProductVersion, FileVersion | Format-List
+          $esperada = (Select-String -Path Cargo.toml -Pattern '^version = "(.+)"').Matches[0].Groups[1].Value
+          if ($v.ProductName -ne 'Otaconvert' -or $v.ProductVersion -ne $esperada) {
+            Write-Error "Datos de versión incorrectos (esperado Otaconvert $esperada)"
+            exit 1
+          }
+
       - name: Probar el ejecutable
         run: |
           target\release\otaconvert-motor.exe --version
