@@ -532,7 +532,7 @@ fieldset:disabled{opacity:.45}
   function dibujarLado(funcion) {
     if (estilo === "estudio") { dibujarEstudio(funcion); return; }
     var lado = $("lado");
-    if (lado.dataset.estilo) { lado.textContent = ""; delete lado.dataset.estilo; ladoClave = ""; }
+    if (lado.dataset.estilo) { soltarVideos(); lado.textContent = ""; delete lado.dataset.estilo; ladoClave = ""; }
     if (funcion) { ladoClave = ""; dibujarEnVivo(lado); return; }
     dibujarDetalle(lado);
   }
@@ -649,8 +649,8 @@ fieldset:disabled{opacity:.45}
   function dibujarEstudio(funcion) {
     var lado = $("lado");
     if (lado.dataset.estilo !== "estudio") {
-      lado.textContent = ""; lado.dataset.estilo = "estudio";
-      previaClave = aireClave = ladoClave = ""; previaVideo = null;
+      soltarVideos(); lado.textContent = ""; lado.dataset.estilo = "estudio";
+      previaClave = aireClave = ladoClave = ""; previaVideo = null; aireVideo = null;
       var est = el("div", "estudio");
       var cp = caja("previa", "previa", T("vista_previa"));
       var pp = el("div", "pantalla"); pp.id = "previaPantalla"; cp.appendChild(pp);
@@ -747,6 +747,24 @@ fieldset:disabled{opacity:.45}
     b2.textContent = elegido ? T("sale_desde", { t: mmss(e.desde_s) }) : T("salir_aqui", { t: mmss(previaVideo ? previaVideo.currentTime : 0) });
   }
 
+  // La copia de «al aire» va con el proyector: si se separa más de medio segundo
+  // se corrige; en pausa se queda quieta; al terminar el vídeo, en su último cuadro.
+  var aireVideo = null, aireSv = null;
+  // Al rehacer el panel, los vídeos de la ventana se sueltan (si no, seguirían decodificando).
+  function soltarVideos() {
+    [previaVideo, aireVideo].forEach(function (v) { if (v) { v.pause(); v.removeAttribute("src"); v.load(); } });
+    previaVideo = aireVideo = null;
+  }
+  function seguirAire() {
+    var v = aireVideo, sv = aireSv;
+    if (!v || !sv || v.readyState < 1) return;
+    var pos = sv.pos_s || 0;
+    if (!v.loop && v.duration && pos >= v.duration) pos = Math.max(0, v.duration - 0.05);
+    if (Math.abs(v.currentTime - pos) > 0.5) v.currentTime = pos;
+    if (e.pausado || (sv.restante_s != null && sv.restante_s <= 0)) { if (!v.paused) v.pause(); }
+    else if (v.paused) v.play().catch(function () {});
+  }
+
   function dibujarAire() {
     var lista = e.sonando || [];
     var sv = lista.filter(function (s) { return s.visual; })[0];
@@ -755,13 +773,30 @@ fieldset:disabled{opacity:.45}
     if (clave !== aireClave) {
       aireClave = clave;
       var pa = $("airePantalla"); pa.textContent = "";
-      if (sv && cv) {
-        if (sv.imagen || cv.miniatura) { var im = el("img"); im.alt = ""; im.src = sv.imagen ? urlMedio(sv.cue) : urlMiniatura(sv.cue, cv); pa.appendChild(im); }
+      if (aireVideo) { aireVideo.pause(); aireVideo.removeAttribute("src"); aireVideo.load(); aireVideo = null; }
+      if (sv && cv && !sv.imagen) {
+        // Vídeo al aire: una copia sin sonido que sigue el punto del proyector.
+        var v = document.createElement("video");
+        v.muted = true; v.playsInline = true; v.preload = "auto"; v.loop = !!cv.bucle;
+        if (cv.miniatura) v.poster = urlMiniatura(sv.cue, cv);
+        v.src = urlMedio(sv.cue);
+        v.addEventListener("loadedmetadata", function () { seguirAire(); });
+        v.addEventListener("error", function () {
+          // No se puede ver aquí (p. ej. HEVC sin la extensión de Windows): foto fija.
+          v.remove(); if (aireVideo === v) aireVideo = null;
+          if (cv.miniatura) { var f = el("img"); f.alt = ""; f.src = urlMiniatura(sv.cue, cv); pa.insertBefore(f, pa.firstChild); }
+        });
+        pa.appendChild(v); aireVideo = v;
+        pa.appendChild(el("span", "rotulo", cv.numero + " · " + cv.nombre));
+      } else if (sv && cv) {
+        var im = el("img"); im.alt = ""; im.src = urlMedio(sv.cue); pa.appendChild(im);
         pa.appendChild(el("span", "rotulo", cv.numero + " · " + cv.nombre));
       } else {
         pa.appendChild(el("span", "", T("proyector_negro")));
       }
     }
+    aireSv = sv && !sv.imagen ? sv : null;
+    seguirAire();
     var lineas = [];
     if (sv) lineas.push((sv.fundiendo ? T("fundiendo") : "") + (sv.imagen ? T("imagen_fija") : sv.restante_s != null ? "-" + mmss(sv.restante_s) : T("en_bucle")));
     lista.filter(function (s) { return !s.visual; }).forEach(function (s) {

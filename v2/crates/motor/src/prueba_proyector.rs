@@ -77,6 +77,42 @@ fn esperar(p: &mut ProyectorProceso, limite: Duration, f: impl Fn(&AvisoProyecto
     Err("la proyección no respondió a tiempo".into())
 }
 
+/// ¿El vídeo se mueve en el proyector? `--prueba-movimiento --archivo <vídeo>`:
+/// precarga el vídeo, le da GO y mira 16 puntos de la imagen cada 200 ms
+/// durante 3 s. Si la imagen no cambia, el vídeo quedó congelado.
+pub fn movimiento(archivo: &std::path::Path) -> Result<bool, String> {
+    let ruta = std::path::absolute(archivo).map_err(|e| format!("{}: {e}", archivo.display()))?;
+    let lista = crate::pantallas::listar();
+    let p = lista.first().ok_or("no hay pantallas")?;
+    let (x, y, w, h) = (p.x + p.ancho / 2 - 320, p.y + p.alto / 2 - 180, 640, 360);
+    println!("Prueba de movimiento: {} en un recuadro de 640 × 360 en el centro de la pantalla.", ruta.display());
+    let mut pr = ProyectorProceso::abrir(x, y, w, h, false)?;
+    if !pr.esperar_hola(Duration::from_secs(10)) {
+        return Err("la proyección no arrancó".into());
+    }
+    pr.enviar(OrdenProyector::Precargar { id: 1, ruta, bucle: true, imagen: false, inicio_s: 0.0, fin_s: None, desde_s: None });
+    esperar(&mut pr, Duration::from_secs(10), |a| matches!(a, AvisoProyector::Listo { id: 1, .. }))?;
+    pr.enviar(OrdenProyector::Mostrar { id: 1 });
+    std::thread::sleep(Duration::from_millis(500));
+    let puntos: Vec<(i32, i32)> = (0..16).map(|k| (x + 20 + (k % 4) * 150, y + 30 + (k / 4) * 90)).collect();
+    let foto = || puntos.iter().map(|&(a, b)| pixel(a, b)).collect::<Vec<_>>();
+    let mut anterior = foto();
+    let mut cambios = 0;
+    for _ in 0..15 {
+        std::thread::sleep(Duration::from_millis(200));
+        let _ = pr.recoger();
+        let ahora = foto();
+        if ahora != anterior {
+            cambios += 1;
+        }
+        anterior = ahora;
+    }
+    println!("Muestras en que la imagen cambió: {cambios} de 15");
+    let ok = cambios >= 10;
+    println!("{}", if ok { "RESULTADO: BIEN (el vídeo se mueve)" } else { "RESULTADO: HAY PROBLEMAS (el vídeo parece congelado)" });
+    Ok(ok)
+}
+
 pub fn ejecutar(cambios: u64, pantalla: Option<&str>) -> Result<bool, String> {
     // Solo en esta prueba la proyección acepta colores generados por mpv.
     std::env::set_var("OTACONVERT_PRUEBA_VIDEO", "1");

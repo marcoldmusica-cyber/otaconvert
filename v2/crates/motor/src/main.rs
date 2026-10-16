@@ -159,6 +159,11 @@ fn main() -> ExitCode {
         }
         #[cfg(windows)]
         Some("--prueba-proyector") => prueba_proyector::ejecutar(num(1, 30), pantalla),
+        #[cfg(windows)]
+        Some("--prueba-movimiento") => match archivo.as_deref() {
+            Some(a) => prueba_proyector::movimiento(std::path::Path::new(a)),
+            None => Err("falta --archivo <vídeo>".into()),
+        },
         // Uso interno: foto chica de un vídeo o imagen (proceso aparte).
         #[cfg(windows)]
         Some("--miniatura") => match (args.get(1), args.get(2)) {

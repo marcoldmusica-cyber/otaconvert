@@ -1146,6 +1146,8 @@ impl Sesion {
                     "restante_s": restante,
                     // Progreso de la vuelta actual, de 0 a 1 (en bucle vuelve a 0).
                     "progreso": if largo > 0.0 { ((pasado % largo) / largo).min(1.0) } else { 0.0 },
+                    // Punto del archivo que se ve ahora (para la copia de «al aire» en la ventana).
+                    "pos_s": c.map(|c| c.inicio_ms as f64 / 1000.0).unwrap_or(0.0) + if largo > 0.0 { pasado % largo } else { pasado },
                     "fundiendo": s.fundiendo,
                     "salida": if s.destino == Destino::Auriculares { "Auriculares" } else { "Principal" },
                 })
