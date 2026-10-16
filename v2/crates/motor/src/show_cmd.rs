@@ -47,6 +47,82 @@ pub fn crear_ejemplo(carpeta: &Path) -> Result<bool, String> {
     Ok(true)
 }
 
+/// Tipo de cue según la extensión del archivo (para armar un show desde una carpeta).
+fn tipo_por_extension(p: &Path) -> Option<TipoCue> {
+    let ext = p.extension()?.to_str()?.to_ascii_lowercase();
+    match ext.as_str() {
+        "wav" | "mp3" | "flac" | "ogg" | "oga" | "m4a" | "aac" | "aif" | "aiff" | "aifc" | "caf" | "mka" => Some(TipoCue::Audio),
+        "mp4" | "m4v" | "mov" | "mkv" | "webm" | "avi" => Some(TipoCue::Video),
+        "png" | "jpg" | "jpeg" | "bmp" | "gif" | "webp" => Some(TipoCue::Imagen),
+        _ => None,
+    }
+}
+
+/// Carpeta sin archivo `.otashow`: arma un show con un cue por cada audio,
+/// vídeo e imagen que tenga (también en sus subcarpetas, hasta 3 niveles), en
+/// orden alfabético, y lo guarda en la carpeta. Para probar rápido con medios
+/// propios (demo portable); los cues se ajustan después en Edición.
+pub fn crear_desde_carpeta(carpeta: &Path) -> Result<std::path::PathBuf, String> {
+    fn recorrer(base: &Path, dir: &Path, nivel: usize, salida: &mut Vec<String>) {
+        let Ok(leidos) = std::fs::read_dir(dir) else { return };
+        let mut entradas: Vec<_> = leidos.flatten().map(|e| e.path()).collect();
+        entradas.sort();
+        for p in entradas {
+            // Las carpetas propias del programa no se recorren.
+            let nombre = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            if nombre.starts_with('.') || nombre == "registros" {
+                continue;
+            }
+            if p.is_dir() && nivel < 3 {
+                recorrer(base, &p, nivel + 1, salida);
+            } else if tipo_por_extension(&p).is_some() {
+                if let Ok(rel) = p.strip_prefix(base) {
+                    let r = rel.to_string_lossy().replace('\\', "/");
+                    // Solo rutas que el archivo del show acepta (sin nombres raros).
+                    if otaconvert_show::rutas::validar(&r).is_ok() {
+                        salida.push(r);
+                    }
+                }
+            }
+        }
+    }
+    let mut archivos = Vec::new();
+    recorrer(carpeta, carpeta, 0, &mut archivos);
+    // Orden por el nombre del archivo (no por la carpeta): "01 Luna.mp4" va
+    // primero aunque esté dentro de una subcarpeta.
+    archivos.sort_by_key(|a| (a.rsplit('/').next().unwrap_or(a).to_lowercase(), a.to_lowercase()));
+    if archivos.is_empty() {
+        return Err(format!(
+            "la carpeta {} no tiene un show (.otashow) ni audios, vídeos o imágenes",
+            carpeta.display()
+        ));
+    }
+    // Mismo límite que el archivo del show (10.000 cues).
+    archivos.truncate(10_000);
+    let nombre = carpeta.file_name().and_then(|n| n.to_str()).unwrap_or("Show").to_string();
+    let cues = archivos
+        .iter()
+        .enumerate()
+        .map(|(n, a)| {
+            let p = Path::new(a);
+            Cue {
+                id: n as u64 + 1,
+                numero: (n + 1).to_string(),
+                nombre: p.file_stem().and_then(|s| s.to_str()).unwrap_or(a).to_string(),
+                tipo: tipo_por_extension(p).unwrap_or(TipoCue::Audio),
+                archivo: a.clone(),
+                ..Default::default()
+            }
+        })
+        .collect();
+    let show = Show { nombre: nombre.clone(), cues, ..Default::default() };
+    let limpio: String = nombre.chars().map(|c| if c.is_alphanumeric() || c == ' ' || c == '-' { c } else { '_' }).collect();
+    let ruta = carpeta.join(format!("{}.otashow", limpio.trim()));
+    guardar(&show, &ruta, &marca_de_tiempo()).map_err(|e| e.to_string())?;
+    println!("Se armó el show «{nombre}» con {} cues (uno por archivo): {}", show.cues.len(), ruta.display());
+    Ok(ruta)
+}
+
 #[cfg(windows)]
 fn abrir_navegador(url: &str) {
     use windows_sys::Win32::UI::Shell::ShellExecuteW;
@@ -116,6 +192,16 @@ pub fn abrir(
     margen_ms: u64,
     pantalla: Option<&str>,
 ) -> Result<bool, String> {
+    // Una carpeta sin show (p. ej. arrastrada sobre el programa): se arma uno con sus medios.
+    let tiene_show = ruta.is_dir()
+        && std::fs::read_dir(ruta).is_ok_and(|l| l.flatten().any(|e| e.path().extension().is_some_and(|x| x == otaconvert_show::EXTENSION)));
+    let creado;
+    let ruta = if ruta.is_dir() && !tiene_show {
+        creado = crear_desde_carpeta(ruta)?;
+        creado.as_path()
+    } else {
+        ruta
+    };
     let mut sesion = Sesion::abrir(ruta).map_err(|e| e.to_string())?;
     println!("Show: {} ({} cues) · {}", sesion.show.nombre, sesion.show.cues.len(), sesion.ruta.display());
     // Las salidas viven aquí, en el hilo principal, mientras dure el programa.
@@ -226,4 +312,38 @@ fn usar_navegador(sesion: &Arc<Mutex<Sesion>>, url: &str, motivo: &otaconvert_se
         s.aviso = Some(motivo.clone());
     }
     abrir_navegador(url);
+}
+
+#[cfg(test)]
+mod pruebas {
+    use super::*;
+
+    #[test]
+    fn una_carpeta_con_medios_se_vuelve_un_show() {
+        let d = std::env::temp_dir().join(format!("otaconvert-prueba-carpeta-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(d.join("Videos")).unwrap();
+        std::fs::create_dir_all(d.join(".oculta")).unwrap();
+        for f in ["02 Lluvia.wav", "Videos/01 Luna.mp4", "mapa.PNG", "notas.txt", ".oculta/x.wav"] {
+            std::fs::write(d.join(f), b"x").unwrap();
+        }
+        let ruta = crear_desde_carpeta(&d).unwrap();
+        let show = otaconvert_show::abrir(&ruta).unwrap();
+        let resumen: Vec<(String, String, TipoCue)> = show.cues.iter().map(|c| (c.numero.clone(), c.archivo.clone(), c.tipo)).collect();
+        assert_eq!(
+            resumen,
+            vec![
+                ("1".into(), "Videos/01 Luna.mp4".into(), TipoCue::Video),
+                ("2".into(), "02 Lluvia.wav".into(), TipoCue::Audio),
+                ("3".into(), "mapa.PNG".into(), TipoCue::Imagen),
+            ],
+            "un cue por medio, en orden por nombre de archivo, sin .txt ni carpetas ocultas"
+        );
+        assert_eq!(show.cues[0].nombre, "01 Luna");
+        // Una carpeta sin medios: error claro, sin crear nada.
+        let vacia = d.join("vacia");
+        std::fs::create_dir_all(&vacia).unwrap();
+        assert!(crear_desde_carpeta(&vacia).unwrap_err().contains("no tiene un show"));
+        let _ = std::fs::remove_dir_all(&d);
+    }
 }

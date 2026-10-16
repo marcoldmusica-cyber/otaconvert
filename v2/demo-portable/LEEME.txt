@@ -1,0 +1,75 @@
+OTACONVERT · DEMO PORTABLE (versión de prueba, sin terminar)
+=============================================================
+
+Es una versión para probar el programa en un teatro: no hay que instalar nada
+y funciona sin internet. Para borrarla, se borra la carpeta.
+
+
+1. ANTES DE EMPEZAR
+-------------------
+- Copia la carpeta al disco del equipo (no la uses desde el pendrive: los
+  vídeos se leen del disco mientras se ven).
+- Si vas a usar un proyector: conéctalo y pon Windows en "Extender"
+  (tecla Windows + P → Extender) ANTES de abrir Otaconvert.
+- El sonido sale por la salida predeterminada de Windows: elígela antes en el
+  icono del altavoz de la barra de tareas.
+
+
+2. ABRIR EL PROGRAMA
+--------------------
+- Doble clic en "Otaconvert.exe".
+- Si aparece "Windows protegió su PC": toca "Más información" y después
+  "Ejecutar de todas formas". (Pasa porque todavía no tiene firma digital.)
+- Se abre una ventana negra con mensajes: es el motor. NO la cierres.
+- Enseguida se abre la ventana de Otaconvert con el "Show de ejemplo".
+- La imagen sale por el proyector a pantalla completa. Si el equipo tiene una
+  sola pantalla, sale en una ventanita arriba a la derecha.
+- Para terminar: cierra la ventana de Otaconvert.
+
+
+3. PROBAR CON TUS PROPIOS VÍDEOS, AUDIOS E IMÁGENES
+---------------------------------------------------
+- Pon tus archivos en una carpeta y ARRASTRA LA CARPETA sobre "Otaconvert.exe".
+- Se arma solo un show con un cue por archivo, en orden alfabético.
+  Para elegir el orden, ponle un número delante a cada archivo:
+  "01 Entrada.mp4", "02 Lluvia.wav", "03 Mapa.png"…
+- Audios: WAV, MP3, FLAC, OGG, M4A, AIFF.
+  Vídeos: MP4, MOV, MKV (H.264 o HEVC, hasta 4K), con o sin sonido.
+  Imágenes: PNG, JPG.
+  (Opus y WMA todavía no: conviértelos antes con Otaconvert V1.)
+
+
+4. TECLAS
+---------
+  Espacio ......... GO (empieza el cue en espera)
+  Esc ............. Parar todo (funciona siempre)
+  P ............... Pausa / seguir
+  F ............... Fundir todo
+  Mayús + F ....... Fundir solo el último cue que empezó
+  ↑ ↓ ............. Elegir el cue en espera
+  Tab ............. Cambiar entre Edición y Función
+  H ............... Modo Ayuda (tocar cualquier parte y ver qué hace)
+
+
+5. QUÉ PROBAR EN EL TEATRO
+--------------------------
+  [ ] El vídeo sale en el proyector a pantalla completa, sin escritorio ni ratón.
+  [ ] Varios GO seguidos entre vídeos: nunca se ve negro entre uno y otro.
+  [ ] Antes del GO, el proyector queda en negro (no se ve el vídeo siguiente).
+  [ ] Un vídeo con sonido: imagen y sonido juntos.
+  [ ] Parar todo (Esc): todo se apaga al instante, sin ruidos feos.
+  [ ] Fundir todo (F): imagen y sonido bajan despacio.
+  [ ] El sonido sale por la tarjeta o mesa del teatro, sin clics ni cortes.
+
+
+6. PRUEBA DE HARDWARE
+---------------------
+- Doble clic en "Prueba de hardware.exe" (unos 3 minutos: se ven colores y
+  suenan tonos; no hace falta tocar nada).
+- Deja un informe "Informe-hardware-....txt" en esta carpeta. Mándamelo.
+
+
+Manual completo: "Manual de usuario.pdf".
+Desarrollado por @marcold.ok (Instagram): escríbeme para contar cómo fue,
+sugerir mejoras o reportar errores.
+Software libre y gratuito (GPLv3). Nadie se salva solo.

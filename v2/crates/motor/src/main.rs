@@ -90,6 +90,28 @@ fn main() -> ExitCode {
     if args.is_empty() && nombre_exe.starts_with("prueba") {
         args.push("--prueba-hardware".into());
     }
+    // Uso con el ratón (demo y versión portable): arrastrar una carpeta o un
+    // archivo .otashow sobre el programa lo abre; doble clic en "Otaconvert.exe"
+    // abre la carpeta "Show de ejemplo" que está a su lado.
+    let mut interactivo = false;
+    if args.len() == 1 && !args[0].starts_with("--") && std::path::Path::new(&args[0]).exists() {
+        args.insert(0, "--abrir-show".into());
+        interactivo = true;
+    } else if args.is_empty() && nombre_exe == "otaconvert" {
+        let ejemplo = std::env::current_exe().ok().and_then(|e| e.parent().map(|d| d.join("Show de ejemplo")));
+        match ejemplo.filter(|d| d.is_dir()) {
+            Some(d) => {
+                args = vec!["--abrir-show".into(), d.to_string_lossy().into_owned()];
+                interactivo = true;
+            }
+            None => {
+                println!("Otaconvert {VERSION}");
+                println!("Para abrir un show, arrastra su carpeta (o una carpeta con audios, vídeos e imágenes) sobre Otaconvert.exe.");
+                esperar_enter();
+                return ExitCode::SUCCESS;
+            }
+        }
+    }
     let sin_pausa = args.iter().any(|a| a == "--sin-pausa");
     // Interfaz: ventana propia por defecto; --navegador la abre en el
     // navegador; --sin-navegador no abre nada (pruebas).
@@ -184,9 +206,19 @@ fn main() -> ExitCode {
         Ok(false) => ExitCode::FAILURE,
         Err(e) => {
             println!("Error: {e}");
+            // Abierto con el ratón: que se pueda leer el error antes de que se cierre la ventana.
+            if interactivo {
+                esperar_enter();
+            }
             ExitCode::FAILURE
         }
     }
+}
+
+fn esperar_enter() {
+    println!("Pulsa Enter para cerrar.");
+    let mut s = String::new();
+    let _ = std::io::stdin().read_line(&mut s);
 }
 
 /// Salidas de audio en el orden en que las da Windows, con su identificador estable.
