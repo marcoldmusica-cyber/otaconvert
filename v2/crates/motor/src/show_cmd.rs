@@ -47,6 +47,61 @@ pub fn crear_ejemplo(carpeta: &Path) -> Result<bool, String> {
     Ok(true)
 }
 
+/// Hace en segundo plano las fotos chicas que faltan (una a la vez, en un
+/// proceso aparte con prioridad baja y sin ventana, con límite de tiempo):
+/// un archivo dañado o un cuelgue de mpv nunca llega al motor.
+#[cfg(windows)]
+fn generar_miniaturas(sesion: Arc<Mutex<Sesion>>) {
+    use std::os::windows::process::CommandExt;
+    const PRIORIDAD_BAJA: u32 = 0x0000_4000; // BELOW_NORMAL_PRIORITY_CLASS
+    const SIN_VENTANA: u32 = 0x0800_0000; // CREATE_NO_WINDOW
+    let Ok(exe) = std::env::current_exe() else { return };
+    loop {
+        let pendientes = sesion.lock().map(|mut s| s.miniaturas_pendientes()).unwrap_or_default();
+        if pendientes.is_empty() {
+            std::thread::sleep(std::time::Duration::from_secs(2));
+            continue;
+        }
+        for (i, archivo, destino, inicio) in pendientes {
+            let ok = destino.parent().is_some_and(|d| std::fs::create_dir_all(d).is_ok())
+                && std::process::Command::new(&exe)
+                    .arg("--miniatura")
+                    .arg(&archivo)
+                    .arg(&destino)
+                    .arg(format!("{inicio:.3}"))
+                    .stdin(std::process::Stdio::null())
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null())
+                    .creation_flags(PRIORIDAD_BAJA | SIN_VENTANA)
+                    .spawn()
+                    .ok()
+                    .and_then(|mut h| {
+                        let fin = std::time::Instant::now() + std::time::Duration::from_secs(20);
+                        loop {
+                            match h.try_wait() {
+                                Ok(Some(e)) => return Some(e.success()),
+                                Ok(None) if std::time::Instant::now() < fin => std::thread::sleep(std::time::Duration::from_millis(50)),
+                                _ => {
+                                    let _ = h.kill();
+                                    let _ = h.wait();
+                                    return Some(false);
+                                }
+                            }
+                        }
+                    })
+                    .unwrap_or(false)
+                && destino.is_file();
+            if let Ok(mut s) = sesion.lock() {
+                if ok {
+                    s.miniatura_hecha(i, &destino);
+                } else {
+                    s.miniatura_fallida(i);
+                }
+            }
+        }
+    }
+}
+
 /// Tipo de cue según la extensión del archivo (para armar un show desde una carpeta).
 fn tipo_por_extension(p: &Path) -> Option<TipoCue> {
     let ext = p.extension()?.to_str()?.to_ascii_lowercase();
@@ -245,6 +300,11 @@ pub fn abrir(
         }
     }
     let sesion = Arc::new(Mutex::new(sesion));
+    #[cfg(windows)]
+    {
+        let s2 = sesion.clone();
+        let _ = std::thread::Builder::new().name("miniaturas".into()).spawn(move || generar_miniaturas(s2));
+    }
     let srv = Servidor::iniciar(sesion.clone()).map_err(|e| e.to_string())?;
     println!("Interfaz en {}", srv.url().split("?t=").next().unwrap_or(""));
     println!("(La dirección completa lleva una clave secreta; ábrela solo desde aquí.)");

@@ -212,15 +212,16 @@ fn http(mut stream: TcpStream, ctx: &Contexto) {
     let primera = lineas.next().unwrap_or("");
     let mut partes = primera.split(' ');
     let (metodo, destino) = (partes.next().unwrap_or(""), partes.next().unwrap_or(""));
-    let host = lineas
+    let cabeceras: Vec<(String, String)> = lineas
         .filter_map(|l| l.split_once(':'))
-        .find(|(k, _)| k.trim().eq_ignore_ascii_case("host"))
-        .map(|(_, v)| v.trim().to_string());
+        .map(|(k, v)| (k.trim().to_ascii_lowercase(), v.trim().to_string()))
+        .collect();
+    let cabecera = |n: &str| cabeceras.iter().find(|(k, _)| k == n).map(|(_, v)| v.as_str());
     if metodo != "GET" {
         responder(&stream, "405 Method Not Allowed", "Allow: GET\r\n", "");
         return;
     }
-    if host.as_deref() != Some(&format!("127.0.0.1:{}", ctx.puerto)) {
+    if cabecera("host") != Some(&format!("127.0.0.1:{}", ctx.puerto)) {
         responder(&stream, "403 Forbidden", "", "<p>Acceso no permitido.</p>");
         return;
     }
@@ -228,20 +229,100 @@ fn http(mut stream: TcpStream, ctx: &Contexto) {
         Some((r, q)) => (r, Some(q)),
         None => (destino, None),
     };
-    if ruta != "/" {
+    if !matches!(ruta, "/" | "/miniatura" | "/medio") {
         responder(&stream, "404 Not Found", "", "");
         return;
     }
-    match token_de(consulta) {
-        Some(t) if iguales(t, &ctx.token) => {
+    if !token_de(consulta).is_some_and(|t| iguales(t, &ctx.token)) {
+        responder(&stream, "403 Forbidden", "", "<p>Abre Otaconvert desde el propio programa.</p>");
+        return;
+    }
+    match ruta {
+        "/" => {
             let csp = format!(
-                "Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src ws://127.0.0.1:{}; img-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'\r\n",
+                "Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src ws://127.0.0.1:{}; img-src 'self' data:; media-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'\r\n",
                 ctx.puerto
             );
             responder(&stream, "200 OK", &csp, pagina());
         }
-        _ => responder(&stream, "403 Forbidden", "", "<p>Abre Otaconvert desde el propio programa.</p>"),
+        // Solo se entrega lo de un cue del show, por su número: la ventana
+        // nunca puede pedir una ruta de archivo.
+        _ => {
+            let cue = consulta
+                .and_then(|q| q.split('&').find_map(|p| p.strip_prefix("cue=")))
+                .and_then(|c| c.parse::<usize>().ok());
+            let archivo = cue.and_then(|i| {
+                let s = ctx.sesion.lock().ok()?;
+                if ruta == "/miniatura" {
+                    s.miniatura_lista(i)
+                } else {
+                    s.medio_visual(i)
+                }
+            });
+            match archivo {
+                Some(a) => enviar_archivo(&stream, &a, cabecera("range")),
+                None => responder(&stream, "404 Not Found", "", ""),
+            }
+        }
     }
+}
+
+/// Tipo de contenido por extensión (solo los medios que se muestran).
+fn tipo_de(ruta: &std::path::Path) -> &'static str {
+    match ruta.extension().and_then(|e| e.to_str()).map(|e| e.to_ascii_lowercase()).as_deref() {
+        Some("jpg" | "jpeg") => "image/jpeg",
+        Some("png") => "image/png",
+        Some("gif") => "image/gif",
+        Some("bmp") => "image/bmp",
+        Some("webp") => "image/webp",
+        Some("mp4" | "m4v") => "video/mp4",
+        Some("mov") => "video/quicktime",
+        Some("webm") => "video/webm",
+        Some("mkv") => "video/x-matroska",
+        _ => "application/octet-stream",
+    }
+}
+
+/// Entrega un archivo (entero o por partes, para el vídeo de la vista
+/// previa), copiándolo por trozos: nunca se carga entero en memoria.
+fn enviar_archivo(mut s: &TcpStream, ruta: &std::path::Path, rango: Option<&str>) {
+    use std::io::{Seek, SeekFrom};
+    let Ok(mut f) = std::fs::File::open(ruta) else {
+        responder(s, "404 Not Found", "", "");
+        return;
+    };
+    let total = f.metadata().map(|m| m.len()).unwrap_or(0);
+    let tipo = tipo_de(ruta);
+    // "bytes=inicio-fin" (fin opcional). Rangos raros o múltiples: archivo entero.
+    let parte = rango.and_then(|r| r.strip_prefix("bytes=")).filter(|r| !r.contains(',')).and_then(|r| {
+        let (a, b) = r.split_once('-')?;
+        let ini: u64 = a.trim().parse().ok()?;
+        let fin: u64 = if b.trim().is_empty() { total.saturating_sub(1) } else { b.trim().parse().ok()? };
+        (ini <= fin && fin < total).then_some((ini, fin))
+    });
+    if rango.is_some() && parte.is_none() && total > 0 {
+        let _ = write!(s, "HTTP/1.1 416 Range Not Satisfiable\r\nContent-Range: bytes */{total}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+        return;
+    }
+    let comunes = "Accept-Ranges: bytes\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nConnection: close\r\n";
+    let (ini, largo) = match parte {
+        Some((a, b)) => {
+            let _ = write!(
+                s,
+                "HTTP/1.1 206 Partial Content\r\nContent-Type: {tipo}\r\nContent-Length: {}\r\nContent-Range: bytes {a}-{b}/{total}\r\n{comunes}\r\n",
+                b - a + 1
+            );
+            (a, b - a + 1)
+        }
+        None => {
+            let _ = write!(s, "HTTP/1.1 200 OK\r\nContent-Type: {tipo}\r\nContent-Length: {total}\r\n{comunes}\r\n");
+            (0, total)
+        }
+    };
+    if f.seek(SeekFrom::Start(ini)).is_ok() {
+        let _ = io::copy(&mut (&mut f).take(largo), &mut s);
+    }
+    let _ = s.flush();
 }
 
 fn difundir(ctx: &Contexto, texto: String) {

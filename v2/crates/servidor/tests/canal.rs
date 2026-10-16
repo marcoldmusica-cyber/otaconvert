@@ -220,3 +220,61 @@ fn guardado_automatico_solo_si_hay_cambios() {
     }
     assert_eq!(otaconvert_show::abrir(&ruta).unwrap().nombre, "Cambiado");
 }
+
+/// Vista Estudio: la ventana pide la foto y el archivo de un cue de vídeo o
+/// imagen por su número. Solo con token y Host correctos, solo cues visuales
+/// del show, y el vídeo por partes (Range) sin cargarlo entero.
+#[test]
+fn miniatura_y_medio_solo_de_cues_del_show() {
+    let d = std::env::temp_dir().join(format!("otaconvert-prueba-medios-{}-{}", std::process::id(), N.fetch_add(1, Ordering::SeqCst)));
+    let _ = std::fs::remove_dir_all(&d);
+    std::fs::create_dir_all(d.join("video")).unwrap();
+    let datos: Vec<u8> = (0..100u8).collect();
+    std::fs::write(d.join("video/a.mp4"), &datos).unwrap();
+    std::fs::write(d.join("secreto.txt"), b"no se entrega").unwrap();
+    let show = Show {
+        nombre: "Medios".into(),
+        cues: vec![
+            Cue { id: 1, numero: "1".into(), nombre: "Audio".into(), archivo: "audio/x.wav".into(), ..Default::default() },
+            Cue { id: 2, numero: "2".into(), nombre: "Vídeo".into(), archivo: "video/a.mp4".into(), tipo: otaconvert_show::TipoCue::Video, ..Default::default() },
+        ],
+        ..Default::default()
+    };
+    guardar(&show, &d.join("m.otashow"), "20261016-000000").unwrap();
+    let sesion = Arc::new(Mutex::new(Sesion::abrir(&d).unwrap()));
+    let srv = Servidor::iniciar(sesion.clone()).unwrap();
+    let (p, t) = (srv.puerto, token(&srv));
+    let host = format!("127.0.0.1:{p}");
+    let pide = |destino: &str, host: &str, extra: &str| pedir(p, &format!("GET {destino} HTTP/1.1\r\nHost: {host}\r\n{extra}Connection: close\r\n\r\n"));
+
+    // Sin token, con token malo o con otro Host: nada.
+    assert!(pide("/medio?cue=1", &host, "").starts_with("HTTP/1.1 403"));
+    assert!(pide("/medio?t=00&cue=1", &host, "").starts_with("HTTP/1.1 403"));
+    assert!(pide(&format!("/medio?t={t}&cue=1"), "malicioso.com", "").starts_with("HTTP/1.1 403"));
+    assert!(pide(&format!("/miniatura?t={t}&cue=1"), "localhost", "").starts_with("HTTP/1.1 403"));
+    // Un audio, un cue que no existe, una ruta pedida por la ventana o una foto que todavía no está: 404.
+    assert!(pide(&format!("/medio?t={t}&cue=0"), &host, "").starts_with("HTTP/1.1 404"));
+    assert!(pide(&format!("/medio?t={t}&cue=99"), &host, "").starts_with("HTTP/1.1 404"));
+    assert!(pide(&format!("/medio?t={t}&cue=../secreto.txt"), &host, "").starts_with("HTTP/1.1 404"));
+    assert!(pide(&format!("/medio?t={t}&archivo=secreto.txt"), &host, "").starts_with("HTTP/1.1 404"));
+    assert!(pide(&format!("/miniatura?t={t}&cue=1"), &host, "").starts_with("HTTP/1.1 404"));
+
+    // El vídeo entero y por partes.
+    let r = pide(&format!("/medio?t={t}&cue=1"), &host, "");
+    assert!(r.starts_with("HTTP/1.1 200") && r.contains("Content-Type: video/mp4") && r.contains("Content-Length: 100") && r.contains("Accept-Ranges: bytes"), "{r}");
+    let mut s = TcpStream::connect(("127.0.0.1", p)).unwrap();
+    s.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+    s.write_all(format!("GET /medio?t={t}&cue=1 HTTP/1.1\r\nHost: {host}\r\nRange: bytes=10-19\r\nConnection: close\r\n\r\n").as_bytes()).unwrap();
+    let mut crudo = Vec::new();
+    let _ = s.read_to_end(&mut crudo);
+    let fin = crudo.windows(4).position(|w| w == b"\r\n\r\n").unwrap() + 4;
+    let cab = String::from_utf8_lossy(&crudo[..fin]);
+    assert!(cab.starts_with("HTTP/1.1 206") && cab.contains("Content-Range: bytes 10-19/100"), "{cab}");
+    assert_eq!(&crudo[fin..], &datos[10..20]);
+    assert!(pide(&format!("/medio?t={t}&cue=1"), &host, "Range: bytes=500-600\r\n").starts_with("HTTP/1.1 416"));
+
+    // La página permite cargar imágenes y vídeo solo del propio motor.
+    let pag = pide(&format!("/?t={t}"), &host, "");
+    assert!(pag.contains("img-src 'self' data:") && pag.contains("media-src 'self'"));
+    let _ = std::fs::remove_dir_all(&d);
+}

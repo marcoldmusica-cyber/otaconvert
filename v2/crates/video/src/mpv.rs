@@ -197,6 +197,39 @@ impl Reproductor {
         Ok(r)
     }
 
+    /// Un reproductor sin ventana (para sacar una foto de un vídeo o imagen):
+    /// las mismas protecciones (sin configuración del usuario, scripts,
+    /// internet, teclado ni terminal) y sin sonido; `extra` elige la salida.
+    pub fn sin_ventana(lib: Arc<Libmpv>, extra: &[(&str, &str)]) -> Result<Self, String> {
+        // SAFETY: sin argumentos; se comprueba el nulo.
+        let h = unsafe { (lib.api.create)() };
+        if h.is_null() {
+            return Err("mpv no pudo crear el reproductor".into());
+        }
+        let r = Self { lib, h };
+        let base: &[(&str, &str)] = &[
+            ("config", "no"),
+            ("load-scripts", "no"),
+            ("ytdl", "no"),
+            ("osc", "no"),
+            ("input-default-bindings", "no"),
+            ("terminal", "no"),
+            ("aid", "no"),
+            ("sid", "no"),
+            ("ao", "null"),
+            ("idle", "no"),
+        ];
+        for (k, v) in base.iter().chain(extra) {
+            r.opcion(k, v)?;
+        }
+        // SAFETY: handle válido.
+        let e = unsafe { (r.lib.api.initialize)(r.h) };
+        if e < 0 {
+            return Err(format!("mpv no pudo iniciar: {}", mensaje(&r.lib.api, e)));
+        }
+        Ok(r)
+    }
+
     pub fn opcion(&self, nombre: &str, valor: &str) -> Result<(), String> {
         let (n, v) = (c(nombre)?, c(valor)?);
         // SAFETY: handle válido y cadenas terminadas en 0.

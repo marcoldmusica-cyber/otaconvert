@@ -19,6 +19,8 @@ mod proyector_cliente;
 #[cfg(windows)]
 mod prueba_proyector;
 mod ventana_ui;
+#[cfg(windows)]
+mod miniatura;
 mod sonido_cpal;
 mod prueba_hardware;
 mod vigilante;
@@ -157,6 +159,16 @@ fn main() -> ExitCode {
         }
         #[cfg(windows)]
         Some("--prueba-proyector") => prueba_proyector::ejecutar(num(1, 30), pantalla),
+        // Uso interno: foto chica de un vídeo o imagen (proceso aparte).
+        #[cfg(windows)]
+        Some("--miniatura") => match (args.get(1), args.get(2)) {
+            (Some(a), Some(s)) => {
+                vigilante::sin_ventanas_de_error();
+                let inicio = args.get(3).and_then(|x| x.parse::<f64>().ok()).unwrap_or(0.0);
+                miniatura::ejecutar(std::path::Path::new(a), std::path::Path::new(s), inicio)
+            }
+            _ => Err("uso: --miniatura <archivo> <salida.jpg> [inicio_s]".into()),
+        },
         Some("--info-equipo") => {
             equipo::imprimir();
             Ok(true)

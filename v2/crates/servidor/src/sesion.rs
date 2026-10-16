@@ -87,6 +87,10 @@ pub struct Sesion {
     remostrar: Option<usize>,
     /// Vídeos sin sonido (no es un error).
     mudos: std::collections::HashSet<usize>,
+    /// Fotos que no se pudieron hacer (no se reintentan en esta sesión).
+    miniaturas_fallidas: std::collections::HashSet<usize>,
+    /// Fotos ya hechas: cue → versión (nombre del archivo de la foto).
+    miniaturas_hechas: HashMap<usize, String>,
 }
 
 /// Busca el archivo del show: la ruta misma, o el único `.otashow` de la carpeta.
@@ -146,6 +150,8 @@ impl Sesion {
             visuales: HashMap::new(),
             remostrar: None,
             mudos: std::collections::HashSet::new(),
+            miniaturas_fallidas: std::collections::HashSet::new(),
+            miniaturas_hechas: HashMap::new(),
         })
     }
 
@@ -896,6 +902,69 @@ impl Sesion {
         }
     }
 
+    /// Archivo de un cue de vídeo o imagen (resuelto dentro de la carpeta del
+    /// show). Para la vista previa de la ventana; nada más se entrega así.
+    pub fn medio_visual(&self, i: usize) -> Option<PathBuf> {
+        let c = self.show.cues.get(i)?;
+        if c.tipo == TipoCue::Audio {
+            return None;
+        }
+        rutas::resolver(&self.carpeta(), &c.archivo).ok().filter(|r| r.is_file())
+    }
+
+    /// Dónde va la foto chica de un cue de vídeo o imagen: en la carpeta del
+    /// show, con un nombre que cambia si cambia el archivo o su punto de inicio
+    /// (así una foto vieja nunca se muestra para un archivo nuevo).
+    pub fn ruta_miniatura(&self, i: usize) -> Option<PathBuf> {
+        let c = self.show.cues.get(i)?;
+        let archivo = self.medio_visual(i)?;
+        let meta = std::fs::metadata(&archivo).ok()?;
+        let modificado = meta.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map(|d| d.as_millis()).unwrap_or(0);
+        // FNV-1a de 64 bits: estable entre versiones del programa.
+        let mut h: u64 = 0xcbf29ce484222325;
+        for b in format!("{}|{}|{}|{}", c.archivo, meta.len(), modificado, c.inicio_ms).bytes() {
+            h ^= b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        Some(self.carpeta().join(".otaconvert").join("miniaturas").join(format!("{h:016x}.jpg")))
+    }
+
+    /// La foto del cue, si ya está hecha.
+    pub fn miniatura_lista(&self, i: usize) -> Option<PathBuf> {
+        self.ruta_miniatura(i).filter(|p| p.is_file())
+    }
+
+    /// Fotos por revisar: las de los cues de vídeo o imagen que todavía no se
+    /// marcaron como hechas ni fallidas. Las que ya existen en el disco se
+    /// marcan hechas aquí mismo; devuelve las que hay que hacer:
+    /// (cue, archivo, destino, inicio en segundos).
+    pub fn miniaturas_pendientes(&mut self) -> Vec<(usize, PathBuf, PathBuf, f64)> {
+        let mut faltan = Vec::new();
+        for i in 0..self.show.cues.len() {
+            if self.miniaturas_hechas.contains_key(&i) || self.miniaturas_fallidas.contains(&i) {
+                continue;
+            }
+            let (Some(destino), Some(archivo)) = (self.ruta_miniatura(i), self.medio_visual(i)) else { continue };
+            if destino.is_file() {
+                self.miniatura_hecha(i, &destino);
+                continue;
+            }
+            let inicio = if self.show.cues[i].tipo == TipoCue::Video { self.show.cues[i].inicio_ms as f64 / 1000.0 } else { 0.0 };
+            faltan.push((i, archivo, destino, inicio));
+        }
+        faltan
+    }
+
+    pub fn miniatura_hecha(&mut self, i: usize, ruta: &Path) {
+        if let Some(v) = ruta.file_stem() {
+            self.miniaturas_hechas.insert(i, v.to_string_lossy().into_owned());
+        }
+    }
+
+    pub fn miniatura_fallida(&mut self, i: usize) {
+        self.miniaturas_fallidas.insert(i);
+    }
+
     pub fn esta_preparado(&self, i: usize) -> bool {
         self.preparados.contains_key(&i)
     }
@@ -968,6 +1037,8 @@ impl Sesion {
                     "error": error,
                     // Vídeo sin sonido (no es un error).
                     "mudo": self.mudos.contains(&i),
+                    // Foto chica lista (la ventana la pide por /miniatura?cue=N; la versión cambia con el archivo).
+                    "miniatura": self.miniaturas_hechas.get(&i),
                 })
             })
             .collect();
