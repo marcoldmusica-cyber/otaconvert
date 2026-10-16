@@ -1,0 +1,21 @@
+[package]
+name = "otaconvert-ventana"
+description = "Ventana de Otaconvert V2 (WebView2)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+# Exe aparte del motor a propósito: contiene el cargador de WebView2 de
+# Microsoft (permiso adicional de la GPLv3 en LICENSE-EXCEPTION-WEBVIEW2.txt)
+# y nunca carga libmpv ni otra pieza GPL de terceros.
+
+[target.'cfg(windows)'.dependencies]
+# Con MSVC el cargador de WebView2 (BSD-3-Clause) queda dentro del exe.
+tao = "0.37.1"
+wry = { version = "0.57.0", default-features = false }
+windows-sys = { version = "0.61.2", features = ["Win32_System_LibraryLoader"] }
+
+[build-dependencies]
+winresource = "0.1.34"

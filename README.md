@@ -11,9 +11,13 @@ Hecho por amor al arte. **Nadie se salva solo.**
 
 Todas las descargas están en [Releases](https://github.com/marcoldmusica-cyber/otaconvert/releases), con su huella SHA-256 para comprobarlas. Funcionan sin internet. Windows 10 u 11 de 64 bits.
 
+## Contacto
+
+Desarrollado por **@marcold.ok** (Instagram). Escríbeme para sugerir mejoras, reportar errores o contar cómo lo usas en tu teatro.
+
 ## Licencia
 
-Todo el repositorio es software libre bajo la **GNU General Public License v3.0** (ver [`LICENSE`](LICENSE)). Las piezas de terceros y sus licencias están en [`THIRD_PARTY.txt`](THIRD_PARTY.txt) (V1) y en la versión [`dependencias-2026-10-15`](https://github.com/marcoldmusica-cyber/otaconvert/releases/tag/dependencias-2026-10-15) (V2).
+Todo el repositorio es software libre bajo la **GNU General Public License v3.0** (ver [`LICENSE`](LICENSE)), con un permiso adicional (sección 7) para enlazar la ventana de la V2 con el cargador de WebView2 de Microsoft (ver [`LICENSE-EXCEPTION-WEBVIEW2.txt`](LICENSE-EXCEPTION-WEBVIEW2.txt)). Las piezas de terceros y sus licencias están en [`THIRD_PARTY.txt`](THIRD_PARTY.txt) (V1) y en la versión [`dependencias-2026-10-15`](https://github.com/marcoldmusica-cyber/otaconvert/releases/tag/dependencias-2026-10-15) (V2).
 
 ## Code signing policy
 

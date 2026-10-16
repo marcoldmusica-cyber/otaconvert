@@ -16,10 +16,6 @@ otaconvert-show = { path = "../show" }
 otaconvert-video = { path = "../video" }
 
 [target.'cfg(windows)'.dependencies]
-# Ventana propia con WebView2 (etapa 3A). Con MSVC el cargador de WebView2
-# (BSD-3-Clause, de Microsoft) queda dentro del exe: no hace falta otra DLL.
-tao = "0.37.1"
-wry = { version = "0.57.0", default-features = false }
 windows-sys = { version = "0.61.2", features = [
     "Win32_Devices_Display",
     "Win32_Foundation",

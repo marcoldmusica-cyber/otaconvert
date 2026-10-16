@@ -51,22 +51,34 @@ jobs:
           $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
           $dumpbin = Get-ChildItem "$vs\VC\Tools\MSVC" -Recurse -Filter dumpbin.exe |
             Where-Object FullName -like '*Hostx64\x64*' | Select-Object -First 1
-          $exe = "target\release\otaconvert-motor.exe"
+          foreach ($exe in "target\release\otaconvert-motor.exe", "target\release\otaconvert-ventana.exe") {
           $deps = & $dumpbin.FullName /nologo /dependents $exe
           $deps
           if ($deps -match 'VCRUNTIME|MSVCP|api-ms-win-crt') {
-            Write-Error "El motor depende del runtime de C externo"
+            Write-Error "$exe depende del runtime de C externo"
             exit 1
           }
-          # El cargador de WebView2 debe ir dentro del exe (estático con MSVC).
+          # El cargador de WebView2 debe ir dentro de la ventana (estático con MSVC).
           if ($deps -match 'WebView2Loader') {
-            Write-Error "El motor depende de WebView2Loader.dll externa"
+            Write-Error "$exe depende de WebView2Loader.dll externa"
             exit 1
           }
           $cfg =& $dumpbin.FullName /nologo /loadconfig $exe | Select-String -Pattern 'Dependent Load Flag'
           $cfg
           if (-not ($cfg -match '800')) {
-            Write-Error "Falta /DEPENDENTLOADFLAG:0x800 (carga de DLL solo desde System32)"
+            Write-Error "$exe : falta /DEPENDENTLOADFLAG:0x800 (carga de DLL solo desde System32)"
+            exit 1
+          }
+          }
+          # Permiso de licencia: el cargador de WebView2 solo puede estar en la
+          # ventana, nunca en el motor (que carga libmpv, GPL de terceros).
+          $arbol = cargo tree --locked -p otaconvert-motor -e normal,build --target x86_64-pc-windows-msvc
+          if ($arbol -match 'webview2') {
+            Write-Error "El motor depende del cargador de WebView2"
+            exit 1
+          }
+          if (-not ((cargo tree --locked -p otaconvert-ventana -e normal --target x86_64-pc-windows-msvc) -match 'webview2-com-sys')) {
+            Write-Error "La comprobación de WebView2 no ve el cargador en la ventana: revisar"
             exit 1
           }
 
@@ -75,12 +87,14 @@ jobs:
       - name: Comprobar datos de versión del exe
         shell: pwsh
         run: |
-          $v = (Get-Item target\release\otaconvert-motor.exe).VersionInfo
-          $v | Select-Object ProductName, FileDescription, ProductVersion, FileVersion | Format-List
           $esperada = (Select-String -Path Cargo.toml -Pattern '^version = "(.+)"').Matches[0].Groups[1].Value
-          if ($v.ProductName -ne 'Otaconvert' -or $v.ProductVersion -ne $esperada) {
-            Write-Error "Datos de versión incorrectos (esperado Otaconvert $esperada)"
-            exit 1
+          foreach ($exe in "target\release\otaconvert-motor.exe", "target\release\otaconvert-ventana.exe") {
+            $v = (Get-Item $exe).VersionInfo
+            $v | Select-Object ProductName, FileDescription, ProductVersion, FileVersion | Format-List
+            if ($v.ProductName -ne 'Otaconvert' -or $v.ProductVersion -ne $esperada) {
+              Write-Error "$exe : datos de versión incorrectos (esperado Otaconvert $esperada)"
+              exit 1
+            }
           }
 
       - name: Probar el ejecutable
@@ -88,6 +102,14 @@ jobs:
           target\release\otaconvert-motor.exe --version
           target\release\otaconvert-motor.exe --listar-salidas
           target\release\otaconvert-motor.exe --listar-pantallas
+
+      # La ventana arranca (sin DLL que falten) y rechaza una dirección falsa.
+      - name: Probar la ventana
+        shell: pwsh
+        run: |
+          "http://malo.com/?t=x" | target\release\otaconvert-ventana.exe
+          if ($LASTEXITCODE -ne 2) { Write-Error "La ventana no rechazó la dirección falsa (código $LASTEXITCODE)"; exit 1 }
+          "La ventana rechazó la dirección falsa: bien"
 
       # Dependencias de terceros desde la copia propia (Release
       # "dependencias-2026-10-15" de este repositorio), comprobadas por su huella.
@@ -112,6 +134,7 @@ jobs:
           Expand-Archive vk.zip -DestinationPath vk
           Copy-Item (Get-ChildItem vk -Recurse -Filter vulkan-1.dll | Where-Object FullName -like '*\x64\*').FullName target\release\
           Copy-Item (Get-ChildItem vk -Recurse -Filter VulkanRT-License.txt).FullName target\release\VulkanRT-Licencia.txt
+          Copy-Item ..\LICENSE-EXCEPTION-WEBVIEW2.txt target\release\
 
       # El equipo de GitHub no tiene tarjeta gráfica: la prueba de vídeo puede
       # no funcionar aquí. Se ejecuta para ver hasta dónde llega; la que manda
@@ -167,13 +190,15 @@ jobs:
 
       - name: Huella SHA-256 (para comprobar descargas)
         shell: pwsh
-        run: Get-FileHash target\release\otaconvert-motor.exe, target\release\libmpv-2.dll, target\release\vulkan-1.dll -Algorithm SHA256 | Format-List
+        run: Get-FileHash target\release\otaconvert-motor.exe, target\release\otaconvert-ventana.exe, target\release\libmpv-2.dll, target\release\vulkan-1.dll -Algorithm SHA256 | Format-List
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: Otaconvert-V2-motor
           path: |
             v2/target/release/otaconvert-motor.exe
+            v2/target/release/otaconvert-ventana.exe
+            v2/target/release/LICENSE-EXCEPTION-WEBVIEW2.txt
             v2/target/release/libmpv-2.dll
             v2/target/release/vulkan-1.dll
             v2/target/release/VulkanRT-Licencia.txt

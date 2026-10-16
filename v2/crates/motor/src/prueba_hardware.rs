@@ -176,6 +176,7 @@ pub fn ejecutar(pausa: bool) -> Result<bool, String> {
 
     inf.linea("Otaconvert · Prueba de hardware");
     inf.linea(&format!("Versión {} · {}", crate::VERSION, fecha().replace('_', " ")));
+    inf.linea("Desarrollado por @marcold.ok (Instagram): envíame este informe, sugerencias o errores.");
     inf.linea("");
     println!("Esta prueba revisa la tarjeta de sonido, las pantallas y el vídeo de este equipo.");
     println!("  - Tarda unos 5 minutos.");

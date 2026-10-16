@@ -78,6 +78,8 @@ li{margin:4px 0}
 
 .amor{border-color:var(--accent);background:linear-gradient(0deg,var(--card),var(--card2))}
 .amor .frase{font-size:20px;font-weight:600;margin-top:12px}
+.credito{color:var(--muted);font-size:14px}
+.credito strong{color:var(--accent)}
 
 .estado{display:inline-block;font-size:12px;border-radius:99px;padding:2px 10px;border:1px solid var(--border);color:var(--muted);vertical-align:middle;margin-left:6px;font-weight:400}
 .estado.ya{border-color:var(--ok);color:var(--ok)}
@@ -558,7 +560,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
   <ul>
     <li>Código fuente: <code>github.com/marcoldmusica-cyber/otaconvert</code> (carpeta <code>v2/</code>). Compilación automática en GitHub Actions. Las piezas de terceros se guardan con su huella en la versión publicada <code>dependencias-2026-10-15</code> del mismo repositorio, para que la compilación nunca dependa de que otros las borren.</li>
     <li>Otaconvert V2: GPLv3 o posterior.</li>
-    <li>Ventana: wry (Apache-2.0 o MIT) y tao (Apache-2.0); el cargador de WebView2 de Microsoft (BSD-3-Clause) va dentro del exe. La ventana solo puede mostrar la interfaz del propio motor: no abre otras páginas, ventanas nuevas ni descargas, no pide cámara ni micrófono y no tiene atajos de navegador. Sus datos (caché) se guardan en <code>%LOCALAPPDATA%\Otaconvert\WebView2</code>, o en la carpeta <code>datos</code> junto al programa en la versión portable.</li>
+    <li>Ventana (<code>otaconvert-ventana.exe</code>, un programa aparte del motor): wry (Apache-2.0 o MIT) y tao (Apache-2.0); el cargador de WebView2 de Microsoft (BSD-3-Clause) va dentro de ese exe, con un permiso adicional de la GPLv3 (sección 7) escrito en <code>LICENSE-EXCEPTION-WEBVIEW2.txt</code>. Ese exe no carga libmpv ni otras piezas GPL de terceros. La ventana solo puede mostrar la interfaz del propio motor: no abre otras páginas, ventanas nuevas ni descargas, no pide cámara ni micrófono y no tiene atajos de navegador. Sus datos (caché) se guardan en <code>%LOCALAPPDATA%\Otaconvert\WebView2</code>, o en la carpeta <code>datos</code> junto al programa en la versión portable.</li>
     <li>Terceros: cpal (Apache-2.0), rtrb (MIT o Apache-2.0); mpv/libmpv (GPLv2 o posterior) y FFmpeg (compilación de shinchiro/mpv-winbuild-cmake); cargador de Vulkan (MIT y Apache-2.0, de LunarG); WebView2 de Microsoft (instalador oficial, sin modificar); ASIO SDK de Steinberg (GPLv3) si se compila con ASIO. La versión 1 incluye FFmpeg, CustomTkinter, tkinterdnd2, imageio-ffmpeg y Python (ver <code>THIRD_PARTY.txt</code>).</li>
   </ul>
 </section>
@@ -567,10 +569,11 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
   <h2>Libre y gratuito</h2>
   <p>Otaconvert fue desarrollado por amor al arte. Es software libre y gratuito, con licencia GPLv3: puedes usarlo sin pagar, copiarlo, compartirlo, estudiar cómo está hecho y mejorarlo, siempre que lo que compartas siga siendo libre.</p>
   <p>Si te sirve, compártelo con otros teatros, otros técnicos, otros grupos. Si encuentras un error o tienes una idea, cuéntalo: así mejora para todos.</p>
+  <p class="credito">Desarrollado por <strong>@marcold.ok</strong> (Instagram). Escríbeme para sugerir mejoras, reportar errores o contarme cómo lo usas en tu teatro.</p>
   <p class="frase">Nadie se salva solo.</p>
 </section>
 
-<footer>Otaconvert · Manual de usuario · Versión de borrador del 15/10/2026</footer>
+<footer>Otaconvert · Manual de usuario · Versión de borrador del 16/10/2026 · Desarrollado por @marcold.ok (Instagram): sugerencias y errores, escríbeme</footer>
 
 </main>
 </div>

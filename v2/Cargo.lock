@@ -1721,10 +1721,8 @@ dependencies = [
  "otaconvert-servidor",
  "otaconvert-show",
  "otaconvert-video",
- "tao",
  "windows-sys 0.61.2",
  "winresource",
- "wry",
 ]
 
 [[package]]
@@ -1744,6 +1742,16 @@ version = "0.0.1"
 dependencies = [
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "otaconvert-ventana"
+version = "0.0.1"
+dependencies = [
+ "tao",
+ "windows-sys 0.61.2",
+ "winresource",
+ "wry",
 ]
 
 [[package]]

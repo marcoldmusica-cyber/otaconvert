@@ -99,6 +99,7 @@ fn main() -> ExitCode {
     let r = match args.first().map(String::as_str) {
         Some("--version") => {
             println!("otaconvert-motor {VERSION}");
+            println!("Desarrollado por @marcold.ok (Instagram): sugerencias y errores, escríbeme.");
             Ok(true)
         }
         Some("--listar-salidas") => {
@@ -120,8 +121,6 @@ fn main() -> ExitCode {
             ),
             None => Err("falta el show: --abrir-show <carpeta o archivo .otashow>".into()),
         },
-        // Uso interno: el proceso de la ventana (lee la dirección por la entrada estándar).
-        Some("--ventana") => return ventana_ui::ejecutar(),
         Some("--info-equipo") => {
             equipo::imprimir();
             Ok(true)
