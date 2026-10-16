@@ -12,6 +12,7 @@
 
 pub mod consejos;
 mod detector;
+pub mod limitador;
 mod mezclador;
 mod pista;
 pub mod preparar;
