@@ -11,6 +11,7 @@
 
 pub mod sesion;
 pub mod sonido;
+pub mod texto;
 
 use std::io::{self, Read, Write};
 use std::net::{Ipv4Addr, SocketAddrV4, TcpListener, TcpStream};
@@ -25,8 +26,20 @@ use tungstenite::{Error as ErrorWs, Message};
 
 pub use sesion::Sesion;
 pub use sonido::{Destino, Sonido};
+pub use texto::{Idioma, Texto};
 
-const PAGINA: &str = include_str!("../ui/index.html");
+const PLANTILLA: &str = include_str!("../ui/index.html");
+/// Textos de la interfaz en español e inglés (también los consejos y la
+/// ayuda). Se prueban en `tests/textos.rs`.
+pub const TEXTOS: &str = include_str!("../ui/textos.json");
+
+/// La página con los textos dentro (se arma una vez). `</` se escapa para
+/// que un texto nunca pueda cerrar el `<script>`.
+fn pagina() -> &'static str {
+    static P: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    P.get_or_init(|| PLANTILLA.replace("\"__TEXTOS__\"", &TEXTOS.replace("</", "<\\/")))
+}
+
 const MAX_CONEXIONES: usize = 16;
 const MAX_CABECERAS: usize = 8 * 1024;
 const MAX_MENSAJE: usize = 64 * 1024;
@@ -104,7 +117,7 @@ impl Servidor {
             let tarea = c3.sesion.lock().ok().and_then(|mut s| s.siguiente_a_preparar());
             match tarea {
                 Some((i, ruta, fs)) => {
-                    let r = otaconvert_audio::preparar::preparar(&ruta, fs).map_err(|e| e.to_string());
+                    let r = otaconvert_audio::preparar::preparar(&ruta, fs).map_err(Texto::from);
                     let estado = c3.sesion.lock().ok().map(|mut s| {
                         s.preparado(i, r);
                         s.estado_json()
@@ -223,7 +236,7 @@ fn http(mut stream: TcpStream, ctx: &Contexto) {
                 "Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src ws://127.0.0.1:{}; img-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'\r\n",
                 ctx.puerto
             );
-            responder(&stream, "200 OK", &csp, PAGINA);
+            responder(&stream, "200 OK", &csp, pagina());
         }
         _ => responder(&stream, "403 Forbidden", "", "<p>Abre Otaconvert desde el propio programa.</p>"),
     }
@@ -246,19 +259,23 @@ fn ejecutar(ctx: &Contexto, texto: &str) {
             Some("modo_funcion") => s.cambiar_modo(sesion::Modo::Funcion),
             Some("ir_a") => match indice() {
                 Some(i) => s.ir_a(i),
-                None => s.aviso = Some("Cue no válido.".into()),
+                None => s.aviso = Some(Texto::nuevo("Cue no válido.", "Invalid cue.")),
             },
             Some("editar_cue") => {
                 let forzar = v.get("forzar").and_then(|f| f.as_bool()).unwrap_or(false);
                 let r = match (indice(), v.get("cambios")) {
                     (Some(i), Some(c)) => s.editar_cue(i, c, forzar),
-                    _ => Err("Cambios no válidos.".into()),
+                    _ => Err(Texto::nuevo("Cambios no válidos.", "Invalid changes.")),
                 };
                 if let Err(e) = r {
                     s.aviso = Some(e);
                 }
             }
             Some("cerrar_aviso") => s.aviso = None,
+            Some("idioma") => match v.get("idioma").and_then(|i| i.as_str()).and_then(texto::idioma_de) {
+                Some(i) => s.cambiar_idioma(i),
+                None => s.aviso = Some(Texto::nuevo("Idioma no válido.", "Invalid language.")),
+            },
             Some("go") => {
                 s.go();
             }
@@ -270,12 +287,12 @@ fn ejecutar(ctx: &Contexto, texto: &str) {
             Some("espera_abajo") => s.mover_espera(1),
             Some("guardar") => {
                 if let Err(e) = s.guardar() {
-                    s.aviso = Some(format!("No se pudo guardar: {e}"));
+                    s.aviso = Some(Texto::nuevo(format!("No se pudo guardar: {e}"), format!("Could not save: {e}")));
                 }
             }
             Some("estado") => {}
             _ => {
-                s.aviso = Some("Orden desconocida.".into());
+                s.aviso = Some(Texto::nuevo("Orden desconocida.", "Unknown command."));
             }
         }
         s.estado_json()

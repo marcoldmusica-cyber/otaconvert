@@ -74,7 +74,7 @@ fn go_sin_preparar_no_dispara_y_avisa() {
     let (mut s, f) = abrir(&d, vec![cue("1", "audio/tono.wav")], false);
     assert!(!s.go());
     assert_eq!(s.en_espera, 0);
-    assert!(s.aviso.as_deref().unwrap().contains("preparando"));
+    assert!(s.aviso.as_ref().unwrap().contiene("preparando"));
     assert!(f.recibido.lock().unwrap().is_empty());
 }
 
@@ -155,7 +155,7 @@ fn archivo_que_falta_avisa_pero_la_funcion_sigue() {
     preparar_todo(&mut s);
     assert!(s.estado_json().contains("\"preparacion\":\"error\""));
     assert!(s.go(), "un cue roto no traba la función");
-    assert!(s.aviso.as_deref().unwrap().contains("no sonó"));
+    assert!(s.aviso.as_ref().unwrap().contiene("no sonó"));
     assert_eq!(s.en_espera, 1);
     assert!(f.recibido.lock().unwrap().is_empty());
 }
@@ -168,7 +168,7 @@ fn auriculares_sin_configurar_suena_por_principal() {
     preparar_todo(&mut s);
     s.go();
     assert_eq!(f.recibido.lock().unwrap()[0].0, Destino::Principal);
-    assert!(s.aviso.as_deref().unwrap().contains("Auriculares"));
+    assert!(s.aviso.as_ref().unwrap().contiene("Auriculares"));
 
     let d2 = carpeta_con_audios();
     let (mut s2, f2) = abrir(&d2, vec![c], true);
@@ -267,7 +267,7 @@ fn editar_cue_valida_todo_antes_de_cambiar() {
     preparar_todo(&mut s);
     assert!(s.go());
     let mandados = f.recibido.lock().unwrap().len();
-    assert!(s.editar_cue(0, &serde_json::json!({ "volumen_db": -3 }), false).unwrap_err().contains("sonando"));
+    assert!(s.editar_cue(0, &serde_json::json!({ "volumen_db": -3 }), false).unwrap_err().contiene("sonando"));
     s.editar_cue(0, &serde_json::json!({ "volumen_db": -3 }), true).unwrap();
     assert_eq!(s.show.cues[0].volumen_db, -3.0);
     assert_eq!(f.recibido.lock().unwrap().len(), mandados, "editar no manda nada al sonido");
@@ -291,4 +291,32 @@ fn el_estado_trae_lo_que_dibuja_la_ventana() {
     assert_eq!(son["fundiendo"], true);
     assert_eq!(son["salida"], "Principal");
     assert!((0.0..=1.0).contains(&son["progreso"].as_f64().unwrap()));
+}
+
+#[test]
+fn los_avisos_salen_en_el_idioma_elegido() {
+    use otaconvert_servidor::Idioma;
+    let d = carpeta_con_audios();
+    let (mut s, _f) = abrir(&d, vec![cue("1", "audio/tono.wav"), cue("2", "audio/no-existe.wav")], false);
+    assert!(!s.go()); // sin preparar
+    let e: serde_json::Value = serde_json::from_str(&s.estado_json()).unwrap();
+    assert_eq!(e["idioma"], "es");
+    assert!(e["aviso"].as_str().unwrap().contains("preparando"));
+    s.cambiar_idioma(Idioma::En);
+    let e: serde_json::Value = serde_json::from_str(&s.estado_json()).unwrap();
+    assert_eq!(e["idioma"], "en");
+    assert!(e["aviso"].as_str().unwrap().contains("still being prepared"), "{}", e["aviso"]);
+    // Errores de preparación: el archivo que falta, en inglés.
+    s.mover_espera(1);
+    preparar_todo(&mut s);
+    let e: serde_json::Value = serde_json::from_str(&s.estado_json()).unwrap();
+    assert!(e["cues"][1]["error"].as_str().unwrap().contains("file not found"), "{}", e["cues"][1]["error"]);
+    // Un formato no soportado trae su texto en los dos idiomas.
+    let t: otaconvert_servidor::Texto =
+        otaconvert_audio::preparar::preparar(&dato("tono.opus"), 48_000).map(|_| ()).map_err(otaconvert_servidor::Texto::from).unwrap_err();
+    assert!(t.es.contains("Convertir") && t.en.contains("Convert tab"), "{t:?}");
+    // Editar en Función: el rechazo también sale en inglés.
+    s.cambiar_modo(otaconvert_servidor::sesion::Modo::Funcion);
+    let err = s.editar_cue(0, &serde_json::json!({ "nombre": "x" }), false).unwrap_err();
+    assert!(err.en.contains("Live mode") && err.es.contains("Función"));
 }

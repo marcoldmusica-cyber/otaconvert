@@ -12,6 +12,7 @@ use otaconvert_show::{abrir, guardar, marca_de_tiempo, rutas, ErrorShow, Registr
 use serde_json::json;
 
 use crate::sonido::{Destino, Sonido};
+use crate::texto::{Idioma, Texto};
 
 /// Cuántos cues desde el que está en espera se preparan de antemano.
 pub const PREPARAR_ADELANTE: usize = 3;
@@ -49,14 +50,17 @@ pub struct Sesion {
     pub ultimo_disparado: Option<usize>,
     /// Hay cambios sin guardar.
     pub sucio: bool,
-    pub aviso: Option<String>,
+    /// Aviso para la ventana, en los dos idiomas.
+    pub aviso: Option<Texto>,
+    /// Idioma del programa (lo elige la ventana): avisos y errores salen en él.
+    pub idioma: Idioma,
     pub pausado: bool,
     pub modo: Modo,
     registro: Registro,
     ultimo_go: Option<Instant>,
     sonido: Option<Box<dyn Sonido>>,
     preparados: HashMap<usize, Arc<Pista>>,
-    errores: HashMap<usize, String>,
+    errores: HashMap<usize, Texto>,
     preparando: Option<usize>,
     sonando: Vec<Sonando>,
     siguiente_id: u32,
@@ -81,6 +85,11 @@ pub fn buscar_archivo(ruta: &Path) -> Result<PathBuf, ErrorShow> {
     }
 }
 
+/// Atajo: un mensaje en español y en inglés.
+fn t(es: impl Into<String>, en: impl Into<String>) -> Texto {
+    Texto::nuevo(es, en)
+}
+
 fn db_a_lineal(db: f32) -> f32 {
     10f32.powf(db / 20.0)
 }
@@ -99,6 +108,7 @@ impl Sesion {
             ultimo_disparado: None,
             sucio: false,
             aviso: None,
+            idioma: Idioma::Es,
             pausado: false,
             modo: Modo::Edicion,
             registro,
@@ -152,6 +162,17 @@ impl Sesion {
         format!("Cue {n} «{}»", c.nombre)
     }
 
+    /// Lo mismo que `describir`, en inglés.
+    fn describir_en(&self, i: usize) -> String {
+        let c = &self.show.cues[i];
+        let n = if c.numero.is_empty() { (i + 1).to_string() } else { c.numero.clone() };
+        format!("Cue {n} “{}”", c.nombre)
+    }
+
+    pub fn cambiar_idioma(&mut self, idioma: Idioma) {
+        self.idioma = idioma;
+    }
+
     fn cuadros(&self, ms: u64) -> usize {
         let fs = self.sonido.as_ref().map(|s| s.frecuencia()).unwrap_or(48_000) as u64;
         (ms * fs / 1000) as usize
@@ -161,7 +182,10 @@ impl Sesion {
         let quiere_auriculares = self.show.cues[i].salida == SALIDA_AURICULARES;
         let hay = self.sonido.as_ref().is_some_and(|s| s.tiene_auriculares());
         if quiere_auriculares && !hay {
-            self.aviso = Some(format!("{}: la salida Auriculares no está configurada; suena por Principal.", self.describir(i)));
+            self.aviso = Some(Texto::nuevo(
+                format!("{}: la salida Auriculares no está configurada; suena por Principal.", self.describir(i)),
+                format!("{}: the Headphones output is not set up; it plays through Main.", self.describir_en(i)),
+            ));
             Destino::Principal
         } else if quiere_auriculares {
             Destino::Auriculares
@@ -184,13 +208,16 @@ impl Sesion {
     /// Devuelve `false` si se ignoró.
     pub fn go(&mut self) -> bool {
         if self.show.cues.is_empty() || self.en_espera >= self.show.cues.len() {
-            self.aviso = Some("No hay ningún cue en espera.".into());
+            self.aviso = Some(Texto::nuevo("No hay ningún cue en espera.", "There is no cue on standby."));
             return false;
         }
         let minimo = Duration::from_millis(self.show.ajustes.tiempo_minimo_entre_go_ms as u64);
         if let Some(t) = self.ultimo_go {
             if t.elapsed() < minimo {
-                self.aviso = Some("GO ignorado: llegó demasiado rápido después del anterior (protección contra doble GO).".into());
+                self.aviso = Some(Texto::nuevo(
+                    "GO ignorado: llegó demasiado rápido después del anterior (protección contra doble GO).",
+                    "GO ignored: it came too soon after the previous one (double-GO protection).",
+                ));
                 let d = self.describir(self.en_espera);
                 self.registro.anotar("IGNORADO", &format!("doble GO; seguía en espera {d}"));
                 return false;
@@ -202,17 +229,24 @@ impl Sesion {
         if self.show.cues[i].tipo == TipoCue::Audio && self.sonido.is_some() {
             if let Some(e) = self.errores.get(&i).cloned() {
                 // No se puede sonar, pero la función sigue: se avanza y se avisa.
-                self.aviso = Some(format!("{d} no sonó: {e}"));
-                self.registro.anotar("ERROR", &format!("{d}: {e}"));
+                let den = self.describir_en(i);
+                self.aviso = Some(Texto::nuevo(format!("{d} no sonó: {}", e.es), format!("{den} did not play: {}", e.en)));
+                self.registro.anotar("ERROR", &format!("{d}: {}", e.es));
             } else if let Some(p) = self.preparados.get(&i).cloned() {
                 self.disparar(i, p);
             } else {
-                self.aviso = Some(format!("{d} todavía se está preparando; vuelve a dar GO en un momento."));
+                self.aviso = Some(Texto::nuevo(
+                    format!("{d} todavía se está preparando; vuelve a dar GO en un momento."),
+                    format!("{} is still being prepared; press GO again in a moment.", self.describir_en(i)),
+                ));
                 self.registro.anotar("IGNORADO", &format!("{d} sin preparar"));
                 return false;
             }
         } else if self.show.cues[i].tipo != TipoCue::Audio {
-            self.aviso = Some("Los cues de vídeo e imagen llegan en la etapa 4; se pasa al siguiente.".into());
+            self.aviso = Some(Texto::nuevo(
+                "Los cues de vídeo e imagen llegan en la etapa 4; se pasa al siguiente.",
+                "Video and image cues arrive in stage 4; moving to the next one.",
+            ));
         }
         self.ultimo_go = Some(Instant::now());
         self.registro.anotar("GO", &d);
@@ -244,7 +278,7 @@ impl Sesion {
         };
         let enviado = self.sonido.as_mut().map(|s| s.enviar(destino, comando));
         if let Some(Err(e)) = enviado {
-            self.aviso = Some(format!("No se pudo disparar: {e}"));
+            self.aviso = Some(Texto::nuevo(format!("No se pudo disparar: {e}"), format!("Could not fire the cue: {e}")));
             return;
         }
         let largo = Duration::from_secs_f64(fin.saturating_sub(inicio) as f64 / fs);
@@ -270,7 +304,7 @@ impl Sesion {
     /// En Edición, clic en un cue: queda en espera.
     pub fn ir_a(&mut self, i: usize) {
         if self.modo == Modo::Funcion {
-            self.aviso = Some("En Función no se elige el cue con el ratón: usa ↑ y ↓.".into());
+            self.aviso = Some(Texto::nuevo("En Función no se elige el cue con el ratón: usa ↑ y ↓.", "In Live mode the cue is not chosen with the mouse: use ↑ and ↓."));
             return;
         }
         if i < self.show.cues.len() {
@@ -282,65 +316,84 @@ impl Sesion {
     /// si algo no vale, no se cambia nada y se avisa. Un cue que suena solo
     /// se edita con `forzar` (la ventana lo pide confirmando). Los cambios se
     /// usan desde el próximo GO: lo que ya suena no se toca.
-    pub fn editar_cue(&mut self, i: usize, cambios: &serde_json::Value, forzar: bool) -> Result<(), String> {
+    pub fn editar_cue(&mut self, i: usize, cambios: &serde_json::Value, forzar: bool) -> Result<(), Texto> {
         if self.modo == Modo::Funcion {
-            return Err("En Función no se puede cambiar el show. Pasa a Edición con Tab.".into());
+            return Err(t(
+                "En Función no se puede cambiar el show. Pasa a Edición con Tab.",
+                "The show can't be changed in Live mode. Switch to Edit with Tab.",
+            ));
         }
         let Some(original) = self.show.cues.get(i) else {
-            return Err("Ese cue no existe.".into());
+            return Err(t("Ese cue no existe.", "That cue does not exist."));
         };
         if !forzar && self.sonando.iter().any(|s| s.cue == i) {
-            return Err("Este cue está sonando: páralo o confirma para editarlo.".into());
+            return Err(t(
+                "Este cue está sonando: páralo o confirma para editarlo.",
+                "This cue is playing: stop it or confirm to edit it.",
+            ));
         }
         let Some(campos) = cambios.as_object() else {
-            return Err("Cambios no válidos.".into());
+            return Err(t("Cambios no válidos.", "Invalid changes."));
         };
         let mut c = original.clone();
         for (k, v) in campos {
             match k.as_str() {
                 "nombre" => {
-                    let t = v.as_str().ok_or("El nombre debe ser texto.")?;
-                    if t.chars().count() > MAX_NOMBRE {
-                        return Err(format!("El nombre puede tener hasta {MAX_NOMBRE} letras."));
+                    let s = v.as_str().ok_or_else(|| t("El nombre debe ser texto.", "The name must be text."))?;
+                    if s.chars().count() > MAX_NOMBRE {
+                        return Err(t(
+                            format!("El nombre puede tener hasta {MAX_NOMBRE} letras."),
+                            format!("The name can have up to {MAX_NOMBRE} characters."),
+                        ));
                     }
-                    c.nombre = t.replace(['\r', '\n'], " ");
+                    c.nombre = s.replace(['\r', '\n'], " ");
                 }
                 "nota" => {
-                    let t = v.as_str().ok_or("La nota debe ser texto.")?;
-                    if t.chars().count() > MAX_NOTA {
-                        return Err(format!("La nota puede tener hasta {MAX_NOTA} letras."));
+                    let s = v.as_str().ok_or_else(|| t("La nota debe ser texto.", "The note must be text."))?;
+                    if s.chars().count() > MAX_NOTA {
+                        return Err(t(
+                            format!("La nota puede tener hasta {MAX_NOTA} letras."),
+                            format!("The note can have up to {MAX_NOTA} characters."),
+                        ));
                     }
-                    c.nota = t.to_string();
+                    c.nota = s.to_string();
                 }
                 "volumen_db" => {
-                    let x = v.as_f64().ok_or("El volumen debe ser un número.")? as f32;
+                    let rango = || t("El volumen va de −60 dB a +24 dB.", "Volume goes from −60 dB to +24 dB.");
+                    let x = v.as_f64().ok_or_else(rango)? as f32;
                     if !x.is_finite() || !(-60.0..=24.0).contains(&x) {
-                        return Err("El volumen va de −60 dB a +24 dB.".into());
+                        return Err(rango());
                     }
                     c.volumen_db = x;
                 }
                 "fundido_entrada_ms" | "fundido_salida_ms" => {
-                    let x = v.as_u64().filter(|&x| x <= MAX_FUNDIDO_MS as u64).ok_or("El fundido va de 0 a 600 segundos.")? as u32;
+                    let x = v
+                        .as_u64()
+                        .filter(|&x| x <= MAX_FUNDIDO_MS as u64)
+                        .ok_or_else(|| t("El fundido va de 0 a 600 segundos.", "A fade goes from 0 to 600 seconds."))? as u32;
                     if k == "fundido_entrada_ms" {
                         c.fundido_entrada_ms = x;
                     } else {
                         c.fundido_salida_ms = x;
                     }
                 }
-                "bucle" => c.bucle = v.as_bool().ok_or("Bucle debe ser sí o no.")?,
+                "bucle" => c.bucle = v.as_bool().ok_or_else(|| t("Bucle debe ser sí o no.", "Loop must be yes or no."))?,
                 "salida" => {
-                    let t = v.as_str().ok_or("Salida no válida.")?;
-                    if t != otaconvert_show::SALIDA_PRINCIPAL && t != SALIDA_AURICULARES {
-                        return Err("La salida debe ser Principal o Auriculares.".into());
+                    let s = v.as_str().unwrap_or("");
+                    if s != otaconvert_show::SALIDA_PRINCIPAL && s != SALIDA_AURICULARES {
+                        return Err(t("La salida debe ser Principal o Auriculares.", "The output must be Main or Headphones."));
                     }
-                    c.salida = t.to_string();
+                    c.salida = s.to_string();
                 }
-                _ => return Err(format!("No se puede cambiar «{k}» desde aquí.")),
+                _ => {
+                    return Err(t(format!("No se puede cambiar «{k}» desde aquí."), format!("“{k}” can't be changed from here.")));
+                }
             }
         }
         let mut prueba = self.show.clone();
         prueba.cues[i] = c;
-        otaconvert_show::validar(&prueba).map_err(|e| e.to_string())?;
+        // El detalle de `validar` está en español (viene del archivo del show).
+        otaconvert_show::validar(&prueba).map_err(|e| t(format!("Valor no válido: {e}"), format!("Invalid value: {e}")))?;
         if prueba.cues[i] != self.show.cues[i] {
             self.show = prueba;
             self.sucio = true;
@@ -384,7 +437,7 @@ impl Sesion {
         // El último que todavía no se está fundiendo: un segundo Mayús+F
         // funde el anterior.
         let Some(s) = self.sonando.iter().rev().find(|s| !s.fundiendo) else {
-            self.aviso = Some("No hay nada sonando para fundir.".into());
+            self.aviso = Some(Texto::nuevo("No hay nada sonando para fundir.", "Nothing is playing to fade out."));
             return;
         };
         let (id, destino, cue) = (s.id, s.destino, s.cue);
@@ -432,7 +485,7 @@ impl Sesion {
     pub fn guardar_si_hace_falta(&mut self) {
         if self.sucio {
             if let Err(e) = self.guardar() {
-                self.aviso = Some(format!("No se pudo guardar solo: {e}"));
+                self.aviso = Some(Texto::nuevo(format!("No se pudo guardar solo: {e}"), format!("Autosave failed: {e}")));
                 self.registro.anotar("ERROR", &e.to_string());
             }
         }
@@ -477,14 +530,15 @@ impl Sesion {
                     self.preparando = Some(i);
                     return Some((i, r, fs));
                 }
-                Ok(r) => {
-                    let e = format!("no se encontró el archivo {}", self.show.cues[i].archivo);
-                    let _ = r;
-                    self.registro.anotar("ERROR", &format!("{}: {e}", self.describir(i)));
+                Ok(_) => {
+                    let a = &self.show.cues[i].archivo;
+                    let e = Texto::nuevo(format!("no se encontró el archivo {a}"), format!("file not found: {a}"));
+                    self.registro.anotar("ERROR", &format!("{}: {}", self.describir(i), e.es));
                     self.errores.insert(i, e);
                 }
                 Err(e) => {
-                    self.errores.insert(i, e.to_string());
+                    // Ruta no válida (el detalle viene del archivo del show, en español).
+                    self.errores.insert(i, Texto::nuevo(e.to_string(), format!("invalid file path: {e}")));
                 }
             }
         }
@@ -492,7 +546,7 @@ impl Sesion {
     }
 
     /// Guarda el resultado de preparar el cue `i`.
-    pub fn preparado(&mut self, i: usize, resultado: Result<otaconvert_audio::preparar::Preparado, String>) {
+    pub fn preparado<E: Into<Texto>>(&mut self, i: usize, resultado: Result<otaconvert_audio::preparar::Preparado, E>) {
         if self.preparando == Some(i) {
             self.preparando = None;
         }
@@ -505,8 +559,9 @@ impl Sesion {
                 self.preparados.insert(i, Arc::new(p.pista));
             }
             Err(e) => {
+                let e: Texto = e.into();
                 let d = self.describir(i);
-                self.registro.anotar("ERROR", &format!("{d}: {e}"));
+                self.registro.anotar("ERROR", &format!("{d}: {}", e.es));
                 self.errores.insert(i, e);
             }
         }
@@ -556,7 +611,7 @@ impl Sesion {
                     "fundido_salida_ms": c.fundido_salida_ms,
                     "duracion_s": duracion_s,
                     "preparacion": preparacion,
-                    "error": self.errores.get(&i),
+                    "error": self.errores.get(&i).map(|e| e.en_idioma(self.idioma)),
                 })
             })
             .collect();
@@ -586,7 +641,8 @@ impl Sesion {
             "en_espera": self.en_espera,
             "ultimo": self.ultimo_disparado,
             "sucio": self.sucio,
-            "aviso": self.aviso,
+            "aviso": self.aviso.as_ref().map(|a| a.en_idioma(self.idioma)),
+            "idioma": if self.idioma == Idioma::En { "en" } else { "es" },
             "pausado": self.pausado,
             "sonando": sonando,
             "con_sonido": self.sonido.is_some(),

@@ -130,10 +130,12 @@ pub fn abrir(ruta: &Path, interfaz: Interfaz, salida: Option<&str>, auriculares:
             if n > vistos[k] {
                 vistos[k] = n;
                 let texto = format!("¡Atención! La salida {nombre} dio un error: puede haberse desconectado la tarjeta de sonido. Revisa el cable.");
+                let nombre_en = if *nombre == "Auriculares" { "Headphones" } else { "Main" };
+                let texto_en = format!("Warning! The {nombre_en} output reported an error: the sound card may have been disconnected. Check the cable.");
                 println!("{texto}");
                 if let Ok(mut s) = sesion.lock() {
                     s.anotar_error(&texto);
-                    s.aviso = Some(texto);
+                    s.aviso = Some(otaconvert_servidor::Texto::nuevo(texto, texto_en));
                 }
             }
         }
@@ -160,11 +162,11 @@ pub fn abrir(ruta: &Path, interfaz: Interfaz, salida: Option<&str>, auriculares:
 
 /// La ventana propia no se pudo usar: se avisa (consola, ventana y registro)
 /// y se abre la misma interfaz en el navegador. El sonido no se toca.
-fn usar_navegador(sesion: &Arc<Mutex<Sesion>>, url: &str, motivo: &str) {
-    println!("{motivo}");
+fn usar_navegador(sesion: &Arc<Mutex<Sesion>>, url: &str, motivo: &otaconvert_servidor::Texto) {
+    println!("{}", motivo.es);
     if let Ok(mut s) = sesion.lock() {
-        s.anotar("AVISO", motivo);
-        s.aviso = Some(motivo.to_string());
+        s.anotar("AVISO", &motivo.es);
+        s.aviso = Some(motivo.clone());
     }
     abrir_navegador(url);
 }

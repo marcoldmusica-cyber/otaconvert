@@ -35,6 +35,12 @@ pub enum ErrorPreparar {
     SinAudio,
     Danado(String),
     DemasiadoLargo(u64),
+    /// Cambia de canales o de frecuencia a mitad del archivo.
+    CambiaAMitad,
+    /// Más de `ERRORES_TOLERADOS` partes ilegibles.
+    DemasiadasPartesIlegibles,
+    /// No se pudo adaptar desde esta frecuencia (Hz) a la de la tarjeta.
+    NoSePuedeAdaptar(u32, String),
 }
 
 impl std::fmt::Display for ErrorPreparar {
@@ -48,11 +54,41 @@ impl std::fmt::Display for ErrorPreparar {
             Self::SinAudio => write!(f, "el archivo no tiene sonido"),
             Self::Danado(e) => write!(f, "el audio está dañado: {e}"),
             Self::DemasiadoLargo(s) => write!(f, "el audio dura {} minutos; el máximo es {} minutos", s / 60, DURACION_MAXIMA_S / 60),
+            Self::CambiaAMitad => write!(f, "el audio está dañado: cambia de canales o de frecuencia a mitad del archivo"),
+            Self::DemasiadasPartesIlegibles => write!(f, "el audio está dañado: más de {ERRORES_TOLERADOS} partes ilegibles"),
+            Self::NoSePuedeAdaptar(hz, e) => write!(
+                f,
+                "formato de audio no soportado (no se puede convertir de {hz} Hz: {e}). Conviértelo a WAV, FLAC o MP3 en la pestaña Convertir"
+            ),
         }
     }
 }
 
 impl std::error::Error for ErrorPreparar {}
+
+impl ErrorPreparar {
+    /// El mensaje en el idioma del programa (`Display` da el español).
+    /// El detalle técnico entre paréntesis viene de la librería o de Windows.
+    pub fn texto(&self, idioma: crate::consejos::Idioma) -> String {
+        match idioma {
+            crate::consejos::Idioma::Es => self.to_string(),
+            crate::consejos::Idioma::En => match self {
+                Self::NoSePudoAbrir(e) => format!("could not open the audio: {e}"),
+                Self::FormatoNoSoportado(e) => {
+                    format!("unsupported audio format ({e}). Convert it to WAV, FLAC or MP3 in the Convert tab")
+                }
+                Self::SinAudio => "the file has no sound".into(),
+                Self::Danado(e) => format!("the audio is damaged: {e}"),
+                Self::DemasiadoLargo(s) => format!("the audio lasts {} minutes; the maximum is {} minutes", s / 60, DURACION_MAXIMA_S / 60),
+                Self::CambiaAMitad => "the audio is damaged: it changes channels or sample rate mid-file".into(),
+                Self::DemasiadasPartesIlegibles => format!("the audio is damaged: more than {ERRORES_TOLERADOS} unreadable parts"),
+                Self::NoSePuedeAdaptar(hz, e) => format!(
+                    "unsupported audio format (cannot convert from {hz} Hz: {e}). Convert it to WAV, FLAC or MP3 in the Convert tab"
+                ),
+            },
+        }
+    }
+}
 
 /// Un audio listo para sonar.
 #[derive(Debug)]
@@ -118,7 +154,7 @@ fn decodificar(ruta: &Path) -> Result<(Vec<f32>, usize, u32, usize), ErrorPrepar
                     canales = c;
                     frecuencia = f;
                 } else if c != canales || f != frecuencia {
-                    return Err(ErrorPreparar::Danado("cambia de canales o de frecuencia a mitad del archivo".into()));
+                    return Err(ErrorPreparar::CambiaAMitad);
                 }
                 tmp.resize(buf.samples_interleaved(), 0.0);
                 buf.copy_to_slice_interleaved(&mut tmp[..]);
@@ -130,7 +166,7 @@ fn decodificar(ruta: &Path) -> Result<(Vec<f32>, usize, u32, usize), ErrorPrepar
             Err(ErrorSym::DecodeError(_)) => {
                 danados += 1;
                 if danados > ERRORES_TOLERADOS {
-                    return Err(ErrorPreparar::Danado(format!("más de {ERRORES_TOLERADOS} partes ilegibles")));
+                    return Err(ErrorPreparar::DemasiadasPartesIlegibles);
                 }
             }
             Err(e) => return Err(ErrorPreparar::Danado(e.to_string())),
@@ -167,7 +203,7 @@ pub fn preparar(ruta: &Path, frecuencia_salida: u32) -> Result<Preparado, ErrorP
         let entrada = InterleavedOwned::new_from(muestras, canales, cuadros)
             .map_err(|e| ErrorPreparar::Danado(e.to_string()))?;
         let mut r = Fft::<f32>::new(frecuencia_original as usize, frecuencia_salida as usize, 1024, canales, FixedSync::Both)
-            .map_err(|e| ErrorPreparar::FormatoNoSoportado(format!("no se puede convertir de {frecuencia_original} Hz: {e}")))?;
+            .map_err(|e| ErrorPreparar::NoSePuedeAdaptar(frecuencia_original, e.to_string()))?;
         let salida = r.process_all(&entrada, cuadros, None).map_err(|e| ErrorPreparar::Danado(e.to_string()))?;
         let n = salida.frames();
         muestras = salida.take_data();

@@ -4,9 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Otaconvert</title>
-<!-- Interfaz de la etapa 3B: el boceto aprobado (v2/diseno/boceto-pantalla-principal.html)
-     conectado al motor por el canal seguro. Lo que todavía no funciona aparece en gris
-     con "Próximamente". Los textos del show se ponen siempre con textContent: nunca como HTML. -->
+<!-- Interfaz (etapas 3B y 3C): el boceto aprobado (v2/diseno/boceto-pantalla-principal.html)
+     conectado al motor por el canal seguro. Todos los textos vienen de ui/textos.json
+     (español e inglés, probados en tests/textos.rs): aquí se usan con la función T,
+     y los atributos data-t, data-help (Modo Ayuda) y data-consejo (consejos).
+     Lo que todavía no funciona aparece en gris con "Próximamente". Los textos del show
+     se ponen siempre con textContent: nunca como HTML. -->
 <style>
 :root{
   color-scheme:dark;
@@ -198,117 +201,174 @@ fieldset:disabled{opacity:.45}
   .row .out{display:none}
   .spacer{display:none}
 }
+
+/* Etapa 3C: consejos, Modo Ayuda, Primeros pasos */
+.q{display:inline-grid;place-items:center;width:18px;height:18px;margin-left:6px;border-radius:50%;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-size:11px;font-weight:700;padding:0;vertical-align:middle;line-height:1}
+.q:hover,.q[aria-expanded="true"]{border-color:var(--accent);color:var(--accent)}
+.sin-consejos .q{display:none}
+.field label{display:flex;align-items:center}
+.globo{position:fixed;z-index:50;width:min(340px,calc(100% - 32px));background:var(--card2);border:1px solid var(--accent);border-radius:14px;padding:12px 14px;box-shadow:0 12px 40px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:6px;font-size:13px;pointer-events:none}
+.globo h3{margin:0;font-size:14px;font-weight:600}
+.globo p{margin:0;color:var(--text)}
+.globo .k{color:var(--accent);font-weight:600;font-size:12px;margin-top:2px}
+.globo .ej{color:var(--muted);font-style:italic}
+.helpbar{display:none;align-items:center;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;background:color-mix(in srgb,var(--accent) 14%,var(--card));border:1px solid var(--accent);border-radius:14px;padding:10px 14px}
+.helpbar p{margin:0;font-size:15px}
+.helping .helpbar{display:flex}
+.helping [data-help]{outline:2px dashed color-mix(in srgb,var(--accent) 70%,transparent);outline-offset:3px;cursor:help}
+.helping [data-help]:hover{outline-style:solid}
+.helping [data-help] *{cursor:help}
+.burbuja{position:fixed;z-index:45;width:min(360px,calc(100% - 32px));background:var(--card2);border:1px solid var(--accent);border-radius:16px;padding:14px 16px;box-shadow:0 12px 40px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:8px}
+.burbuja h3{margin:0;font-size:16px;font-weight:600}
+.burbuja p{margin:0;font-size:15px;line-height:1.5}
+.burbuja .ok,.dlg .nav button{background:var(--accent);color:var(--on-accent);border:0;border-radius:10px;padding:6px 14px;font-weight:600;align-self:flex-end}
+.dlg .nav{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.dlg .nav .atras{background:var(--card);color:var(--text);border:1px solid var(--border)}
+.dlg .nav span{color:var(--dim);font-size:12px}
+.menu .q{margin-left:auto}
 </style>
 </head>
 <body>
 <div class="app edicion" id="app">
-  <nav class="menubar" role="menubar">
+  <nav class="menubar" role="menubar" data-help="menubar">
     <div class="mb">
-      <button aria-haspopup="true" aria-expanded="false" data-menu>Archivo</button>
+      <button aria-haspopup="true" aria-expanded="false" data-menu data-t="archivo"></button>
       <div class="menu" role="menu" hidden>
-        <button role="menuitem" disabled>Nuevo show <span class="pronto">Próximamente</span></button>
-        <button role="menuitem" disabled>Abrir… <span class="pronto">Próximamente</span></button>
-        <button role="menuitem" disabled>Abrir reciente <span class="pronto">Próximamente</span></button>
+        <button role="menuitem" disabled><span data-t="nuevo_show"></span> <span class="pronto" data-t="proximamente"></span></button>
+        <button role="menuitem" disabled><span data-t="abrir"></span> <span class="pronto" data-t="proximamente"></span></button>
+        <button role="menuitem" disabled><span data-t="abrir_reciente"></span> <span class="pronto" data-t="proximamente"></span></button>
         <div class="sep"></div>
-        <button role="menuitem" data-orden="guardar">Guardar <kbd>Ctrl S</kbd></button>
-        <button role="menuitem" disabled>Guardar como… <span class="pronto">Próximamente</span></button>
-        <button role="menuitem" disabled>Reunir medios… <span class="pronto">Próximamente</span></button>
+        <button role="menuitem" data-orden="guardar"><span data-t="guardar"></span> <kbd>Ctrl S</kbd></button>
+        <button role="menuitem" disabled><span data-t="guardar_como"></span> <span class="pronto" data-t="proximamente"></span></button>
+        <button role="menuitem" disabled><span data-t="reunir_medios"></span> <span class="pronto" data-t="proximamente"></span></button>
       </div>
     </div>
     <div class="mb">
-      <button aria-haspopup="true" aria-expanded="false" data-menu>Edición</button>
+      <button aria-haspopup="true" aria-expanded="false" data-menu data-t="edicion_menu"></button>
       <div class="menu" role="menu" hidden>
-        <button role="menuitem" disabled>Deshacer <span class="pronto">Próximamente</span></button>
-        <button role="menuitem" disabled>Rehacer <span class="pronto">Próximamente</span></button>
+        <button role="menuitem" disabled><span data-t="deshacer"></span> <span class="pronto" data-t="proximamente"></span></button>
+        <button role="menuitem" disabled><span data-t="rehacer"></span> <span class="pronto" data-t="proximamente"></span></button>
         <div class="sep"></div>
-        <button role="menuitem" disabled>Copiar <span class="pronto">Próximamente</span></button>
-        <button role="menuitem" disabled>Pegar <span class="pronto">Próximamente</span></button>
-        <button role="menuitem" disabled>Eliminar cue <span class="pronto">Próximamente</span></button>
+        <button role="menuitem" disabled><span data-t="copiar"></span> <span class="pronto" data-t="proximamente"></span></button>
+        <button role="menuitem" disabled><span data-t="pegar"></span> <span class="pronto" data-t="proximamente"></span></button>
+        <button role="menuitem" disabled><span data-t="eliminar_cue"></span> <span class="pronto" data-t="proximamente"></span></button>
         <div class="sep"></div>
-        <button role="menuitem" disabled>Ajustes del show… <span class="pronto">Próximamente</span></button>
+        <button role="menuitem" disabled><span data-t="ajustes_show"></span> <span class="pronto" data-t="proximamente"></span></button>
       </div>
     </div>
     <div class="mb">
-      <button aria-haspopup="true" aria-expanded="false" data-menu>Vista</button>
+      <button aria-haspopup="true" aria-expanded="false" data-menu data-t="vista"></button>
       <div class="menu" role="menu" hidden>
-        <button role="menuitem" disabled>Personalizar… <span class="pronto">Próximamente</span></button>
+        <button role="menuitem" disabled><span data-t="personalizar"></span> <span class="pronto" data-t="proximamente"></span></button>
         <div class="sep"></div>
-        <button role="menuitemcheckbox" data-tema="noche" aria-checked="false">Modo noche</button>
-        <button role="menuitemcheckbox" data-tema="dia" aria-checked="false">Modo día (al aire libre)</button>
-        <button role="menuitemcheckbox" data-tema="contraste" aria-checked="false">Alto contraste</button>
+        <button role="menuitemcheckbox" data-tema="noche" data-consejo="modo_noche" aria-checked="false"><span data-t="modo_noche"></span><span class="q" aria-hidden="true">?</span></button>
+        <button role="menuitemcheckbox" data-tema="dia" data-consejo="modo_dia" aria-checked="false"><span data-t="modo_dia"></span><span class="q" aria-hidden="true">?</span></button>
+        <button role="menuitemcheckbox" data-tema="contraste" data-consejo="alto_contraste" aria-checked="false"><span data-t="alto_contraste"></span><span class="q" aria-hidden="true">?</span></button>
         <div class="sep"></div>
-        <div class="lbl">Idioma</div>
-        <button role="menuitemradio" aria-checked="true" disabled>Español</button>
-        <button role="menuitemradio" disabled>English <span class="pronto">Próximamente</span></button>
+        <div class="lbl" data-t="idioma"></div>
+        <button role="menuitemradio" data-idioma="es" aria-checked="true">Español</button>
+        <button role="menuitemradio" data-idioma="en" aria-checked="false">English</button>
         <div class="sep"></div>
-        <button role="menuitem" data-accion="restaurar">Restaurar vista</button>
+        <button role="menuitem" data-accion="restaurar" data-t="restaurar_vista"></button>
       </div>
     </div>
     <div class="mb">
-      <button aria-haspopup="true" aria-expanded="false" data-menu>Ayuda</button>
+      <button aria-haspopup="true" aria-expanded="false" data-menu data-t="ayuda"></button>
       <div class="menu" role="menu" hidden>
-        <button role="menuitem" disabled>Modo Ayuda <span class="pronto">Próximamente</span></button>
-        <button role="menuitem" disabled>Primeros pasos <span class="pronto">Próximamente</span></button>
-        <button role="menuitemcheckbox" aria-checked="true" disabled>Mostrar consejos</button>
+        <button role="menuitemcheckbox" data-accion="modo_ayuda" aria-checked="false"><span data-t="modo_ayuda"></span> <kbd>H</kbd></button>
+        <button role="menuitem" data-accion="pasos" data-t="primeros_pasos"></button>
+        <!-- Esta casilla nunca se oculta: siempre se pueden volver a encender los consejos. -->
+        <button role="menuitemcheckbox" data-accion="consejos" data-consejo="mostrar_consejos" aria-checked="true"><span data-t="mostrar_consejos"></span></button>
         <div class="sep"></div>
-        <button role="menuitem" data-accion="atajos">Atajos de teclado</button>
+        <button role="menuitem" data-accion="atajos" data-t="atajos"></button>
         <div class="sep"></div>
-        <button role="menuitem" data-accion="acerca">Acerca de Otaconvert</button>
+        <button role="menuitem" data-accion="acerca" data-t="acerca"></button>
       </div>
     </div>
   </nav>
+
+  <div class="helpbar" role="status"><p data-t="ayuda_barra"></p><button class="btn" id="salirAyuda" data-t="salir_ayuda"></button></div>
 
   <header class="top" id="top">
     <div class="brand">
       <div class="bars" aria-hidden="true"><i style="--h:.38;--d:0"></i><i style="--h:.72;--d:1"></i><i style="--h:1;--d:2"></i><i style="--h:.58;--d:3"></i><i style="--h:.84;--d:4"></i><i style="--h:.46;--d:5"></i></div>
       <div class="show-name"><strong id="nombre">Otaconvert</strong><span id="subtitulo"></span></div>
     </div>
-    <div class="tabs" role="tablist">
-      <button role="tab" aria-selected="true">Show</button>
-      <button role="tab" aria-selected="false" disabled title="Próximamente">Convertir</button>
+    <div class="tabs" role="tablist" data-help="pestanas">
+      <button role="tab" aria-selected="true" data-t="pestana_show"></button>
+      <button role="tab" aria-selected="false" disabled data-t="pestana_convertir" data-t-title="proximamente"></button>
     </div>
     <div class="spacer"></div>
-    <div class="modes">
-      <div class="seg" role="group" aria-label="Modo">
-        <button id="mEdicion" aria-pressed="true">Edición</button>
-        <button id="mFuncion" aria-pressed="false">Función</button>
+    <div class="modes" data-help="modos">
+      <div class="seg" role="group" id="segModo">
+        <button id="mEdicion" aria-pressed="true" data-t="edicion"></button>
+        <button id="mFuncion" aria-pressed="false" data-t="funcion"></button>
       </div>
       <kbd>Tab</kbd>
     </div>
-    <div class="chip" id="conexion"><span class="dot"></span><span id="conexion-texto">Conectando…</span></div>
-    <div class="clock num" id="reloj">00:00:00</div>
+    <div class="chip" id="conexion" data-help="conexion"><span class="dot"></span><span id="conexion-texto"></span></div>
+    <div class="clock num" id="reloj" data-help="reloj">00:00:00</div>
   </header>
 
-  <div class="aviso" id="aviso" role="status" hidden><p id="aviso-texto"></p><button id="aviso-cerrar" aria-label="Cerrar aviso">✕</button></div>
+  <div class="aviso" id="aviso" role="status" data-help="aviso" hidden><p id="aviso-texto"></p><button id="aviso-cerrar">✕</button></div>
 
   <main class="body">
-    <section class="panel">
-      <div class="panel-h"><strong>Cues</strong><span id="info" class="num"></span></div>
-      <div class="list" id="lista" aria-label="Lista de cues"></div>
+    <section class="panel" data-help="lista">
+      <div class="panel-h"><strong data-t="cues"></strong><span id="info" class="num"></span></div>
+      <div class="list" id="lista"></div>
     </section>
-    <section class="panel" id="lado"></section>
+    <section class="panel" id="lado" data-help="lado_edicion"></section>
   </main>
 
   <footer class="transport">
-    <button class="go" id="go">GO <small id="goNext"></small></button>
+    <button class="go" id="go" data-help="go">GO <small id="goNext"></small></button>
     <div class="side-btns">
-      <button class="tb" id="pausa" aria-pressed="false"><span>Pausa</span><kbd>P</kbd></button>
-      <button class="tb" id="fundir"><span>Fundir todo</span><kbd>F</kbd></button>
-      <button class="tb panic" id="parar"><span>Parar todo</span><kbd>Esc</kbd></button>
+      <button class="tb" id="pausa" aria-pressed="false" data-help="pausa"><span data-t="pausa"></span><kbd>P</kbd></button>
+      <button class="tb" id="fundir" data-help="fundir"><span data-t="fundir_todo"></span><kbd>F</kbd></button>
+      <button class="tb panic" id="parar" data-help="parar"><span data-t="parar_todo"></span><kbd>Esc</kbd></button>
     </div>
   </footer>
-  <div class="credito" title="Escríbeme para sugerir mejoras o reportar errores">Desarrollado por @marcold.ok · sugerencias y errores por Instagram</div>
+  <div class="credito" data-t="credito" data-t-title="credito_titulo"></div>
 </div>
 
 <script>
 (function () {
   "use strict";
+  // Textos en español e inglés: los pone el motor al servir la página (ui/textos.json).
+  var TEXTOS = "__TEXTOS__";
   var token = new URLSearchParams(location.search).get("t") || "";
   var ws = null, abierto = false, e = null;
-  // Estado solo de esta ventana.
   var desbloqueado = null;   // cue que se puede editar aunque suene
   var ladoClave = "";        // qué muestra el panel lateral (para no redibujar mientras se escribe)
   var $ = function (id) { return document.getElementById(id); };
+
+  // ---- Preferencias de esta ventana (pasarán a los perfiles de operador) ----
+  function leer(k, def) { try { var v = localStorage.getItem(k); return v === null ? def : v; } catch (x) { return def; } }
+  function escribir(k, v) { try { localStorage.setItem(k, v); } catch (x) {} }
+  var idioma = leer("ota-idioma", "es") === "en" ? "en" : "es";
+  var consejos = leer("ota-consejos", "si") !== "no";
+  var tema = leer("ota-tema", "");
+
+  // ---- Textos ----
+  function T(k, vars) {
+    var s = (TEXTOS[idioma] && TEXTOS[idioma].ui[k]) || (TEXTOS.es.ui[k]) || k;
+    if (vars) for (var v in vars) s = s.split("{" + v + "}").join(vars[v]);
+    return s;
+  }
+  function ayudaDe(k) { return TEXTOS[idioma].ayuda[k]; }
+  function aplicarTextos() {
+    document.documentElement.lang = idioma;
+    document.querySelectorAll("[data-t]").forEach(function (x) { x.textContent = T(x.dataset.t); });
+    document.querySelectorAll("[data-t-title]").forEach(function (x) { x.title = T(x.dataset.tTitle); });
+    $("segModo").setAttribute("aria-label", T("modo_grupo"));
+    $("lista").setAttribute("aria-label", T("lista_cues"));
+    $("aviso-cerrar").setAttribute("aria-label", T("cerrar_aviso"));
+    document.querySelectorAll("[data-idioma]").forEach(function (b) { b.setAttribute("aria-checked", String(b.dataset.idioma === idioma)); });
+    if (!abierto) avisoConexion(T("conectando"), "");
+    else avisoConexion(T("conectado"), "on");
+    ladoClave = "";
+    if (e) dibujar();
+  }
 
   // ---- Ayudantes para crear elementos sin HTML ----
   function el(tag, cls, texto) {
@@ -329,7 +389,9 @@ fieldset:disabled{opacity:.45}
     return s;
   }
   function mmss(s) { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
-  var TIPO = { audio: "Audio", video: "Vídeo", imagen: "Imagen" };
+  function tipoTexto(t) { return T({ audio: "audio", video: "video", imagen: "imagen" }[t] || "audio"); }
+  function salidaTexto(s) { return s === "Auriculares" ? T("auriculares") : T("principal"); }
+  function prepTexto(p) { return { listo: T("listo"), preparando: T("preparando"), error: T("no_reproducible") }[p] || ""; }
 
   function mandar(orden, extra) {
     if (!abierto) return;
@@ -347,20 +409,20 @@ fieldset:disabled{opacity:.45}
 
   function dibujar() {
     var funcion = e.modo === "funcion";
-    var app = $("app");
-    app.classList.toggle("edicion", !funcion);
+    $("app").classList.toggle("edicion", !funcion);
     $("mEdicion").setAttribute("aria-pressed", String(!funcion));
     $("mFuncion").setAttribute("aria-pressed", String(funcion));
     $("nombre").textContent = e.show || "Otaconvert";
     document.title = (e.show ? e.show + " · " : "") + "Otaconvert";
-    $("subtitulo").textContent = e.cues.length + " cues" + (e.sucio ? " · cambios sin guardar" : " · guardado");
+    $("subtitulo").textContent = T("n_cues", { n: e.cues.length }) + " · " + (e.sucio ? T("sin_guardar") : T("guardado"));
     $("top").classList.toggle("busy", (e.sonando || []).length > 0 && !e.pausado);
     $("aviso").hidden = !e.aviso;
     $("aviso-texto").textContent = e.aviso || "";
     $("pausa").setAttribute("aria-pressed", String(!!e.pausado));
     var nx = e.cues[e.en_espera];
-    $("goNext").textContent = nx ? nx.numero + " · " + nx.nombre : "Fin de la lista";
-    if (!e.con_sonido) avisoConexion("Sin salida de sonido", "warn");
+    $("goNext").textContent = nx ? nx.numero + " · " + nx.nombre : T("fin_lista");
+    if (!e.con_sonido) avisoConexion(T("sin_sonido"), "warn");
+    $("lado").dataset.help = funcion ? "lado_funcion" : "lado_edicion";
     dibujarLista();
     dibujarLado(funcion);
   }
@@ -369,8 +431,8 @@ fieldset:disabled{opacity:.45}
     var lista = $("lista"), arriba = lista.scrollTop;
     var son = sonandoPorCue();
     lista.textContent = "";
-    $("info").textContent = e.cues.length + " cues · " + (e.sonando || []).length + " sonando";
-    if (!e.cues.length) { lista.appendChild(el("div", "vacio", "Este show todavía no tiene cues.")); return; }
+    $("info").textContent = T("n_cues", { n: e.cues.length }) + " · " + T("n_sonando", { n: (e.sonando || []).length });
+    if (!e.cues.length) { lista.appendChild(el("div", "vacio", T("vacio"))); return; }
     var funcion = e.modo === "funcion";
     e.cues.forEach(function (c, i) {
       var s = son[i];
@@ -381,17 +443,17 @@ fieldset:disabled{opacity:.45}
       f.appendChild(icono(c.tipo));
       var nm = el("span", "nm"), linea = el("div");
       linea.appendChild(document.createTextNode(c.nombre));
-      if (c.bucle) linea.appendChild(el("span", "tag", "bucle"));
+      if (c.bucle) linea.appendChild(el("span", "tag", T("bucle")));
       if (c.preparacion) {
-        var pr = el("span", "prep " + c.preparacion, { listo: "Listo", preparando: "Preparando…", error: "No se puede reproducir" }[c.preparacion] || "");
+        var pr = el("span", "prep " + c.preparacion, prepTexto(c.preparacion));
         if (c.error) pr.title = c.error;
         linea.appendChild(pr);
       }
-      if (s && !funcion && desbloqueado !== i) linea.appendChild(el("span", "lock", "sonando"));
+      if (s && !funcion && desbloqueado !== i) linea.appendChild(el("span", "lock", T("sonando_tag")));
       nm.appendChild(linea);
       nm.appendChild(el("small", "", c.nota || c.archivo));
       f.appendChild(nm);
-      f.appendChild(el("span", "out", c.tipo === "audio" ? c.salida : "Proyector"));
+      f.appendChild(el("span", "out", c.tipo === "audio" ? salidaTexto(c.salida) : T("proyector")));
       f.appendChild(el("span", "du num", c.tipo === "imagen" ? "—" : (c.duracion_s != null ? mmss(c.duracion_s) : "")));
       if (s) { var p = el("span", "prog"), b = el("i"); b.style.width = (s.progreso * 100) + "%"; p.appendChild(b); f.appendChild(p); }
       lista.appendChild(f);
@@ -401,119 +463,136 @@ fieldset:disabled{opacity:.45}
     if (sb) sb.scrollIntoView({ block: "nearest" });
   }
 
+  // Botoncito "?" con el consejo de una opción (regla de interfaz de CLAUDE.md).
+  function botonConsejo(k) {
+    var b = el("button", "q", "?");
+    b.type = "button";
+    b.dataset.consejo = k;
+    b.setAttribute("aria-label", T("consejo_boton"));
+    b.setAttribute("aria-expanded", "false");
+    return b;
+  }
+
   // Panel lateral. En Edición: el cue en espera, editable. En Función: lo que suena y lo que viene.
   function dibujarLado(funcion) {
     var lado = $("lado");
     if (funcion) { ladoClave = ""; dibujarEnVivo(lado); return; }
     var i = e.en_espera, c = e.cues[i];
     var suena = !!sonandoPorCue()[i];
-    var clave = JSON.stringify([i, c, suena, desbloqueado]);
+    var clave = JSON.stringify([i, c, suena, desbloqueado, idioma, consejos]);
     // No se redibuja mientras se escribe en el panel: se perdería lo escrito.
     if (clave === ladoClave || lado.contains(document.activeElement) && document.activeElement.matches("input[type=text],textarea")) return;
     ladoClave = clave;
     lado.textContent = "";
     var h = el("div", "panel-h");
     if (!c) {
-      h.appendChild(el("strong", "", "Fin de la lista"));
+      h.appendChild(el("strong", "", T("fin_lista")));
       lado.appendChild(h);
-      var v = el("div", "props"); v.appendChild(el("p", "empty", "No hay ningún cue en espera. Elige uno en la lista.")); lado.appendChild(v);
+      var v = el("div", "props"); v.appendChild(el("p", "empty", T("sin_espera"))); lado.appendChild(v);
       return;
     }
-    h.appendChild(el("strong", "", "Cue " + c.numero + " · " + (TIPO[c.tipo] || "")));
-    h.appendChild(el("span", "", suena ? "Sonando" : { listo: "Preparado en memoria", preparando: "Preparando…", error: "No se puede reproducir" }[c.preparacion] || ""));
+    h.appendChild(el("strong", "", T("cue_tipo", { n: c.numero, tipo: tipoTexto(c.tipo) })));
+    h.appendChild(el("span", "", suena ? T("sonando") : c.preparacion === "listo" ? T("preparado_memoria") : prepTexto(c.preparacion)));
     lado.appendChild(h);
     var props = el("div", "props");
     var bloqueado = suena && desbloqueado !== i;
     if (bloqueado) {
       var lk = el("div", "locked"), t = el("div");
-      t.appendChild(el("p", "", "Este cue está sonando."));
-      t.appendChild(el("small", "", "Páralo o confirma para editarlo. Los cambios valen desde el próximo GO."));
-      var u = el("button", "btn", "Editar igualmente");
+      t.appendChild(el("p", "", T("bloqueado_t")));
+      t.appendChild(el("small", "", T("bloqueado_s")));
+      var u = el("button", "btn", T("editar_igualmente"));
       u.onclick = function () { desbloqueado = i; ladoClave = ""; dibujarLado(false); dibujarLista(); };
       lk.appendChild(t); lk.appendChild(u); props.appendChild(lk);
     }
     var fs = el("fieldset"); fs.disabled = bloqueado;
     function editar(cambios) { mandar("editar_cue", { cue: i, cambios: cambios, forzar: desbloqueado === i }); }
-    function campo(etiqueta, control, id) {
-      var f = el("div", "field"), l = el("label", "", etiqueta);
+    function campo(clave, control, id, consejo) {
+      var f = el("div", "field"), l = el("label", "", T(clave));
       if (id) { control.id = id; l.htmlFor = id; }
+      if (consejo) l.appendChild(botonConsejo(consejo));
       f.appendChild(l); f.appendChild(control); return f;
     }
     var nombre = el("input"); nombre.type = "text"; nombre.value = c.nombre; nombre.maxLength = 200;
     nombre.onchange = function () { editar({ nombre: nombre.value }); };
-    fs.appendChild(campo("Nombre", nombre, "fNombre"));
+    fs.appendChild(campo("nombre", nombre, "fNombre"));
     var nota = el("textarea"); nota.value = c.nota; nota.maxLength = 2000; nota.rows = 2;
-    nota.placeholder = "Lo que ves antes del GO (p. ej. «cuando entra la novia»)";
+    nota.placeholder = T("nota_ph");
     nota.onchange = function () { editar({ nota: nota.value }); };
-    fs.appendChild(campo("Nota", nota, "fNota"));
-    var arch = el("div", "field"); arch.appendChild(el("span", "k", "Archivo")); arch.appendChild(el("span", "val", c.archivo)); arch.title = c.archivo;
+    fs.appendChild(campo("nota", nota, "fNota", "nota"));
+    var arch = el("div", "field"); arch.appendChild(el("span", "k", T("archivo_campo"))); arch.appendChild(el("span", "val", c.archivo)); arch.title = c.archivo;
     fs.appendChild(arch);
     if (c.tipo === "audio") {
       var sal = el("select");
-      ["Principal", "Auriculares"].forEach(function (o) { var op = el("option", "", o); op.value = o; op.selected = o === c.salida; sal.appendChild(op); });
+      ["Principal", "Auriculares"].forEach(function (o) { var op = el("option", "", salidaTexto(o)); op.value = o; op.selected = o === c.salida; sal.appendChild(op); });
       sal.onchange = function () { editar({ salida: sal.value }); };
-      fs.appendChild(campo("Salida", sal, "fSalida"));
+      fs.appendChild(campo("salida", sal, "fSalida", "salida"));
       var vol = el("input"); vol.type = "range"; vol.min = -60; vol.max = 12; vol.step = 0.5; vol.value = c.volumen_db;
       var vv = el("span", "val num", fmtDb(c.volumen_db));
       vol.oninput = function () { vv.textContent = fmtDb(+vol.value); };
       vol.onchange = function () { editar({ volumen_db: +vol.value }); };
       var w = el("div", "inline"); w.appendChild(vol); w.appendChild(vv);
-      var fv = campo("Volumen", w); fv.querySelector("label").htmlFor = "fVol"; vol.id = "fVol";
+      var fv = campo("volumen", w, null, "volumen"); fv.querySelector("label").htmlFor = "fVol"; vol.id = "fVol";
       fs.appendChild(fv);
-      fs.appendChild(campo("Fundido inicial", selFundido(c.fundido_entrada_ms, function (ms) { editar({ fundido_entrada_ms: ms }); }), "fIn"));
-      fs.appendChild(campo("Fundido final", selFundido(c.fundido_salida_ms, function (ms) { editar({ fundido_salida_ms: ms }); }), "fOut"));
+      fs.appendChild(campo("fundido_inicial", selFundido(c.fundido_entrada_ms, function (ms) { editar({ fundido_entrada_ms: ms }); }), "fIn", "fundido_entrada"));
+      fs.appendChild(campo("fundido_final", selFundido(c.fundido_salida_ms, function (ms) { editar({ fundido_salida_ms: ms }); }), "fOut", "fundido_salida"));
       var tg = el("label", "toggle"), cb = el("input"); cb.type = "checkbox"; cb.checked = c.bucle;
       cb.onchange = function () { editar({ bucle: cb.checked }); };
-      tg.appendChild(cb); tg.appendChild(document.createTextNode("Repetir en bucle"));
+      tg.appendChild(cb); tg.appendChild(document.createTextNode(T("repetir_bucle"))); tg.appendChild(botonConsejo("bucle"));
       fs.appendChild(tg);
-      if (c.duracion_s != null) fs.appendChild(el("p", "note-small", "Duración: " + mmss(c.duracion_s) + (c.bucle ? " por vuelta" : "")));
-      fs.appendChild(el("p", "note-small", "La onda para elegir inicio y fin llega más adelante."));
+      if (c.duracion_s != null) fs.appendChild(el("p", "note-small", T("duracion", { d: mmss(c.duracion_s) }) + (c.bucle ? T("por_vuelta") : "")));
+      fs.appendChild(el("p", "note-small", T("onda_pronto")));
     } else {
-      fs.appendChild(el("p", "note-small", "Los cues de vídeo e imagen se proyectan desde la próxima etapa. Por ahora el GO los salta."));
+      fs.appendChild(el("p", "note-small", T("video_pronto")));
     }
     props.appendChild(fs);
     lado.appendChild(props);
   }
-  function fmtDb(x) { return (x > 0 ? "+" : "") + (+x).toFixed(1).replace(".", ",") + " dB"; }
+  function fmtDb(x) {
+    var s = (x > 0 ? "+" : "") + (+x).toFixed(1);
+    return (idioma === "es" ? s.replace(".", ",") : s) + " dB";
+  }
   function selFundido(ms, cambio) {
     var s = el("select"), opciones = [0, 500, 1000, 1500, 2000, 3000, 4000, 5000, 6000, 8000, 10000];
     if (opciones.indexOf(ms) < 0) { opciones.push(ms); opciones.sort(function (a, b) { return a - b; }); }
-    opciones.forEach(function (v) { var o = el("option", "", v === 0 ? "Sin fundido" : String(v / 1000).replace(".", ",") + " s"); o.value = v; o.selected = v === ms; s.appendChild(o); });
+    opciones.forEach(function (v) {
+      var seg = String(v / 1000); if (idioma === "es") seg = seg.replace(".", ",");
+      var o = el("option", "", v === 0 ? T("sin_fundido") : seg + " s"); o.value = v; o.selected = v === ms; s.appendChild(o);
+    });
     s.onchange = function () { cambio(+s.value); };
     return s;
   }
 
   function dibujarEnVivo(lado) {
     lado.textContent = "";
-    var h = el("div", "panel-h"); h.appendChild(el("strong", "", "En vivo")); h.appendChild(el("span", "", "Nada se puede cambiar aquí"));
+    var h = el("div", "panel-h"); h.appendChild(el("strong", "", T("en_vivo"))); h.appendChild(el("span", "", T("nada_cambiar")));
     lado.appendChild(h);
     var live = el("div", "live"), now = el("div", "nowlist");
-    if (e.pausado) now.appendChild(el("div", "pausado", "En pausa · P para seguir"));
+    if (e.pausado) now.appendChild(el("div", "pausado", T("en_pausa")));
     var lista = e.sonando || [];
     if (!lista.length) {
-      var b = el("div", "big now"), k = el("div", "k"); k.appendChild(el("span", "", "Sonando")); b.appendChild(k);
-      b.appendChild(el("div", "empty", "Nada en reproducción")); now.appendChild(b);
+      var b = el("div", "big now"), k = el("div", "k"); k.appendChild(el("span", "", T("sonando"))); b.appendChild(k);
+      b.appendChild(el("div", "empty", T("nada_reproduccion"))); now.appendChild(b);
     }
     lista.forEach(function (s) {
       var c = e.cues[s.cue] || {};
       var b = el("div", "big now"), k = el("div", "k");
-      k.appendChild(el("span", "", "Sonando · cue " + (c.numero || "")));
-      k.appendChild(el("span", "", s.salida + (c.bucle ? " · bucle" : "")));
+      k.appendChild(el("span", "", T("sonando_cue", { n: c.numero || "" })));
+      k.appendChild(el("span", "", salidaTexto(s.salida) + (c.bucle ? " · " + T("bucle") : "")));
       b.appendChild(k);
       b.appendChild(el("div", "t", s.nombre));
-      b.appendChild(el("div", "remain num", (s.fundiendo ? "Fundiendo · " : "") + (s.restante_s != null ? "-" + mmss(s.restante_s) : "en bucle")));
+      b.appendChild(el("div", "remain num", (s.fundiendo ? T("fundiendo") : "") + (s.restante_s != null ? "-" + mmss(s.restante_s) : T("en_bucle"))));
       var bar = el("div", "bigbar"), i = el("i"); i.style.width = (s.progreso * 100) + "%"; bar.appendChild(i); b.appendChild(bar);
       now.appendChild(b);
     });
     live.appendChild(now);
     var nx = e.cues[e.en_espera];
     var n = el("div", "big next"), k2 = el("div", "k");
-    k2.appendChild(el("span", "", "Siguiente · GO")); k2.appendChild(el("span", "", nx ? (nx.tipo === "audio" ? nx.salida : "Proyector") : ""));
+    k2.appendChild(el("span", "", T("siguiente_go"))); k2.appendChild(el("span", "", nx ? (nx.tipo === "audio" ? salidaTexto(nx.salida) : T("proyector")) : ""));
     n.appendChild(k2);
-    n.appendChild(el("div", "t", nx ? nx.numero + ". " + nx.nombre : "Fin de la lista"));
+    n.appendChild(el("div", "t", nx ? nx.numero + ". " + nx.nombre : T("fin_lista")));
     if (nx) {
-      var estado = { listo: "listo en memoria", preparando: "preparándose…", error: "no se puede reproducir" }[nx.preparacion] || "";
-      n.appendChild(el("div", "meta", [TIPO[nx.tipo], nx.duracion_s != null ? mmss(nx.duracion_s) : "", estado].filter(Boolean).join(" · ")));
+      var estado = { listo: T("listo_memoria"), preparando: T("preparandose"), error: T("no_reproducible") }[nx.preparacion] || "";
+      n.appendChild(el("div", "meta", [tipoTexto(nx.tipo), nx.duracion_s != null ? mmss(nx.duracion_s) : "", estado].filter(Boolean).join(" · ")));
       if (nx.nota) n.appendChild(el("div", "meta", nx.nota));
     }
     live.appendChild(n);
@@ -528,7 +607,7 @@ fieldset:disabled{opacity:.45}
   // ---- Conexión con el motor ----
   function conectar() {
     ws = new WebSocket("ws://" + location.host + "/ws?t=" + encodeURIComponent(token));
-    ws.onopen = function () { abierto = true; avisoConexion("Conectado al motor", "on"); };
+    ws.onopen = function () { abierto = true; avisoConexion(T("conectado"), "on"); mandar("idioma", { idioma: idioma }); };
     ws.onmessage = function (m) {
       var d; try { d = JSON.parse(m.data); } catch (x) { return; }
       if (d.tipo !== "estado") return;
@@ -538,14 +617,14 @@ fieldset:disabled{opacity:.45}
     };
     ws.onclose = function () {
       abierto = false;
-      avisoConexion("Sin conexión con el motor", "");
+      avisoConexion(T("sin_conexion"), "");
       setTimeout(conectar, 700);
     };
   }
 
   // ---- Menús ----
   var menus = [].slice.call(document.querySelectorAll("[data-menu]"));
-  function cerrarMenus() { menus.forEach(function (b) { b.setAttribute("aria-expanded", "false"); b.nextElementSibling.hidden = true; }); }
+  function cerrarMenus() { menus.forEach(function (b) { b.setAttribute("aria-expanded", "false"); b.nextElementSibling.hidden = true; }); ocultarGlobo(); }
   menus.forEach(function (b) {
     b.onclick = function () {
       var m = b.nextElementSibling, abrir = m.hidden;
@@ -560,57 +639,173 @@ fieldset:disabled{opacity:.45}
       cerrarMenus();
       if (it.dataset.orden) mandar(it.dataset.orden);
       else if (it.dataset.tema) ponerTema(tema === it.dataset.tema ? "" : it.dataset.tema);
+      else if (it.dataset.idioma) ponerIdioma(it.dataset.idioma);
       else if (it.dataset.accion === "restaurar") ponerTema("");
+      else if (it.dataset.accion === "modo_ayuda") ponerAyuda(!ayudando);
+      else if (it.dataset.accion === "pasos") primerosPasos(0);
+      else if (it.dataset.accion === "consejos") ponerConsejos(!consejos);
       else if (it.dataset.accion === "atajos") dialogoAtajos();
       else if (it.dataset.accion === "acerca") dialogoAcerca();
     });
   });
 
-  // Tema (Vista): preferencia de esta ventana. Más adelante irá a los perfiles de operador.
-  var tema = "";
-  try { tema = localStorage.getItem("ota-tema") || ""; } catch (x) {}
+  // Tema (Vista). Preferencia de esta ventana.
   function ponerTema(t) {
     tema = t;
     if (t) document.documentElement.setAttribute("data-tema", t); else document.documentElement.removeAttribute("data-tema");
-    document.querySelectorAll("[data-tema]").forEach(function (b) { if (b.tagName === "BUTTON") b.setAttribute("aria-checked", String(b.dataset.tema === t)); });
-    try { localStorage.setItem("ota-tema", t); } catch (x) {}
+    document.querySelectorAll("button[data-tema]").forEach(function (b) { b.setAttribute("aria-checked", String(b.dataset.tema === t)); });
+    escribir("ota-tema", t);
   }
-  ponerTema(tema);
+  // Idioma: todo el programa cambia junto (textos, consejos, ayuda y avisos del motor).
+  function ponerIdioma(i) {
+    idioma = i === "en" ? "en" : "es";
+    escribir("ota-idioma", idioma);
+    mandar("idioma", { idioma: idioma });
+    aplicarTextos();
+  }
+  // Consejos: se pueden ocultar; la casilla para volver a mostrarlos nunca se oculta.
+  function ponerConsejos(si) {
+    consejos = si;
+    escribir("ota-consejos", si ? "si" : "no");
+    document.body.classList.toggle("sin-consejos", !si);
+    document.querySelector('[data-accion="consejos"]').setAttribute("aria-checked", String(si));
+    ocultarGlobo();
+    ladoClave = "";
+    if (e) dibujarLado(e.modo === "funcion");
+  }
+
+  // ---- Globo de consejo (pasar el ratón o tocar el "?") ----
+  var globo = null, globoDe = null, globoTimer = 0;
+  function ocultarGlobo() {
+    clearTimeout(globoTimer);
+    if (globo) { globo.remove(); globo = null; }
+    if (globoDe && globoDe.classList.contains("q")) globoDe.setAttribute("aria-expanded", "false");
+    globoDe = null;
+  }
+  function mostrarGlobo(x) {
+    ocultarGlobo();
+    var c = TEXTOS[idioma].consejos[x.dataset.consejo]; if (!c) return;
+    globoDe = x;
+    globo = el("div", "globo"); globo.setAttribute("role", "tooltip");
+    globo.appendChild(el("h3", "", c.titulo));
+    globo.appendChild(el("p", "", c.que_hace));
+    globo.appendChild(el("div", "k", T("consejo_usar")));
+    globo.appendChild(el("p", "", c.activar));
+    globo.appendChild(el("p", "ej", c.ejemplo_activar));
+    globo.appendChild(el("div", "k", T("consejo_no")));
+    globo.appendChild(el("p", "", c.desactivar));
+    globo.appendChild(el("p", "ej", c.ejemplo_desactivar));
+    document.body.appendChild(globo);
+    var r = x.getBoundingClientRect(), g = globo.getBoundingClientRect();
+    var left = r.right + 10, top = r.top - 8;
+    if (left + g.width > innerWidth - 10) left = Math.max(10, r.left - g.width - 10);
+    if (top + g.height > innerHeight - 10) top = Math.max(10, innerHeight - g.height - 10);
+    globo.style.left = left + "px"; globo.style.top = top + "px";
+    if (x.classList.contains("q")) x.setAttribute("aria-expanded", "true");
+  }
+  document.addEventListener("mouseover", function (ev) {
+    if (!consejos || ayudando) return;
+    var x = ev.target.closest("[data-consejo]");
+    if (!x || x === globoDe) return;
+    clearTimeout(globoTimer);
+    globoTimer = setTimeout(function () { mostrarGlobo(x); }, 450);
+  });
+  document.addEventListener("mouseout", function (ev) {
+    var x = ev.target.closest("[data-consejo]");
+    if (x && !x.contains(ev.relatedTarget)) { clearTimeout(globoTimer); if (globoDe === x) ocultarGlobo(); }
+  });
+  document.addEventListener("click", function (ev) {
+    var q = ev.target.closest("button.q");
+    if (!q || ayudando) return;
+    ev.preventDefault(); ev.stopPropagation();
+    if (globoDe === q) ocultarGlobo(); else mostrarGlobo(q);
+  }, true);
+
+  // ---- Modo Ayuda: tocar cualquier parte y ver qué hace ----
+  var ayudando = false, burbuja = null;
+  function cerrarBurbuja() { if (burbuja) { burbuja.remove(); burbuja = null; } }
+  function ponerAyuda(si) {
+    ayudando = si;
+    document.body.classList.toggle("helping", si);
+    $("app").classList.toggle("helping", si);
+    document.querySelector('[data-accion="modo_ayuda"]').setAttribute("aria-checked", String(si));
+    ocultarGlobo();
+    if (!si) cerrarBurbuja();
+  }
+  function mostrarAyuda(x) {
+    cerrarBurbuja();
+    var a = ayudaDe(x.dataset.help); if (!a) return;
+    burbuja = el("div", "burbuja"); burbuja.setAttribute("role", "dialog");
+    burbuja.appendChild(el("h3", "", a[0]));
+    burbuja.appendChild(el("p", "", a[1]));
+    var ok = el("button", "ok", T("entendido")); ok.onclick = cerrarBurbuja; burbuja.appendChild(ok);
+    document.body.appendChild(burbuja);
+    var r = x.getBoundingClientRect(), b = burbuja.getBoundingClientRect();
+    var top = r.bottom + 10; if (top + b.height > innerHeight - 10) top = Math.max(10, r.top - b.height - 10);
+    var left = Math.min(Math.max(16, r.left + r.width / 2 - b.width / 2), innerWidth - b.width - 16);
+    burbuja.style.top = top + "px"; burbuja.style.left = left + "px";
+    ok.focus();
+  }
+  // Con el Modo Ayuda, un clic explica en vez de hacer (las teclas siguen funcionando).
+  document.addEventListener("click", function (ev) {
+    if (!ayudando || ev.target.closest(".helpbar,.burbuja,.velo")) return;
+    ev.preventDefault(); ev.stopPropagation();
+    var x = ev.target.closest("[data-help]");
+    if (x) mostrarAyuda(x); else cerrarBurbuja();
+  }, true);
+  $("salirAyuda").onclick = function () { ponerAyuda(false); };
 
   // ---- Ventanitas ----
   var velo = null;
   function cerrarDialogo() { if (velo) { velo.remove(); velo = null; } }
-  function dialogo(titulo, cuerpo) {
+  function dialogo(titulo, cuerpo, sinOk) {
     cerrarDialogo();
     velo = el("div", "velo");
     var d = el("div", "dlg"); d.setAttribute("role", "dialog"); d.setAttribute("aria-modal", "true");
     d.appendChild(el("h2", "", titulo));
     cuerpo(d);
-    var ok = el("button", "ok", "Entendido"); ok.onclick = cerrarDialogo; d.appendChild(ok);
+    if (!sinOk) { var ok = el("button", "ok", T("entendido")); ok.onclick = cerrarDialogo; d.appendChild(ok); }
     velo.appendChild(d);
     velo.onclick = function (ev) { if (ev.target === velo) cerrarDialogo(); };
     document.body.appendChild(velo);
-    ok.focus();
+    var f = d.querySelector("button"); if (f) f.focus();
   }
   function dialogoAtajos() {
-    dialogo("Atajos de teclado", function (d) {
+    dialogo(T("atajos"), function (d) {
       var t = el("table");
-      [["Espacio", "GO: empieza el cue en espera"], ["Esc", "Parar todo (funciona siempre, aunque haya un menú abierto)"], ["P", "Pausa / seguir"], ["F", "Fundir todo"], ["Mayús + F", "Fundir solo el último cue que empezó"], ["↑  ↓", "Mover el cue en espera"], ["Tab", "Cambiar entre Edición y Función"], ["Ctrl + S", "Guardar"]]
-        .forEach(function (f) { var tr = el("tr"), a = el("td"); a.appendChild(el("kbd", "", f[0])); tr.appendChild(a); tr.appendChild(el("td", "", f[1])); t.appendChild(tr); });
+      [[T("tecla_espacio"), "atajo_go"], ["Esc", "atajo_esc"], ["P", "atajo_p"], ["F", "atajo_f"], [T("tecla_mayus") + " + F", "atajo_mf"], ["↑  ↓", "atajo_flechas"], ["Tab", "atajo_tab"], ["H", "atajo_h"], ["Ctrl + S", "atajo_s"]]
+        .forEach(function (f) { var tr = el("tr"), a = el("td"); a.appendChild(el("kbd", "", f[0])); tr.appendChild(a); tr.appendChild(el("td", "", T(f[1]))); t.appendChild(tr); });
       d.appendChild(t);
     });
   }
   function dialogoAcerca() {
-    dialogo("Acerca de Otaconvert", function (d) {
+    dialogo(T("acerca"), function (d) {
       var b = el("div", "bars"); [.38, .72, 1, .58, .84, .46].forEach(function (h) { var i = el("i"); i.style.setProperty("--h", h); b.appendChild(i); });
       d.appendChild(b);
-      d.appendChild(el("p", "", "Reproductor de cues para teatro: sonido, vídeo e imágenes. Versión en desarrollo."));
-      d.appendChild(el("p", "", "Software libre y gratuito (GPLv3), hecho por amor al arte."));
-      var c = el("p"); c.appendChild(document.createTextNode("Desarrollado por ")); c.appendChild(el("span", "accent", "@marcold.ok"));
-      c.appendChild(document.createTextNode(" (Instagram). Escríbeme para sugerir mejoras, reportar errores o contarme cómo lo usas en tu teatro."));
+      d.appendChild(el("p", "", T("acerca_1")));
+      d.appendChild(el("p", "", T("acerca_2")));
+      var c = el("p"); c.appendChild(document.createTextNode(T("acerca_3a"))); c.appendChild(el("span", "accent", "@marcold.ok"));
+      c.appendChild(document.createTextNode(T("acerca_3b")));
       d.appendChild(c);
-      d.appendChild(el("p", "accent", "Nadie se salva solo."));
+      d.appendChild(el("p", "accent", T("nadie")));
     });
+  }
+  function primerosPasos(n) {
+    var pasos = TEXTOS[idioma].pasos;
+    escribir("ota-pasos-vistos", "si");
+    dialogo(pasos[n][0], function (d) {
+      d.appendChild(el("p", "", pasos[n][1]));
+      var nav = el("div", "nav");
+      var atras = el("button", "atras", T("anterior")); atras.disabled = n === 0;
+      atras.onclick = function () { primerosPasos(n - 1); };
+      nav.appendChild(atras);
+      nav.appendChild(el("span", "", T("paso_n", { n: n + 1, total: pasos.length })));
+      var sig = el("button", "", n === pasos.length - 1 ? T("entendido") : T("siguiente"));
+      sig.onclick = function () { if (n === pasos.length - 1) cerrarDialogo(); else primerosPasos(n + 1); };
+      nav.appendChild(sig);
+      d.appendChild(nav);
+      setTimeout(function () { sig.focus(); }, 0);
+    }, true);
   }
 
   // ---- Botones ----
@@ -629,16 +824,17 @@ fieldset:disabled{opacity:.45}
     if (ev.key === "Enter" && e && e.modo !== "funcion") { var r = ev.target.closest(".row"); if (r) mandar("ir_a", { cue: +r.dataset.i }); }
   });
 
-  // ---- Teclado ----
+  // ---- Teclado (también funciona en el Modo Ayuda: GO y Parar todo nunca se bloquean) ----
   document.addEventListener("keydown", function (ev) {
-    // Esc para todo SIEMPRE (pánico): nunca se retrasa por un menú o una ventanita abierta.
-    if (ev.key === "Escape") { ev.preventDefault(); mandar("parar_todo"); cerrarMenus(); cerrarDialogo(); return; }
+    // Esc para todo SIEMPRE (pánico): nunca se retrasa por un menú, una ventanita o la ayuda.
+    if (ev.key === "Escape") { ev.preventDefault(); mandar("parar_todo"); cerrarMenus(); cerrarDialogo(); cerrarBurbuja(); ponerAyuda(false); return; }
     var escribiendo = ev.target.matches && ev.target.matches("input[type=text],textarea,select");
     if ((ev.ctrlKey || ev.metaKey) && (ev.key === "s" || ev.key === "S")) { ev.preventDefault(); mandar("guardar"); return; }
     if (escribiendo || ev.ctrlKey || ev.metaKey || ev.altKey) return;   // con foco en un campo, Tab pasa de campo
-    if (velo && ev.key !== " ") return;
+    if (ev.key === " ") { ev.preventDefault(); cerrarDialogo(); cerrarMenus(); cerrarBurbuja(); mandar("go"); return; }
+    if (velo) return;
     if (ev.key === "Tab") { ev.preventDefault(); if (e) mandar(e.modo === "funcion" ? "modo_edicion" : "modo_funcion"); }
-    else if (ev.key === " ") { ev.preventDefault(); cerrarDialogo(); cerrarMenus(); mandar("go"); }
+    else if (ev.key === "h" || ev.key === "H") ponerAyuda(!ayudando);
     else if (ev.key === "p" || ev.key === "P") mandar("pausa");
     else if ((ev.key === "f" || ev.key === "F") && ev.shiftKey) mandar("fundir_ultimo");
     else if (ev.key === "f" || ev.key === "F") mandar("fundir_todo");
@@ -651,8 +847,15 @@ fieldset:disabled{opacity:.45}
     var d = new Date();
     $("reloj").textContent = [d.getHours(), d.getMinutes(), d.getSeconds()].map(function (x) { return String(x).padStart(2, "0"); }).join(":");
   }
+
+  // ---- Arranque ----
+  ponerTema(tema);
+  ponerConsejos(consejos);
+  aplicarTextos();
   reloj(); setInterval(reloj, 1000);
   conectar();
+  // La primera vez, la guía de primeros pasos.
+  if (leer("ota-pasos-vistos", "") !== "si") primerosPasos(0);
 })();
 </script>
 </body>
