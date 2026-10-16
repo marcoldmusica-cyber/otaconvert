@@ -93,3 +93,17 @@ fn archivos_malos_no_cierran_nada() {
     let _ = std::fs::remove_file(basura);
     let _ = std::fs::remove_file(cortado);
 }
+
+/// Etapa 4B: el sonido de un vídeo (MP4 con imagen H.264 y sonido AAC) se
+/// prepara igual que un audio; un vídeo sin sonido dice "sin sonido".
+#[test]
+fn el_sonido_de_un_video_se_prepara() {
+    let p = preparar(&dato("tono-video.mp4"), 48_000).expect("el sonido del vídeo");
+    assert!((p.duracion_s() - 1.0).abs() < 0.06, "duración {}", p.duracion_s());
+    assert!((p.pico - 0.5).abs() < 0.05, "pico {}", p.pico);
+    assert!((frecuencia_medida(&p) - 1000.0).abs() < 10.0);
+    match preparar(&dato("video-mudo.mp4"), 48_000) {
+        Err(otaconvert_audio::preparar::ErrorPreparar::SinAudio) => {}
+        otro => panic!("un vídeo sin sonido debe dar SinAudio: {:?}", otro.map(|p| p.duracion_s())),
+    }
+}
