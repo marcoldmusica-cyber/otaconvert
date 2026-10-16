@@ -91,6 +91,9 @@ pub struct Sesion {
     miniaturas_fallidas: std::collections::HashSet<usize>,
     /// Fotos ya hechas: cue → versión (nombre del archivo de la foto).
     miniaturas_hechas: HashMap<usize, String>,
+    /// "Salir desde aquí" (Vista Estudio): cue en espera y segundo del archivo
+    /// desde el que sale con el próximo GO. `None` = desde su inicio.
+    desde_elegido: Option<(usize, f64)>,
 }
 
 /// Busca el archivo del show: la ruta misma, o el único `.otashow` de la carpeta.
@@ -152,6 +155,7 @@ impl Sesion {
             mudos: std::collections::HashSet::new(),
             miniaturas_fallidas: std::collections::HashSet::new(),
             miniaturas_hechas: HashMap::new(),
+            desde_elegido: None,
         })
     }
 
@@ -393,10 +397,18 @@ impl Sesion {
             (TipoCue::Video, Some(d)) => Some(c.fin_ms.map(|f| (f as f64 / 1000.0).min(d)).unwrap_or(d)),
             _ => None,
         };
+        // "Salir desde aquí": la imagen ya está precargada en ese punto; el
+        // sonido sale desde el mismo segundo. Se usa una sola vez.
+        let desde = self.desde_elegido.filter(|(k, _)| *k == i).map(|(_, s)| s);
+        if desde.is_some() {
+            self.desde_elegido = None;
+        }
         let voz = match self.preparados.get(&i).cloned() {
-            Some(p) if c.tipo == TipoCue::Video => self.iniciar_voz(i, p, fin_video),
+            Some(p) if c.tipo == TipoCue::Video => self.iniciar_voz(i, p, fin_video, desde),
             _ => None,
         };
+        // El reloj de "lo que falta" cuenta como si hubiera empezado antes.
+        let adelanto = desde.map(|s| Duration::from_secs_f64((s - c.inicio_ms as f64 / 1000.0).max(0.0))).unwrap_or(Duration::ZERO);
         let (id, destino) = match voz {
             Some((id, destino, _)) => (id, destino),
             None => {
@@ -409,7 +421,7 @@ impl Sesion {
             id,
             cue: i,
             destino,
-            inicio: Instant::now(),
+            inicio: Instant::now().checked_sub(adelanto).unwrap_or_else(Instant::now),
             // Termina con el aviso Fin del proyector (vídeo sin bucle) o al parar.
             duracion: None,
             largo,
@@ -485,8 +497,9 @@ impl Sesion {
                                 ruta,
                                 bucle: c.bucle,
                                 imagen: c.tipo == TipoCue::Imagen,
-                                inicio_s: desde,
+                                inicio_s: base,
                                 fin_s: c.fin_ms.map(|f| f as f64 / 1000.0),
+                                desde_s: (c.tipo == TipoCue::Video).then_some(desde),
                             };
                             self.remostrar = Some(i);
                             self.al_proyector(o);
@@ -508,7 +521,7 @@ impl Sesion {
 
     fn disparar(&mut self, i: usize, pista: Arc<Pista>) {
         let c = self.show.cues[i].clone();
-        if let Some((id, destino, largo)) = self.iniciar_voz(i, pista, None) {
+        if let Some((id, destino, largo)) = self.iniciar_voz(i, pista, None, None) {
             self.sonando.push(Sonando {
                 id,
                 cue: i,
@@ -527,13 +540,14 @@ impl Sesion {
     /// vídeo) con su volumen, salida, inicio, fin, fundidos y bucle.
     /// `fin_s`: fin forzado en segundos (el del vídeo, para que en bucle el
     /// sonido vuelva a empezar junto con la imagen). Devuelve (voz, salida, largo).
-    fn iniciar_voz(&mut self, i: usize, pista: Arc<Pista>, fin_s: Option<f64>) -> Option<(u32, Destino, Duration)> {
+    fn iniciar_voz(&mut self, i: usize, pista: Arc<Pista>, fin_s: Option<f64>, desde_s: Option<f64>) -> Option<(u32, Destino, Duration)> {
         let c = self.show.cues[i].clone();
         let destino = self.destino_de(i);
         let id = self.siguiente_id;
         self.siguiente_id = self.siguiente_id.wrapping_add(1).max(1);
         let total = pista.cuadros();
         let inicio = self.cuadros(c.inicio_ms).min(total.saturating_sub(1));
+        let pista_fs = pista.frecuencia() as f64;
         let hasta = match fin_s {
             Some(f) => Some(((f * pista.frecuencia() as f64) as usize).min(total)),
             None => c.fin_ms.map(|f| self.cuadros(f).min(total)),
@@ -546,7 +560,8 @@ impl Sesion {
             pista,
             volumen: db_a_lineal(c.volumen_db),
             inicio,
-            desde: inicio,
+            // Salir desde un punto (dentro del cue): el bucle vuelve igual a `inicio`.
+            desde: desde_s.map(|s| ((s * pista_fs) as usize).clamp(inicio, fin.saturating_sub(1))).unwrap_or(inicio),
             hasta,
             bucle: c.bucle,
             fundido_entrada: self.cuadros(c.fundido_entrada_ms as u64) as u32,
@@ -572,13 +587,74 @@ impl Sesion {
     }
 
     /// En Edición, clic en un cue: queda en espera.
-    pub fn ir_a(&mut self, i: usize) {
-        if self.modo == Modo::Funcion {
-            self.aviso = Some(Texto::nuevo("En Función no se elige el cue con el ratón: usa ↑ y ↓.", "In Live mode the cue is not chosen with the mouse: use ↑ and ↓."));
-            return;
+    /// "Salir desde aquí" (Vista Estudio): el vídeo en espera saldrá con el
+    /// próximo GO desde el segundo `s` del archivo (imagen y sonido juntos).
+    /// `None` = desde su inicio. Se vuelve a precargar en ese punto; hasta que
+    /// esté listo, el GO avisa "todavía se está preparando".
+    pub fn elegir_desde(&mut self, i: usize, s: Option<f64>) -> Result<(), Texto> {
+        if i != self.en_espera {
+            return Err(t("Solo se elige desde dónde sale el cue en espera.", "You can only choose where the standby cue starts."));
         }
-        if i < self.show.cues.len() {
+        let Some(c) = self.show.cues.get(i).cloned() else {
+            return Err(t("Ese cue no existe.", "That cue does not exist."));
+        };
+        if c.tipo != TipoCue::Video {
+            return Err(t("Solo los vídeos pueden salir desde un punto.", "Only videos can start from a point."));
+        }
+        let inicio = c.inicio_ms as f64 / 1000.0;
+        let duracion = match self.visuales.get(&i) {
+            Some(Visual::Listo { duracion }) => *duracion,
+            _ => None,
+        };
+        let fin = c.fin_ms.map(|f| f as f64 / 1000.0).or(duracion);
+        if let Some(x) = s {
+            if !x.is_finite() || x < inicio - 0.05 || fin.is_some_and(|f| x >= f) {
+                return Err(t("Ese punto está fuera del vídeo.", "That point is outside the video."));
+            }
+        }
+        // Muy cerca del inicio = desde el inicio.
+        let nuevo = s.filter(|x| *x - inicio > 0.05).map(|x| (i, x));
+        if nuevo == self.desde_elegido {
+            return Ok(());
+        }
+        self.desde_elegido = nuevo;
+        let d = self.describir(i);
+        match nuevo {
+            Some((_, x)) => self.registro.anotar("DESDE", &format!("{d} saldrá desde {x:.1} s")),
+            None => self.registro.anotar("DESDE", &format!("{d} saldrá desde su inicio")),
+        }
+        // Se vuelve a precargar en el punto nuevo.
+        if self.visuales.remove(&i).is_some() {
+            self.al_proyector(OrdenProyector::Quitar { id: i as u64 });
+        }
+        self.precargar_visuales();
+        Ok(())
+    }
+
+    /// Si el cue en espera cambió, el "salir desde aquí" del anterior se
+    /// olvida, y ese vídeo se vuelve a precargar desde su inicio.
+    fn soltar_desde_si_cambio(&mut self) {
+        if let Some((k, _)) = self.desde_elegido {
+            if k != self.en_espera {
+                self.desde_elegido = None;
+                if self.visuales.remove(&k).is_some() {
+                    self.al_proyector(OrdenProyector::Quitar { id: k as u64 });
+                }
+            }
+        }
+    }
+
+    /// Deja el cue `i` en espera (clic en Edición; en Función, desde la Vista
+    /// Estudio o el buscador). Nunca dispara nada: el GO lo da el operador.
+    /// En Función se anota en el registro (ELEGIR), para saber qué se eligió a mano.
+    pub fn ir_a(&mut self, i: usize) {
+        if i < self.show.cues.len() && i != self.en_espera {
             self.en_espera = i;
+            if self.modo == Modo::Funcion {
+                let d = self.describir(i);
+                self.registro.anotar("ELEGIR", &d);
+            }
+            self.soltar_desde_si_cambio();
         }
     }
 
@@ -679,6 +755,7 @@ impl Sesion {
         }
         let max = self.show.cues.len() as i64;
         self.en_espera = (self.en_espera as i64 + delta).clamp(0, max) as usize;
+        self.soltar_desde_si_cambio();
     }
 
     pub fn parar_todo(&mut self) {
@@ -826,6 +903,8 @@ impl Sesion {
                         imagen: c.tipo == TipoCue::Imagen,
                         inicio_s: c.inicio_ms as f64 / 1000.0,
                         fin_s: c.fin_ms.map(|f| f as f64 / 1000.0),
+                        // Si se eligió "salir desde aquí" para este cue, queda esperando en ese punto.
+                        desde_s: self.desde_elegido.filter(|(k, _)| *k == i).map(|(_, s)| s),
                     };
                     self.visuales.insert(i, Visual::Pidiendo);
                     self.al_proyector(o);
@@ -1086,6 +1165,8 @@ impl Sesion {
             "con_proyeccion": self.proyector.is_some(),
             "auriculares": self.sonido.as_ref().is_some_and(|s| s.tiene_auriculares()),
             "modo": if self.modo == Modo::Funcion { "funcion" } else { "edicion" },
+            // "Salir desde aquí" del cue en espera (segundos del archivo), o null.
+            "desde_s": self.desde_elegido.filter(|(k, _)| *k == self.en_espera).map(|(_, s)| s),
         })
         .to_string()
     }

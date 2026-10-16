@@ -55,6 +55,7 @@ fn orden_precargar(id: u64, rgb: u32) -> OrdenProyector {
         bucle: true,
         imagen: false,
         inicio_s: 0.0,
+        desde_s: None,
         fin_s: None,
     }
 }

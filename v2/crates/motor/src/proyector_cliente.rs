@@ -143,9 +143,9 @@ fn convertir(v: &Value) -> Option<AvisoProyector> {
 impl Proyector for ProyectorProceso {
     fn enviar(&mut self, orden: OrdenProyector) {
         let v = match orden {
-            OrdenProyector::Precargar { id, ruta, bucle, imagen, inicio_s, fin_s } => json!({
+            OrdenProyector::Precargar { id, ruta, bucle, imagen, inicio_s, fin_s, desde_s } => json!({
                 "o": "precargar", "id": id, "ruta": ruta.to_string_lossy(), "bucle": bucle,
-                "imagen": imagen, "inicio": inicio_s, "fin": fin_s,
+                "imagen": imagen, "inicio": inicio_s, "fin": fin_s, "desde": desde_s,
             }),
             OrdenProyector::Mostrar { id } => json!({ "o": "mostrar", "id": id }),
             OrdenProyector::Negro => json!({ "o": "negro" }),

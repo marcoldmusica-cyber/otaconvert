@@ -9,7 +9,9 @@ use crate::texto::Texto;
 #[derive(Debug, Clone, PartialEq)]
 pub enum OrdenProyector {
     /// Cargar en pausa, debajo del telón, sin que se vea.
-    Precargar { id: u64, ruta: PathBuf, bucle: bool, imagen: bool, inicio_s: f64, fin_s: Option<f64> },
+    /// `inicio_s`/`fin_s`: los del cue (el bucle vuelve a `inicio_s`).
+    /// `desde_s`: dónde queda esperando (salir desde un punto, o tras una caída).
+    Precargar { id: u64, ruta: PathBuf, bucle: bool, imagen: bool, inicio_s: f64, fin_s: Option<f64>, desde_s: Option<f64> },
     /// Subir encima de todo y arrancar; la anterior se retira sola.
     Mostrar { id: u64 },
     /// Parar todo: telón negro al instante.

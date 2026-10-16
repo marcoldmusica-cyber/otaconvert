@@ -260,7 +260,7 @@ fn http(mut stream: TcpStream, ctx: &Contexto) {
                 }
             });
             match archivo {
-                Some(a) => enviar_archivo(&stream, &a, cabecera("range")),
+                Some(a) => enviar_archivo(&stream, &a, cabecera("range"), ruta == "/miniatura"),
                 None => responder(&stream, "404 Not Found", "", ""),
             }
         }
@@ -285,7 +285,9 @@ fn tipo_de(ruta: &std::path::Path) -> &'static str {
 
 /// Entrega un archivo (entero o por partes, para el vídeo de la vista
 /// previa), copiándolo por trozos: nunca se carga entero en memoria.
-fn enviar_archivo(mut s: &TcpStream, ruta: &std::path::Path, rango: Option<&str>) {
+/// `guardar`: la foto se puede guardar en la caché de la ventana (su dirección
+/// lleva la versión, que cambia si cambia el archivo).
+fn enviar_archivo(mut s: &TcpStream, ruta: &std::path::Path, rango: Option<&str>, guardar: bool) {
     use std::io::{Seek, SeekFrom};
     let Ok(mut f) = std::fs::File::open(ruta) else {
         responder(s, "404 Not Found", "", "");
@@ -304,7 +306,8 @@ fn enviar_archivo(mut s: &TcpStream, ruta: &std::path::Path, rango: Option<&str>
         let _ = write!(s, "HTTP/1.1 416 Range Not Satisfiable\r\nContent-Range: bytes */{total}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
         return;
     }
-    let comunes = "Accept-Ranges: bytes\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nConnection: close\r\n";
+    let cache = if guardar { "private, max-age=31536000, immutable" } else { "no-store" };
+    let comunes = format!("Accept-Ranges: bytes\r\nCache-Control: {cache}\r\nX-Content-Type-Options: nosniff\r\nConnection: close\r\n");
     let (ini, largo) = match parte {
         Some((a, b)) => {
             let _ = write!(
@@ -355,6 +358,16 @@ fn ejecutar(ctx: &Contexto, texto: &str) {
                 }
             }
             Some("cerrar_aviso") => s.aviso = None,
+            Some("elegir_desde") => {
+                // "Salir desde aquí": segundos del archivo, o null = desde el inicio.
+                let r = match indice() {
+                    Some(i) => s.elegir_desde(i, v.get("s").and_then(|x| x.as_f64())),
+                    None => Err(Texto::nuevo("Cue no válido.", "Invalid cue.")),
+                };
+                if let Err(e) = r {
+                    s.aviso = Some(e);
+                }
+            }
             Some("idioma") => match v.get("idioma").and_then(|i| i.as_str()).and_then(texto::idioma_de) {
                 Some(i) => s.cambiar_idioma(i),
                 None => s.aviso = Some(Texto::nuevo("Idioma no válido.", "Invalid language.")),

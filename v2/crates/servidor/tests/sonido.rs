@@ -217,12 +217,15 @@ fn en_funcion_no_se_cambia_el_show() {
     s.cambiar_modo(Modo::Funcion);
     let antes = s.show.clone();
     assert!(s.editar_cue(0, &serde_json::json!({ "nombre": "Otro" }), true).is_err());
+    // Elegir un cue en Función (Vista Estudio, buscador) solo cambia el que
+    // está en espera: no cambia el show ni dispara nada.
     s.ir_a(1);
-    assert_eq!(s.en_espera, 0, "en Función no se elige con el ratón");
-    assert!(s.show == antes && !s.sucio);
-    // ↑↓ siguen funcionando en Función.
-    s.mover_espera(1);
     assert_eq!(s.en_espera, 1);
+    assert!(s.show == antes && !s.sucio);
+    assert_eq!(s.ultimo_disparado, None, "elegir no dispara");
+    // ↑↓ siguen funcionando en Función.
+    s.mover_espera(-1);
+    assert_eq!(s.en_espera, 0);
     s.cambiar_modo(Modo::Edicion);
     s.ir_a(0);
     assert_eq!(s.en_espera, 0);
@@ -231,6 +234,7 @@ fn en_funcion_no_se_cambia_el_show() {
     let registro = std::fs::read_dir(d.join("registros")).unwrap().flatten().next().unwrap().path();
     let texto = std::fs::read_to_string(registro).unwrap();
     assert!(texto.contains("MODO") && texto.contains("Función") && texto.contains("Edición"));
+    assert!(texto.contains("ELEGIR"), "lo elegido a mano en Función queda en el registro");
 }
 
 #[test]

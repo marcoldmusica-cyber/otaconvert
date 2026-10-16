@@ -201,7 +201,10 @@ fn tras_una_caida_vuelve_lo_que_se_veia() {
     assert!(s.aviso.as_ref().unwrap().contiene("se volvió a abrir"));
     let o = f.tomar();
     match o.as_slice() {
-        [OrdenProyector::Precargar { id: 0, inicio_s, .. }] => assert!(*inicio_s >= 0.1, "sigue desde donde iba: {inicio_s}"),
+        [OrdenProyector::Precargar { id: 0, inicio_s, desde_s: Some(d), .. }] => {
+            assert_eq!(*inicio_s, 0.0, "el bucle sigue volviendo al inicio del cue");
+            assert!(*d >= 0.1, "sigue desde donde iba: {d}")
+        }
         x => panic!("{x:?}"),
     }
     // Cuando está lista, se vuelve a mostrar sola; y se piden de nuevo las precargas perdidas.
@@ -351,4 +354,84 @@ fn un_video_mudo_no_espera_sonido_y_un_video_nuevo_para_el_sonido_del_anterior()
     assert!(s.go(), "el vídeo mudo se muestra");
     assert_eq!(son.iniciados().len(), 1, "el mudo no manda sonido");
     assert_eq!(son.parados(), vec![(voz, 0)], "el sonido del vídeo anterior se para");
+}
+
+impl SonidoFalso {
+    /// (voz, desde) de cada IniciarCue mandado.
+    fn desdes(&self) -> Vec<usize> {
+        self.recibido
+            .lock()
+            .unwrap()
+            .iter()
+            .filter_map(|(_, c)| if let Comando::IniciarCue { desde, .. } = c { Some(*desde) } else { None })
+            .collect()
+    }
+}
+
+#[test]
+fn salir_desde_aqui_precarga_en_ese_punto_y_el_sonido_sale_desde_el_mismo_segundo() {
+    let d = carpeta_con_videos();
+    let (mut s, f, son) = abrir_con_sonido(
+        &d,
+        vec![
+            visual("1", "video/con-sonido.mp4", TipoCue::Video),
+            Cue { numero: "2".into(), nombre: "Audio".into(), archivo: "video/con-sonido.mp4".into(), ..Default::default() },
+        ],
+    );
+    preparar_todo(&mut s);
+    f.avisar(AvisoProyector::Listo { id: 0, duracion: Some(1.0) });
+    s.limpiar();
+    f.tomar();
+    // Solo el vídeo en espera, y dentro del vídeo.
+    assert!(s.elegir_desde(1, Some(0.5)).is_err(), "no es el cue en espera");
+    assert!(s.elegir_desde(0, Some(5.0)).is_err(), "fuera del vídeo");
+    assert!(s.elegir_desde(0, Some(f64::NAN)).is_err());
+    // Elegir 0,5 s: se vuelve a precargar en ese punto.
+    s.elegir_desde(0, Some(0.5)).unwrap();
+    let o = f.tomar();
+    assert!(o.contains(&OrdenProyector::Quitar { id: 0 }), "{o:?}");
+    match o.iter().find(|x| matches!(x, OrdenProyector::Precargar { .. })) {
+        Some(OrdenProyector::Precargar { desde_s: Some(x), inicio_s, .. }) => {
+            assert_eq!(*x, 0.5);
+            assert_eq!(*inicio_s, 0.0, "el bucle sigue volviendo al inicio del cue");
+        }
+        x => panic!("{x:?}"),
+    }
+    let e: serde_json::Value = serde_json::from_str(&s.estado_json()).unwrap();
+    assert_eq!(e["desde_s"], 0.5);
+    assert!(!s.go(), "hasta que esté lista en el punto nuevo, no dispara");
+    f.avisar(AvisoProyector::Listo { id: 0, duracion: Some(1.0) });
+    s.limpiar();
+    std::thread::sleep(std::time::Duration::from_millis(350));
+    assert!(s.go());
+    assert!(f.tomar().contains(&OrdenProyector::Mostrar { id: 0 }));
+    assert_eq!(son.desdes(), vec![24_000], "el sonido sale desde 0,5 s (24.000 cuadros a 48 kHz)");
+    let e: serde_json::Value = serde_json::from_str(&s.estado_json()).unwrap();
+    assert!(e["desde_s"].is_null(), "se usa una sola vez");
+    let falta = e["sonando"][0]["restante_s"].as_f64().unwrap();
+    assert!((0.4..=0.51).contains(&falta), "le falta medio segundo: {falta}");
+}
+
+#[test]
+fn cambiar_de_cue_olvida_el_punto_elegido() {
+    let d = carpeta_con_videos();
+    let (mut s, f, _son) = abrir_con_sonido(
+        &d,
+        vec![visual("1", "video/con-sonido.mp4", TipoCue::Video), visual("2", "video/mudo.mp4", TipoCue::Video)],
+    );
+    preparar_todo(&mut s);
+    f.avisar(AvisoProyector::Listo { id: 0, duracion: Some(1.0) });
+    s.limpiar();
+    s.elegir_desde(0, Some(0.5)).unwrap();
+    f.tomar();
+    s.ir_a(1);
+    assert!(f.tomar().contains(&OrdenProyector::Quitar { id: 0 }), "se suelta la precarga en ese punto");
+    s.ir_a(0);
+    let e: serde_json::Value = serde_json::from_str(&s.estado_json()).unwrap();
+    assert!(e["desde_s"].is_null());
+    s.siguiente_a_preparar();
+    match f.tomar().iter().find(|x| matches!(x, OrdenProyector::Precargar { id: 0, .. })) {
+        Some(OrdenProyector::Precargar { desde_s, .. }) => assert_eq!(*desde_s, None, "vuelve desde su inicio"),
+        x => panic!("{x:?}"),
+    }
 }

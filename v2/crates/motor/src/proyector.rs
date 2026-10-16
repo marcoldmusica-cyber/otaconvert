@@ -37,7 +37,8 @@ const LIMITE_CARGA: Duration = Duration::from_secs(15);
 #[derive(Debug, Clone, PartialEq)]
 enum Estado {
     Libre,
-    Cargando { id: u64, desde: Instant },
+    /// `buscar`: punto al que saltar al estar cargado (salir desde aquí).
+    Cargando { id: u64, desde: Instant, buscar: Option<f64> },
     Lista { id: u64 },
     Mostrando { id: u64, bucle: bool, fin_avisado: bool },
     Retirando { hasta: Instant },
@@ -156,10 +157,20 @@ pub fn ejecutar(args: &[String]) -> Result<bool, String> {
                 match c.rep.evento(0.0) {
                     Evento::Nada => break,
                     Evento::Listo => {
-                        if let Estado::Cargando { id, .. } = c.estado {
-                            let dur = c.rep.leer("duration").and_then(|d| d.parse::<f64>().ok());
-                            c.estado = Estado::Lista { id };
-                            avisar(json!({ "a": "listo", "id": id, "duracion": dur }));
+                        if let Estado::Cargando { id, desde, buscar } = c.estado {
+                            match buscar {
+                                // Salir desde un punto: se salta ahí (en pausa) y se
+                                // espera el primer cuadro de ese punto antes de avisar.
+                                Some(s) => {
+                                    let _ = c.rep.comando(&["seek", &format!("{s:.3}"), "absolute+exact"]);
+                                    c.estado = Estado::Cargando { id, desde, buscar: None };
+                                }
+                                None => {
+                                    let dur = c.rep.leer("duration").and_then(|d| d.parse::<f64>().ok());
+                                    c.estado = Estado::Lista { id };
+                                    avisar(json!({ "a": "listo", "id": id, "duracion": dur }));
+                                }
+                            }
                         }
                     }
                     Evento::FinArchivo(true) => {
@@ -172,7 +183,7 @@ pub fn ejecutar(args: &[String]) -> Result<bool, String> {
                 }
             }
             match c.estado {
-                Estado::Cargando { id, desde } if ahora.duration_since(desde) > LIMITE_CARGA => {
+                Estado::Cargando { id, desde, .. } if ahora.duration_since(desde) > LIMITE_CARGA => {
                     let _ = c.rep.comando(&["stop"]);
                     c.estado = Estado::Libre;
                     avisar(json!({ "a": "error", "id": id, "motivo": "tiempo" }));
@@ -250,7 +261,7 @@ fn precargar(proy: &Proyeccion, capas: &mut [Capa], o: &Value) {
         c.rep.comando(&["loadfile", ruta, "replace"])
     })();
     match ok {
-        Ok(()) => c.estado = Estado::Cargando { id, desde: Instant::now() },
+        Ok(()) => c.estado = Estado::Cargando { id, desde: Instant::now(), buscar: o["desde"].as_f64().filter(|s| s.is_finite() && *s > inicio) },
         Err(e) => avisar(json!({ "a": "error", "id": id, "motivo": e })),
     }
 }
