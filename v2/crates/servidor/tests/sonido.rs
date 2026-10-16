@@ -208,3 +208,87 @@ fn lo_que_suena_se_ve_y_termina_solo() {
     let e: serde_json::Value = serde_json::from_str(&s.estado_json()).unwrap();
     assert!(e["sonando"].as_array().unwrap().is_empty());
 }
+
+#[test]
+fn en_funcion_no_se_cambia_el_show() {
+    use otaconvert_servidor::sesion::Modo;
+    let d = carpeta_con_audios();
+    let (mut s, _f) = abrir(&d, vec![cue("1", "audio/tono.wav"), cue("2", "audio/tono.flac")], false);
+    s.cambiar_modo(Modo::Funcion);
+    let antes = s.show.clone();
+    assert!(s.editar_cue(0, &serde_json::json!({ "nombre": "Otro" }), true).is_err());
+    s.ir_a(1);
+    assert_eq!(s.en_espera, 0, "en Función no se elige con el ratón");
+    assert!(s.show == antes && !s.sucio);
+    // ↑↓ siguen funcionando en Función.
+    s.mover_espera(1);
+    assert_eq!(s.en_espera, 1);
+    s.cambiar_modo(Modo::Edicion);
+    s.ir_a(0);
+    assert_eq!(s.en_espera, 0);
+    s.ir_a(99);
+    assert_eq!(s.en_espera, 0, "un cue que no existe no cambia nada");
+    let registro = std::fs::read_dir(d.join("registros")).unwrap().flatten().next().unwrap().path();
+    let texto = std::fs::read_to_string(registro).unwrap();
+    assert!(texto.contains("MODO") && texto.contains("Función") && texto.contains("Edición"));
+}
+
+#[test]
+fn editar_cue_valida_todo_antes_de_cambiar() {
+    let d = carpeta_con_audios();
+    let (mut s, f) = abrir(&d, vec![cue("1", "audio/tono.wav")], false);
+    let ok = serde_json::json!({ "nombre": "Lluvia\nfuerte", "nota": "Cuando entra la novia", "volumen_db": -6.5,
+        "fundido_entrada_ms": 1500, "fundido_salida_ms": 3000, "bucle": true, "salida": "Auriculares" });
+    s.editar_cue(0, &ok, false).unwrap();
+    let c = &s.show.cues[0];
+    assert_eq!(c.nombre, "Lluvia fuerte", "sin saltos de línea en el nombre");
+    assert_eq!((c.volumen_db, c.fundido_entrada_ms, c.fundido_salida_ms, c.bucle), (-6.5, 1500, 3000, true));
+    assert_eq!(c.salida, SALIDA_AURICULARES);
+    assert!(s.sucio);
+    // Cualquier valor malo: error y nada cambia (tampoco los campos buenos del mismo pedido).
+    let antes = s.show.clone();
+    for malo in [
+        serde_json::json!({ "nombre": "x", "volumen_db": 99 }),
+        serde_json::json!({ "volumen_db": "fuerte" }),
+        serde_json::json!({ "fundido_entrada_ms": -1 }),
+        serde_json::json!({ "fundido_salida_ms": 700_000 }),
+        serde_json::json!({ "salida": "Sala" }),
+        serde_json::json!({ "archivo": "../../Windows/system.ini" }),
+        serde_json::json!({ "nombre": "a".repeat(201) }),
+        serde_json::json!({ "bucle": "si" }),
+        serde_json::json!("no es un objeto"),
+    ] {
+        assert!(s.editar_cue(0, &malo, false).is_err(), "{malo}");
+        assert!(s.show == antes, "{malo}");
+    }
+    assert!(s.editar_cue(5, &serde_json::json!({ "nombre": "x" }), false).is_err());
+    // Un cue que suena solo se edita confirmando; lo que suena no se toca.
+    s.editar_cue(0, &serde_json::json!({ "salida": "Principal", "bucle": false }), false).unwrap();
+    preparar_todo(&mut s);
+    assert!(s.go());
+    let mandados = f.recibido.lock().unwrap().len();
+    assert!(s.editar_cue(0, &serde_json::json!({ "volumen_db": -3 }), false).unwrap_err().contains("sonando"));
+    s.editar_cue(0, &serde_json::json!({ "volumen_db": -3 }), true).unwrap();
+    assert_eq!(s.show.cues[0].volumen_db, -3.0);
+    assert_eq!(f.recibido.lock().unwrap().len(), mandados, "editar no manda nada al sonido");
+}
+
+#[test]
+fn el_estado_trae_lo_que_dibuja_la_ventana() {
+    let d = carpeta_con_audios();
+    let (mut s, _f) = abrir(&d, vec![cue("1", "audio/tono.wav")], false);
+    preparar_todo(&mut s);
+    let e: serde_json::Value = serde_json::from_str(&s.estado_json()).unwrap();
+    assert_eq!(e["modo"], "edicion");
+    let c = &e["cues"][0];
+    assert!((c["duracion_s"].as_f64().unwrap() - 1.0).abs() < 0.01, "{c}");
+    assert_eq!(c["salida"], "Principal");
+    assert_eq!(c["archivo"], "audio/tono.wav");
+    assert!(s.go());
+    s.fundir_ultimo();
+    let e: serde_json::Value = serde_json::from_str(&s.estado_json()).unwrap();
+    let son = &e["sonando"][0];
+    assert_eq!(son["fundiendo"], true);
+    assert_eq!(son["salida"], "Principal");
+    assert!((0.0..=1.0).contains(&son["progreso"].as_f64().unwrap()));
+}

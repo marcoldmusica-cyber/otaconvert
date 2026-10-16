@@ -177,6 +177,18 @@ fn http(mut stream: TcpStream, ctx: &Contexto) {
         }
         if buf.len() > MAX_CABECERAS {
             responder(&stream, "431 Request Header Fields Too Large", "", "");
+            // Cerrar con datos sin leer hace que Windows corte la conexión de
+            // golpe (RST) y el otro lado puede perder la respuesta: se avisa
+            // el fin y se descarta lo que siga llegando (con límite y tiempo).
+            let _ = stream.shutdown(std::net::Shutdown::Write);
+            let _ = stream.set_read_timeout(Some(Duration::from_millis(500)));
+            let mut descartado = 0usize;
+            while descartado < 1024 * 1024 {
+                match stream.read(&mut trozo) {
+                    Ok(0) | Err(_) => break,
+                    Ok(n) => descartado += n,
+                }
+            }
             return;
         }
     }
@@ -224,12 +236,29 @@ fn difundir(ctx: &Contexto, texto: String) {
 }
 
 fn ejecutar(ctx: &Contexto, texto: &str) {
-    let orden = serde_json::from_str::<serde_json::Value>(texto)
-        .ok()
-        .and_then(|v| v.get("orden").and_then(|o| o.as_str()).map(str::to_string));
+    let v = serde_json::from_str::<serde_json::Value>(texto).unwrap_or_default();
+    let orden = v.get("orden").and_then(|o| o.as_str()).map(str::to_string);
+    let indice = || v.get("cue").and_then(|c| c.as_u64()).and_then(|c| usize::try_from(c).ok());
     let estado = {
         let Ok(mut s) = ctx.sesion.lock() else { return };
         match orden.as_deref() {
+            Some("modo_edicion") => s.cambiar_modo(sesion::Modo::Edicion),
+            Some("modo_funcion") => s.cambiar_modo(sesion::Modo::Funcion),
+            Some("ir_a") => match indice() {
+                Some(i) => s.ir_a(i),
+                None => s.aviso = Some("Cue no válido.".into()),
+            },
+            Some("editar_cue") => {
+                let forzar = v.get("forzar").and_then(|f| f.as_bool()).unwrap_or(false);
+                let r = match (indice(), v.get("cambios")) {
+                    (Some(i), Some(c)) => s.editar_cue(i, c, forzar),
+                    _ => Err("Cambios no válidos.".into()),
+                };
+                if let Err(e) = r {
+                    s.aviso = Some(e);
+                }
+            }
+            Some("cerrar_aviso") => s.aviso = None,
             Some("go") => {
                 s.go();
             }

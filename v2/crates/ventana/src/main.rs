@@ -49,7 +49,7 @@ fn main() -> ExitCode {
     use std::io::BufRead;
     use tao::dpi::LogicalSize;
     use tao::event::{Event, WindowEvent};
-    use tao::event_loop::{ControlFlow, EventLoop};
+    use tao::event_loop::{ControlFlow, EventLoopBuilder};
     use tao::platform::windows::IconExtWindows;
     use tao::window::{Icon, WindowBuilder};
     use windows_sys::Win32::System::LibraryLoader::{SetDefaultDllDirectories, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS};
@@ -70,7 +70,9 @@ fn main() -> ExitCode {
         return ExitCode::from(DIRECCION_MALA);
     };
 
-    let event_loop = EventLoop::new();
+    // Eventos propios: el nuevo título cuando la página lo cambia (nombre del show).
+    let event_loop = EventLoopBuilder::<String>::with_user_event().build();
+    let proxy = event_loop.create_proxy();
     let window = match WindowBuilder::new()
         .with_title("Otaconvert")
         .with_window_icon(Icon::from_resource(1, None).ok())
@@ -101,6 +103,10 @@ fn main() -> ExitCode {
         .with_permission_handler(|_| wry::PermissionResponse::Deny)
         .with_browser_accelerator_keys(false)
         .with_default_context_menus(false)
+        .with_document_title_changed_handler(move |t| {
+            let t: String = t.chars().filter(|c| !c.is_control()).take(200).collect();
+            let _ = proxy.send_event(t);
+        })
         .with_focused(true)
         .build(&window);
     let webview = match webview {
@@ -114,8 +120,10 @@ fn main() -> ExitCode {
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
         let _ = &webview;
-        if let Event::WindowEvent { event: WindowEvent::CloseRequested, .. } = event {
-            *control_flow = ControlFlow::ExitWithCode(0);
+        match event {
+            Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => *control_flow = ControlFlow::ExitWithCode(0),
+            Event::UserEvent(titulo) if !titulo.is_empty() => window.set_title(&titulo),
+            _ => {}
         }
     })
 }

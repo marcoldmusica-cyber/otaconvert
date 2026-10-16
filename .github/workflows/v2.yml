@@ -223,5 +223,20 @@ jobs:
 
       # Compara Cargo.lock con la base de avisos de seguridad de Rust (RustSec).
       # Falla si alguna librería tiene una vulnerabilidad conocida.
+      # Excepciones (las dos son de la parte Linux de tao/wry, que Otaconvert
+      # no compila nunca: solo hay versión para Windows):
+      # - RUSTSEC-2024-0429: glib 0.18 (GTK, solo Linux).
+      # - RUSTSEC-2024-0370: proc-macro-error sin mantenimiento (lo usa GTK, solo Linux).
+      # El paso siguiente comprueba que de verdad no entran en Windows: si algún
+      # día entraran, falla y hay que revisarlas.
       - name: Revisar librerías
-        run: cargo audit --deny warnings
+        run: cargo audit --deny warnings --ignore RUSTSEC-2024-0429 --ignore RUSTSEC-2024-0370
+
+      - name: Las excepciones no entran en la versión de Windows
+        run: |
+          rustup target add x86_64-pc-windows-msvc
+          if cargo tree --locked --workspace --target x86_64-pc-windows-msvc -e normal,build | grep -E "glib|proc-macro-error"; then
+            echo "glib o proc-macro-error entran en la versión de Windows: revisar las excepciones de cargo audit"
+            exit 1
+          fi
+          echo "Bien: no entran en la versión de Windows"

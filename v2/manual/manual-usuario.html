@@ -84,6 +84,7 @@ li{margin:4px 0}
 .estado{display:inline-block;font-size:12px;border-radius:99px;padding:2px 10px;border:1px solid var(--border);color:var(--muted);vertical-align:middle;margin-left:6px;font-weight:400}
 .estado.ya{border-color:var(--ok);color:var(--ok)}
 .estado.pronto{border-color:var(--warn);color:var(--warn)}
+.verde{color:var(--ok)}
 
 .pasos{counter-reset:paso;list-style:none;padding:0;display:flex;flex-direction:column;gap:10px}
 .pasos li{counter-increment:paso;display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;align-items:start;background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin:0}
@@ -270,10 +271,10 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
 </section>
 
 <section class="card" id="pantalla">
-  <h2>La pantalla</h2>
+  <h2>La pantalla <span class="estado ya">Ya funciona</span></h2>
   <figure>
     <img src="img/pantalla-inicio.png" alt="Pantalla principal de Otaconvert: menús arriba, lista de cues a la izquierda, detalle del cue a la derecha y botones GO, Pausa, Fundir todo y Parar todo abajo." width="1366" height="768">
-    <figcaption>Boceto de la pantalla principal al abrir el programa. La línea de teclas de arriba de todo es una nota del boceto.</figcaption>
+    <figcaption>La pantalla del programa con el show de ejemplo, en Edición. El programa abre su propia ventana; al cerrarla, termina.</figcaption>
   </figure>
   <div class="tabla"><table>
     <tr><th>Parte</th><th>Para qué sirve</th></tr>
@@ -281,22 +282,23 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <tr><td>Nombre del show</td><td>La obra que tienes abierta y el teatro donde estás.</td></tr>
     <tr><td>Show · Convertir</td><td>Show es donde preparas y haces la función. Convertir sirve para cambiar archivos de audio de formato.</td></tr>
     <tr><td>Edición · Función</td><td>Las dos formas de usar el programa. Se cambia con la tecla <kbd>Tab</kbd>.</td></tr>
-    <tr><td>Todo listo</td><td>La luz verde: el programa revisó la tarjeta de sonido, el proyector y los archivos.</td></tr>
-    <tr><td>Lista de cues</td><td>Todos los cues en orden. El que tiene el borde de color es el que sale con el próximo GO.</td></tr>
+    <tr><td>Conectado al motor</td><td>Punto verde: la ventana está conectada con el sonido. Más adelante aquí estará la luz verde de <strong>Todo listo</strong> (el programa revisó la tarjeta de sonido, el proyector y los archivos).</td></tr>
+    <tr><td>Lista de cues</td><td>Todos los cues en orden. El que tiene el borde de color es el que sale con el próximo GO. <span class="verde">Listo</span> quiere decir que ese audio ya está cargado en memoria. Lo que suena se ve en verde, con una barrita que avanza.</td></tr>
     <tr><td>Panel derecho</td><td>En Edición, los ajustes del cue elegido. En Función, lo que está sonando y lo que viene.</td></tr>
     <tr><td>GO y botones</td><td>Los botones de la función. Están siempre en el mismo lugar.</td></tr>
   </table></div>
 </section>
 
 <section class="card" id="modos">
-  <h2>Edición y Función</h2>
-  <p><strong>Edición</strong> es para preparar el show, como armar los juguetes antes de jugar. Ves todos los ajustes, la forma de onda del sonido y puedes cambiar todo.</p>
-  <p><strong>Función</strong> es para el show de verdad. Se esconde lo que no hace falta y se agrandan el cue que suena y el que viene, para que no te equivoques.</p>
+  <h2>Edición y Función <span class="estado ya">Ya funciona</span></h2>
+  <p><strong>Edición</strong> es para preparar el show, como armar los juguetes antes de jugar. Tocas un cue de la lista y a la derecha cambias su nombre, su nota, la salida, el volumen, los fundidos y si se repite en bucle. Los cambios se guardan solos.</p>
+  <p><strong>Función</strong> es para el show de verdad. A la derecha ves en grande lo que suena (con el tiempo que le falta) y lo que viene con el próximo GO, con su nota. Ahí no se puede cambiar nada, para que no te equivoques.</p>
   <ul>
-    <li>Cambias de modo con <kbd>Tab</kbd> en cualquier momento. <strong>El sonido no se corta</strong> al cambiar.</li>
-    <li>GO y Parar todo funcionan en los dos modos.</li>
-    <li>En Edición, un cue que está sonando aparece bloqueado: para cambiarlo, primero lo paras o confirmas.</li>
-    <li>Si quieres más seguridad, activa <strong>Proteger Función</strong> en el menú Vista: para salir de Función hay que mantener <kbd>Tab</kbd> apretado medio segundo.</li>
+    <li>Cambias de modo con <kbd>Tab</kbd> o con los botones Edición y Función de arriba. <strong>El sonido no se corta</strong> al cambiar.</li>
+    <li>GO, Pausa, Fundir todo y Parar todo funcionan en los dos modos.</li>
+    <li>En Función no se elige el cue con el ratón (así no lo cambias sin querer): usa <kbd>↑</kbd> y <kbd>↓</kbd>.</li>
+    <li>En Edición, un cue que está sonando aparece bloqueado: para cambiarlo, primero lo paras o tocas <strong>Editar igualmente</strong>. Lo que cambies se usa desde el próximo GO; lo que ya suena no cambia.</li>
+    <li><span class="estado pronto">Próximamente</span> <strong>Proteger Función</strong> en el menú Vista: para salir de Función habrá que mantener <kbd>Tab</kbd> apretado medio segundo.</li>
   </ul>
 </section>
 
@@ -346,13 +348,15 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
   <h2>Cómo se ve el programa</h2>
   <p>En el menú <strong>Vista</strong> eliges cómo se ve:</p>
   <ul>
-    <li><strong>Vistas listas:</strong> Estándar, Minimalista, Pantalla táctil (botones grandes) y Alto contraste.</li>
-    <li><strong>Modo noche:</strong> todo oscuro y rojizo, para no encandilar en la cabina.</li>
-    <li><strong>Modo día:</strong> fondo blanco y máximo contraste, para funciones al aire libre.</li>
-    <li><strong>Idioma:</strong> Español o English. Todo el programa, la ayuda y los consejos cambian juntos.</li>
-    <li><strong>Personalizar:</strong> arrastras los paneles y los botones a donde te queden más cómodos y tocas <strong>Listo</strong>. GO y Parar todo se pueden mover y agrandar, pero nunca esconder.</li>
-    <li><strong>Restaurar vista</strong> vuelve todo a como venía.</li>
+    <li><span class="estado ya">Ya funciona</span> <strong>Modo noche:</strong> todo oscuro y rojizo, para no encandilar en la cabina.</li>
+    <li><span class="estado ya">Ya funciona</span> <strong>Modo día:</strong> fondo blanco y máximo contraste, para funciones al aire libre.</li>
+    <li><span class="estado ya">Ya funciona</span> <strong>Alto contraste:</strong> negro puro y letras blancas, para ver mejor.</li>
+    <li><span class="estado ya">Ya funciona</span> <strong>Restaurar vista</strong> vuelve todo a como venía.</li>
+    <li><span class="estado pronto">Próximamente</span> <strong>Vistas listas:</strong> Minimalista y Pantalla táctil (botones grandes).</li>
+    <li><span class="estado pronto">Próximamente</span> <strong>Idioma:</strong> Español o English. Todo el programa, la ayuda y los consejos cambian juntos.</li>
+    <li><span class="estado pronto">Próximamente</span> <strong>Personalizar:</strong> arrastras los paneles y los botones a donde te queden más cómodos y tocas <strong>Listo</strong>. GO y Parar todo se pueden mover y agrandar, pero nunca esconder.</li>
   </ul>
+  <p>Lo que todavía no funciona aparece en gris en los menús, con la palabra «Próximamente».</p>
   <p>En Función el diseño queda bloqueado para que no lo cambies sin querer; solo se pueden cambiar el brillo y los modos noche y día.</p>
 </section>
 
@@ -389,15 +393,17 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
   <div class="tabla"><table>
     <tr><th>Tecla</th><th>Qué hace</th></tr>
     <tr><td><kbd>Espacio</kbd></td><td>GO: empieza el siguiente cue.</td></tr>
-    <tr><td><kbd>Esc</kbd></td><td>Parar todo.</td></tr>
+    <tr><td><kbd>Esc</kbd></td><td>Parar todo. Funciona <strong>siempre</strong>, aunque estés escribiendo o tengas un menú abierto (y de paso lo cierra).</td></tr>
     <tr><td><kbd>P</kbd></td><td>Pausa y seguir.</td></tr>
     <tr><td><kbd>F</kbd></td><td>Fundir todo.</td></tr>
     <tr><td><kbd>Mayús</kbd> + <kbd>F</kbd></td><td>Fundir solo el último cue que empezó.</td></tr>
     <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Elegir qué cue sale con el próximo GO.</td></tr>
     <tr><td><kbd>Tab</kbd></td><td>Cambiar entre Edición y Función.</td></tr>
-    <tr><td><kbd>H</kbd></td><td>Modo Ayuda.</td></tr>
-    <tr><td><kbd>Ctrl</kbd> <kbd>Z</kbd> / <kbd>Ctrl</kbd> <kbd>Y</kbd></td><td>Deshacer y rehacer (en Edición).</td></tr>
+    <tr><td><kbd>Ctrl</kbd> <kbd>S</kbd></td><td>Guardar (también se guarda solo cada 30 segundos y al cerrar).</td></tr>
+    <tr><td><kbd>H</kbd></td><td>Modo Ayuda. <span class="estado pronto">Próximamente</span></td></tr>
+    <tr><td><kbd>Ctrl</kbd> <kbd>Z</kbd> / <kbd>Ctrl</kbd> <kbd>Y</kbd></td><td>Deshacer y rehacer (en Edición). <span class="estado pronto">Próximamente</span></td></tr>
   </table></div>
+  <p>La lista de teclas también está en <strong>Ayuda → Atajos de teclado</strong>.</p>
   <p class="muted">Si estás escribiendo en un campo de texto, <kbd>Tab</kbd> pasa al campo siguiente en vez de cambiar de modo. Las teclas se podrán cambiar desde el menú Vista.</p>
 </section>
 

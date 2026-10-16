@@ -23,7 +23,24 @@ struct Sonando {
     inicio: Instant,
     /// `None` = bucle (no termina solo).
     duracion: Option<Duration>,
+    /// Duración de una vuelta del cue (para la barra de progreso).
+    largo: Duration,
+    /// Se está fundiendo (F o Mayús+F).
+    fundiendo: bool,
 }
+
+/// Edición prepara el show; Función es para la función de verdad: el motor
+/// rechaza ahí cualquier cambio del show (no solo la ventana).
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum Modo {
+    Edicion,
+    Funcion,
+}
+
+/// Límites de lo que se puede escribir desde la ventana.
+const MAX_NOMBRE: usize = 200;
+const MAX_NOTA: usize = 2000;
+const MAX_FUNDIDO_MS: u32 = 10 * 60 * 1000;
 
 pub struct Sesion {
     pub show: Show,
@@ -34,6 +51,7 @@ pub struct Sesion {
     pub sucio: bool,
     pub aviso: Option<String>,
     pub pausado: bool,
+    pub modo: Modo,
     registro: Registro,
     ultimo_go: Option<Instant>,
     sonido: Option<Box<dyn Sonido>>,
@@ -82,6 +100,7 @@ impl Sesion {
             sucio: false,
             aviso: None,
             pausado: false,
+            modo: Modo::Edicion,
             registro,
             ultimo_go: None,
             sonido: None,
@@ -228,13 +247,107 @@ impl Sesion {
             self.aviso = Some(format!("No se pudo disparar: {e}"));
             return;
         }
+        let largo = Duration::from_secs_f64(fin.saturating_sub(inicio) as f64 / fs);
         self.sonando.push(Sonando {
             id,
             cue: i,
             destino,
             inicio: Instant::now(),
-            duracion: (!c.bucle).then(|| Duration::from_secs_f64(fin.saturating_sub(inicio) as f64 / fs)),
+            duracion: (!c.bucle).then_some(largo),
+            largo,
+            fundiendo: false,
         });
+    }
+
+    /// Cambia entre Edición y Función (Tab). Nunca toca lo que suena.
+    pub fn cambiar_modo(&mut self, modo: Modo) {
+        if self.modo != modo {
+            self.modo = modo;
+            self.registro.anotar("MODO", if modo == Modo::Funcion { "Función" } else { "Edición" });
+        }
+    }
+
+    /// En Edición, clic en un cue: queda en espera.
+    pub fn ir_a(&mut self, i: usize) {
+        if self.modo == Modo::Funcion {
+            self.aviso = Some("En Función no se elige el cue con el ratón: usa ↑ y ↓.".into());
+            return;
+        }
+        if i < self.show.cues.len() {
+            self.en_espera = i;
+        }
+    }
+
+    /// En Edición, cambia campos de un cue. Se valida todo antes de aplicar;
+    /// si algo no vale, no se cambia nada y se avisa. Un cue que suena solo
+    /// se edita con `forzar` (la ventana lo pide confirmando). Los cambios se
+    /// usan desde el próximo GO: lo que ya suena no se toca.
+    pub fn editar_cue(&mut self, i: usize, cambios: &serde_json::Value, forzar: bool) -> Result<(), String> {
+        if self.modo == Modo::Funcion {
+            return Err("En Función no se puede cambiar el show. Pasa a Edición con Tab.".into());
+        }
+        let Some(original) = self.show.cues.get(i) else {
+            return Err("Ese cue no existe.".into());
+        };
+        if !forzar && self.sonando.iter().any(|s| s.cue == i) {
+            return Err("Este cue está sonando: páralo o confirma para editarlo.".into());
+        }
+        let Some(campos) = cambios.as_object() else {
+            return Err("Cambios no válidos.".into());
+        };
+        let mut c = original.clone();
+        for (k, v) in campos {
+            match k.as_str() {
+                "nombre" => {
+                    let t = v.as_str().ok_or("El nombre debe ser texto.")?;
+                    if t.chars().count() > MAX_NOMBRE {
+                        return Err(format!("El nombre puede tener hasta {MAX_NOMBRE} letras."));
+                    }
+                    c.nombre = t.replace(['\r', '\n'], " ");
+                }
+                "nota" => {
+                    let t = v.as_str().ok_or("La nota debe ser texto.")?;
+                    if t.chars().count() > MAX_NOTA {
+                        return Err(format!("La nota puede tener hasta {MAX_NOTA} letras."));
+                    }
+                    c.nota = t.to_string();
+                }
+                "volumen_db" => {
+                    let x = v.as_f64().ok_or("El volumen debe ser un número.")? as f32;
+                    if !x.is_finite() || !(-60.0..=24.0).contains(&x) {
+                        return Err("El volumen va de −60 dB a +24 dB.".into());
+                    }
+                    c.volumen_db = x;
+                }
+                "fundido_entrada_ms" | "fundido_salida_ms" => {
+                    let x = v.as_u64().filter(|&x| x <= MAX_FUNDIDO_MS as u64).ok_or("El fundido va de 0 a 600 segundos.")? as u32;
+                    if k == "fundido_entrada_ms" {
+                        c.fundido_entrada_ms = x;
+                    } else {
+                        c.fundido_salida_ms = x;
+                    }
+                }
+                "bucle" => c.bucle = v.as_bool().ok_or("Bucle debe ser sí o no.")?,
+                "salida" => {
+                    let t = v.as_str().ok_or("Salida no válida.")?;
+                    if t != otaconvert_show::SALIDA_PRINCIPAL && t != SALIDA_AURICULARES {
+                        return Err("La salida debe ser Principal o Auriculares.".into());
+                    }
+                    c.salida = t.to_string();
+                }
+                _ => return Err(format!("No se puede cambiar «{k}» desde aquí.")),
+            }
+        }
+        let mut prueba = self.show.clone();
+        prueba.cues[i] = c;
+        otaconvert_show::validar(&prueba).map_err(|e| e.to_string())?;
+        if prueba.cues[i] != self.show.cues[i] {
+            self.show = prueba;
+            self.sucio = true;
+            let d = self.describir(i);
+            self.registro.anotar("EDITAR", &d);
+        }
+        Ok(())
     }
 
     pub fn mover_espera(&mut self, delta: i64) {
@@ -261,13 +374,16 @@ impl Sesion {
         self.registro.anotar("FUNDIR", "Fundir todo");
         let fin = Instant::now() + Duration::from_millis(self.show.ajustes.fundir_todo_ms as u64);
         for s in &mut self.sonando {
-            s.duracion = Some(fin.saturating_duration_since(s.inicio));
+            s.duracion = Some(fin.saturating_duration_since(s.inicio).min(s.duracion.unwrap_or(Duration::MAX)));
+            s.fundiendo = true;
         }
     }
 
     /// Mayús+F: funde solo el último cue que se disparó (pedido del usuario).
     pub fn fundir_ultimo(&mut self) {
-        let Some(s) = self.sonando.last() else {
+        // El último que todavía no se está fundiendo: un segundo Mayús+F
+        // funde el anterior.
+        let Some(s) = self.sonando.iter().rev().find(|s| !s.fundiendo) else {
             self.aviso = Some("No hay nada sonando para fundir.".into());
             return;
         };
@@ -280,7 +396,8 @@ impl Sesion {
         self.registro.anotar("FUNDIR", &format!("solo {d}"));
         let fin = Instant::now() + Duration::from_millis(self.show.ajustes.fundir_todo_ms as u64);
         if let Some(s) = self.sonando.iter_mut().find(|s| s.id == id) {
-            s.duracion = Some(fin.saturating_duration_since(s.inicio));
+            s.duracion = Some(fin.saturating_duration_since(s.inicio).min(s.duracion.unwrap_or(Duration::MAX)));
+            s.fundiendo = true;
         }
     }
 
@@ -418,12 +535,26 @@ impl Sesion {
                 } else {
                     ""
                 };
+                // Duración de una vuelta, cuando el audio ya está preparado.
+                let duracion_s = self.preparados.get(&i).map(|p| {
+                    let fs = p.frecuencia() as f64;
+                    let total = p.cuadros() as f64 / fs;
+                    let ini = (c.inicio_ms as f64 / 1000.0).min(total);
+                    let fin = c.fin_ms.map(|f| (f as f64 / 1000.0).min(total)).unwrap_or(total);
+                    (fin - ini).max(0.0)
+                });
                 json!({
                     "numero": if c.numero.is_empty() { (i + 1).to_string() } else { c.numero.clone() },
                     "nombre": c.nombre,
                     "tipo": match c.tipo { TipoCue::Audio => "audio", TipoCue::Video => "video", TipoCue::Imagen => "imagen" },
+                    "archivo": c.archivo,
                     "nota": c.nota,
                     "bucle": c.bucle,
+                    "salida": c.salida,
+                    "volumen_db": c.volumen_db,
+                    "fundido_entrada_ms": c.fundido_entrada_ms,
+                    "fundido_salida_ms": c.fundido_salida_ms,
+                    "duracion_s": duracion_s,
                     "preparacion": preparacion,
                     "error": self.errores.get(&i),
                 })
@@ -435,10 +566,16 @@ impl Sesion {
             .iter()
             .map(|s| {
                 let transcurrido = self.pausa_desde.unwrap_or(ahora).saturating_duration_since(s.inicio);
+                let largo = s.largo.as_secs_f64();
+                let pasado = transcurrido.as_secs_f64();
                 json!({
                     "cue": s.cue,
                     "nombre": self.show.cues.get(s.cue).map(|c| c.nombre.clone()).unwrap_or_default(),
                     "restante_s": s.duracion.map(|d| d.saturating_sub(transcurrido).as_secs_f64()),
+                    // Progreso de la vuelta actual, de 0 a 1 (en bucle vuelve a 0).
+                    "progreso": if largo > 0.0 { ((pasado % largo) / largo).min(1.0) } else { 0.0 },
+                    "fundiendo": s.fundiendo,
+                    "salida": if s.destino == Destino::Auriculares { "Auriculares" } else { "Principal" },
                 })
             })
             .collect();
@@ -453,6 +590,8 @@ impl Sesion {
             "pausado": self.pausado,
             "sonando": sonando,
             "con_sonido": self.sonido.is_some(),
+            "auriculares": self.sonido.as_ref().is_some_and(|s| s.tiene_auriculares()),
+            "modo": if self.modo == Modo::Funcion { "funcion" } else { "edicion" },
         })
         .to_string()
     }
