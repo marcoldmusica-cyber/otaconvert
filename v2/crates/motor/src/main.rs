@@ -12,6 +12,7 @@ use otaconvert_audio::{crear, Ajustes, Comando, Control, Detector, Mezclador, Pi
 mod componentes;
 mod equipo;
 mod pantallas;
+mod show_cmd;
 mod prueba_hardware;
 mod vigilante;
 #[cfg(windows)]
@@ -77,6 +78,7 @@ fn main() -> ExitCode {
         args.push("--prueba-hardware".into());
     }
     let sin_pausa = args.iter().any(|a| a == "--sin-pausa");
+    let sin_navegador = args.iter().any(|a| a == "--sin-navegador");
     let num = |i: usize, defecto: u64| args.get(i).and_then(|s| s.parse().ok()).unwrap_or(defecto);
     let r = match args.first().map(String::as_str) {
         Some("--version") => {
@@ -88,6 +90,14 @@ fn main() -> ExitCode {
             Ok(true)
         }
         Some("--comprobar") => Ok(componentes::imprimir()),
+        Some("--show-ejemplo") => match args.get(1) {
+            Some(c) => show_cmd::crear_ejemplo(std::path::Path::new(c)),
+            None => Err("falta la carpeta: --show-ejemplo <carpeta>".into()),
+        },
+        Some("--abrir-show") => match args.get(1) {
+            Some(r) => show_cmd::abrir(std::path::Path::new(r), !sin_navegador),
+            None => Err("falta el show: --abrir-show <carpeta o archivo .otashow>".into()),
+        },
         Some("--info-equipo") => {
             equipo::imprimir();
             Ok(true)
@@ -115,6 +125,8 @@ fn main() -> ExitCode {
             println!("  --version");
             println!("  --prueba-hardware [--sin-pausa]        todas las pruebas en orden, con informe (también con doble clic en \"Prueba de hardware.exe\")");
             println!("  --info-equipo                          Windows, procesador, memoria, tarjetas gráficas, corriente");
+            println!("  --show-ejemplo <carpeta>               crea un show de ejemplo");
+            println!("  --abrir-show <carpeta | .otashow> [--sin-navegador]   abre el show con la interfaz mínima");
             println!("  --comprobar                            componentes necesarios: qué hay y qué falta");
             println!("  --listar-salidas                       salidas de audio, con número e identificador");
             println!("  --listar-pantallas                     pantallas para la salida de vídeo");

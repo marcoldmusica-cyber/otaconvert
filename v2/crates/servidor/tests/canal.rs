@@ -1,0 +1,212 @@
+//! Pruebas del canal ventana ↔ motor: solo entra quien tiene el token, con
+//! el Host y el Origin correctos; GO, doble GO, varias ventanas, guardado.
+
+use std::io::{Read, Write};
+use std::net::TcpStream;
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+
+use otaconvert_servidor::{Servidor, Sesion};
+use otaconvert_show::{guardar, Cue, Show};
+use tungstenite::client::IntoClientRequest;
+use tungstenite::Message;
+
+static N: AtomicUsize = AtomicUsize::new(0);
+
+fn show_de_prueba() -> (PathBuf, Arc<Mutex<Sesion>>, Servidor) {
+    let d = std::env::temp_dir().join(format!("otaconvert-prueba-canal-{}-{}", std::process::id(), N.fetch_add(1, Ordering::SeqCst)));
+    let _ = std::fs::remove_dir_all(&d);
+    std::fs::create_dir_all(&d).unwrap();
+    let mut show = Show { nombre: "Prueba <b>sin HTML</b>".into(), ..Default::default() };
+    for i in 1..=4 {
+        show.cues.push(Cue { id: i, numero: i.to_string(), nombre: format!("Cue {i}"), archivo: format!("audio/{i}.wav"), ..Default::default() });
+    }
+    show.ajustes.tiempo_minimo_entre_go_ms = 300;
+    let ruta = d.join("prueba.otashow");
+    guardar(&show, &ruta, "20261016-000000").unwrap();
+    let sesion = Arc::new(Mutex::new(Sesion::abrir(&d).unwrap()));
+    let srv = Servidor::iniciar(sesion.clone()).unwrap();
+    (d, sesion, srv)
+}
+
+fn token(srv: &Servidor) -> String {
+    srv.url().split("?t=").nth(1).unwrap().to_string()
+}
+
+/// Pedido HTTP crudo; devuelve la respuesta completa.
+fn pedir(puerto: u16, pedido: &str) -> String {
+    let mut s = TcpStream::connect(("127.0.0.1", puerto)).unwrap();
+    s.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+    s.write_all(pedido.as_bytes()).unwrap();
+    let mut r = String::new();
+    let _ = s.read_to_string(&mut r);
+    r
+}
+
+fn get(puerto: u16, destino: &str, host: &str) -> String {
+    pedir(puerto, &format!("GET {destino} HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n"))
+}
+
+#[test]
+fn la_pagina_solo_con_token_y_host_correctos() {
+    let (_d, _s, srv) = show_de_prueba();
+    let p = srv.puerto;
+    let host = format!("127.0.0.1:{p}");
+    let t = token(&srv);
+    assert_eq!(t.len(), 64);
+
+    let ok = get(p, &format!("/?t={t}"), &host);
+    assert!(ok.starts_with("HTTP/1.1 200"), "{ok}");
+    assert!(ok.contains("Content-Security-Policy: default-src 'none'"));
+    assert!(ok.contains(&format!("connect-src ws://127.0.0.1:{p}")));
+    assert!(ok.contains("Referrer-Policy: no-referrer"));
+    assert!(ok.contains("X-Frame-Options: DENY"));
+    assert!(!ok.to_ascii_lowercase().contains("access-control-allow-origin"), "sin CORS");
+
+    assert!(get(p, "/", &host).starts_with("HTTP/1.1 403"), "sin token");
+    assert!(get(p, "/?t=0000", &host).starts_with("HTTP/1.1 403"), "token corto");
+    let casi: String = t.chars().rev().collect();
+    assert!(get(p, &format!("/?t={casi}"), &host).starts_with("HTTP/1.1 403"), "token equivocado");
+    // DNS rebinding: un sitio malicioso que resuelve a 127.0.0.1 manda su propio Host.
+    assert!(get(p, &format!("/?t={t}"), "malicioso.com").starts_with("HTTP/1.1 403"));
+    assert!(get(p, &format!("/?t={t}"), &format!("localhost:{p}")).starts_with("HTTP/1.1 403"));
+    assert!(get(p, &format!("/otra?t={t}"), &host).starts_with("HTTP/1.1 404"));
+    let post = pedir(p, &format!("POST /?t={t} HTTP/1.1\r\nHost: {host}\r\nContent-Length: 0\r\n\r\n"));
+    assert!(post.starts_with("HTTP/1.1 405"), "{post}");
+}
+
+#[test]
+fn cabeceras_enormes_se_cortan() {
+    let (_d, _s, srv) = show_de_prueba();
+    let relleno = "X-Relleno: ".to_string() + &"a".repeat(10_000);
+    let r = pedir(srv.puerto, &format!("GET / HTTP/1.1\r\n{relleno}\r\n\r\n"));
+    assert!(r.starts_with("HTTP/1.1 431"), "{}", &r[..r.len().min(40)]);
+}
+
+fn conectar_ws(srv: &Servidor, origen: Option<&str>, tok: &str) -> Result<tungstenite::WebSocket<TcpStream>, String> {
+    let p = srv.puerto;
+    let mut req = format!("ws://127.0.0.1:{p}/ws?t={tok}").into_client_request().unwrap();
+    if let Some(o) = origen {
+        req.headers_mut().insert("Origin", o.parse().unwrap());
+    }
+    let s = TcpStream::connect(("127.0.0.1", p)).unwrap();
+    s.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+    tungstenite::client(req, s).map(|(ws, _)| ws).map_err(|e| e.to_string())
+}
+
+fn leer_estado(ws: &mut tungstenite::WebSocket<TcpStream>) -> serde_json::Value {
+    loop {
+        if let Message::Text(t) = ws.read().unwrap() {
+            let v: serde_json::Value = serde_json::from_str(t.as_str()).unwrap();
+            if v["tipo"] == "estado" {
+                return v;
+            }
+        }
+    }
+}
+
+#[test]
+fn websocket_rechaza_origen_o_token_malos() {
+    let (_d, _s, srv) = show_de_prueba();
+    let p = srv.puerto;
+    let t = token(&srv);
+    let bueno = format!("http://127.0.0.1:{p}");
+    assert!(conectar_ws(&srv, Some("https://pagina-maliciosa.com"), &t).is_err(), "otro origen");
+    assert!(conectar_ws(&srv, Some(&format!("http://localhost:{p}")), &t).is_err(), "localhost no es el origen");
+    assert!(conectar_ws(&srv, None, &t).is_err(), "sin origen");
+    assert!(conectar_ws(&srv, Some(&bueno), "malo").is_err(), "token malo");
+    assert!(conectar_ws(&srv, Some(&bueno), &t).is_ok());
+}
+
+#[test]
+fn go_avanza_y_protege_contra_doble_go() {
+    let (d, _s, srv) = show_de_prueba();
+    let t = token(&srv);
+    let mut ws = conectar_ws(&srv, Some(&format!("http://127.0.0.1:{}", srv.puerto)), &t).unwrap();
+    let e = leer_estado(&mut ws);
+    assert_eq!(e["show"], "Prueba <b>sin HTML</b>");
+    assert_eq!(e["cues"].as_array().unwrap().len(), 4);
+    assert_eq!(e["en_espera"], 0);
+
+    ws.send(Message::text(r#"{"orden":"go"}"#)).unwrap();
+    let e = leer_estado(&mut ws);
+    assert_eq!(e["en_espera"], 1);
+    assert_eq!(e["ultimo"], 0);
+
+    // Segundo GO enseguida: ignorado.
+    ws.send(Message::text(r#"{"orden":"go"}"#)).unwrap();
+    let e = leer_estado(&mut ws);
+    assert_eq!(e["en_espera"], 1, "el doble GO no debe disparar");
+    assert!(e["aviso"].as_str().unwrap().contains("doble GO"));
+
+    std::thread::sleep(Duration::from_millis(350));
+    ws.send(Message::text(r#"{"orden":"go"}"#)).unwrap();
+    assert_eq!(leer_estado(&mut ws)["en_espera"], 2);
+
+    ws.send(Message::text(r#"{"orden":"espera_arriba"}"#)).unwrap();
+    assert_eq!(leer_estado(&mut ws)["en_espera"], 1);
+    ws.send(Message::text("esto no es JSON")).unwrap();
+    assert_eq!(leer_estado(&mut ws)["aviso"], "Orden desconocida.");
+
+    // El registro de la función anotó los GO y el ignorado.
+    let reg = std::fs::read_dir(d.join("registros")).unwrap().next().unwrap().unwrap().path();
+    let texto = std::fs::read_to_string(reg).unwrap();
+    assert_eq!(texto.matches("GO ").count(), 2, "{texto}");
+    assert!(texto.contains("IGNORADO"));
+}
+
+#[test]
+fn varias_ventanas_ven_lo_mismo() {
+    let (_d, _s, srv) = show_de_prueba();
+    let t = token(&srv);
+    let o = format!("http://127.0.0.1:{}", srv.puerto);
+    let mut a = conectar_ws(&srv, Some(&o), &t).unwrap();
+    let mut b = conectar_ws(&srv, Some(&o), &t).unwrap();
+    leer_estado(&mut a);
+    leer_estado(&mut b);
+    a.send(Message::text(r#"{"orden":"go"}"#)).unwrap();
+    assert_eq!(leer_estado(&mut a)["en_espera"], 1);
+    assert_eq!(leer_estado(&mut b)["en_espera"], 1, "la otra ventana también se entera");
+}
+
+#[test]
+fn mensaje_gigante_cierra_la_conexion() {
+    let (_d, s, srv) = show_de_prueba();
+    let t = token(&srv);
+    let mut ws = conectar_ws(&srv, Some(&format!("http://127.0.0.1:{}", srv.puerto)), &t).unwrap();
+    leer_estado(&mut ws);
+    let _ = ws.send(Message::text("x".repeat(200_000)));
+    // El motor corta esa conexión pero sigue vivo para las demás.
+    let mut cerrada = false;
+    for _ in 0..20 {
+        match ws.read() {
+            Ok(Message::Close(_)) | Err(_) => {
+                cerrada = true;
+                break;
+            }
+            Ok(_) => {}
+        }
+    }
+    assert!(cerrada);
+    assert_eq!(s.lock().unwrap().en_espera, 0);
+    assert!(conectar_ws(&srv, Some(&format!("http://127.0.0.1:{}", srv.puerto)), &t).is_ok());
+}
+
+#[test]
+fn guardado_automatico_solo_si_hay_cambios() {
+    let (d, s, _srv) = show_de_prueba();
+    let ruta = d.join("prueba.otashow");
+    let antes = std::fs::metadata(&ruta).unwrap().modified().unwrap();
+    s.lock().unwrap().guardar_si_hace_falta();
+    assert_eq!(std::fs::metadata(&ruta).unwrap().modified().unwrap(), antes, "sin cambios no guarda");
+    {
+        let mut g = s.lock().unwrap();
+        g.show.nombre = "Cambiado".into();
+        g.sucio = true;
+        g.guardar_si_hace_falta();
+        assert!(!g.sucio);
+    }
+    assert_eq!(otaconvert_show::abrir(&ruta).unwrap().nombre, "Cambiado");
+}

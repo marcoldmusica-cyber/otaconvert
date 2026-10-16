@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Otaconvert</title>
+<!-- Interfaz mínima de la etapa 1: lista de cues, GO y Parar todo, conectada al
+     motor por el canal seguro. La interfaz completa (boceto aprobado) llega en
+     la etapa 3. Los textos del show se ponen con textContent: nunca como HTML. -->
+<style>
+:root{color-scheme:dark;--bg:#0E1117;--card:#151921;--card2:#1B2029;--hover:#252B37;--border:#262C38;--text:#E9ECF2;--muted:#9098A8;--dim:#5D6677;--accent:#6F80FF;--ok:#58D69A;--err:#F27A74;--warn:#F2C46B;--on-accent:#0E1117;
+  --font:"Segoe UI","SF Pro Display",system-ui,Helvetica,Arial,sans-serif}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 var(--font);padding:16px;display:flex;flex-direction:column;gap:12px}
+header{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:10px 14px}
+.bars{display:flex;align-items:center;gap:3px;height:22px}
+.bars i{display:block;width:4px;border-radius:2px;background:var(--accent);height:calc(var(--h)*100%)}
+header strong{font-size:15px}
+.spacer{flex:1}
+.chip{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:99px;padding:5px 10px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--err)}
+.on .dot{background:var(--ok)}
+main{flex:1;min-height:0;background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:auto;padding:6px}
+.row{display:grid;grid-template-columns:48px minmax(0,1fr) 80px;gap:10px;align-items:center;padding:9px 10px;border-radius:12px;border:1px solid transparent}
+.row .num{color:var(--dim);font-variant-numeric:tabular-nums}
+.row .nota{display:block;font-size:12px;color:var(--muted)}
+.row .tipo{font-size:12px;color:var(--muted);text-align:right}
+.row.espera{border-color:var(--accent);background:var(--card2)}
+.row.espera .num{color:var(--accent);font-weight:700}
+.row.disparado{color:var(--ok)}
+.vacio{color:var(--muted);text-align:center;padding:40px}
+footer{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:12px}
+button{font:inherit;color:inherit;cursor:pointer}
+.go{min-height:76px;border:0;border-radius:16px;background:var(--accent);color:var(--on-accent);font-size:30px;font-weight:700;letter-spacing:.06em}
+.go:active{transform:translateY(1px)}
+.stop{min-height:76px;border-radius:16px;border:1px solid var(--err);background:var(--card);color:var(--err);font-weight:700;font-size:16px}
+kbd{font:12px "Cascadia Mono",Consolas,monospace;background:var(--card2);border:1px solid var(--border);border-bottom-width:2px;border-radius:6px;padding:1px 6px;color:var(--text);margin-left:8px}
+.aviso{background:var(--card2);border-left:3px solid var(--warn);border-radius:0 12px 12px 0;padding:8px 12px;color:var(--text)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <div class="bars" aria-hidden="true"><i style="--h:.38"></i><i style="--h:.72"></i><i style="--h:1"></i><i style="--h:.58"></i><i style="--h:.84"></i><i style="--h:.46"></i></div>
+  <strong id="nombre">Otaconvert</strong>
+  <span class="spacer"></span>
+  <span class="chip" id="conexion"><span class="dot"></span><span id="conexion-texto">Conectando…</span></span>
+</header>
+<div class="aviso" id="aviso" hidden></div>
+<main id="lista" aria-label="Lista de cues"></main>
+<footer>
+  <button class="go" id="go">GO<kbd>Espacio</kbd></button>
+  <button class="stop" id="parar">Parar todo<kbd>Esc</kbd></button>
+</footer>
+<script>
+(function () {
+  "use strict";
+  var token = new URLSearchParams(location.search).get("t") || "";
+  var ws = null, abierto = false;
+  var $ = function (id) { return document.getElementById(id); };
+
+  function mandar(orden) { if (abierto) ws.send(JSON.stringify({ orden: orden })); }
+
+  function dibujar(e) {
+    $("nombre").textContent = e.show || "Otaconvert";
+    document.title = (e.show ? e.show + " · " : "") + "Otaconvert";
+    var aviso = $("aviso");
+    aviso.hidden = !e.aviso;
+    aviso.textContent = e.aviso || "";
+    var lista = $("lista");
+    lista.textContent = "";
+    if (!e.cues.length) {
+      var v = document.createElement("div");
+      v.className = "vacio";
+      v.textContent = "Este show todavía no tiene cues.";
+      lista.appendChild(v);
+      return;
+    }
+    e.cues.forEach(function (c, i) {
+      var f = document.createElement("div");
+      f.className = "row" + (i === e.en_espera ? " espera" : "") + (i === e.ultimo ? " disparado" : "");
+      var n = document.createElement("span"); n.className = "num"; n.textContent = c.numero;
+      var t = document.createElement("span"); t.textContent = c.nombre + (c.bucle ? " · bucle" : "");
+      if (c.nota) { var no = document.createElement("span"); no.className = "nota"; no.textContent = c.nota; t.appendChild(no); }
+      var ti = document.createElement("span"); ti.className = "tipo";
+      ti.textContent = { audio: "Audio", video: "Vídeo", imagen: "Imagen" }[c.tipo] || "";
+      f.appendChild(n); f.appendChild(t); f.appendChild(ti);
+      lista.appendChild(f);
+      if (i === e.en_espera) f.scrollIntoView({ block: "nearest" });
+    });
+  }
+
+  function conectar() {
+    ws = new WebSocket("ws://" + location.host + "/ws?t=" + encodeURIComponent(token));
+    ws.onopen = function () { abierto = true; $("conexion").className = "chip on"; $("conexion-texto").textContent = "Conectado al motor"; };
+    ws.onmessage = function (m) { try { var e = JSON.parse(m.data); if (e.tipo === "estado") dibujar(e); } catch (x) {} };
+    ws.onclose = function () {
+      abierto = false;
+      $("conexion").className = "chip";
+      $("conexion-texto").textContent = "Sin conexión con el motor";
+      setTimeout(conectar, 700);
+    };
+  }
+
+  $("go").onclick = function () { mandar("go"); };
+  $("parar").onclick = function () { mandar("parar_todo"); };
+  document.addEventListener("keydown", function (e) {
+    if (e.key === " ") { e.preventDefault(); mandar("go"); }
+    else if (e.key === "Escape") { mandar("parar_todo"); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); mandar("espera_arriba"); }
+    else if (e.key === "ArrowDown") { e.preventDefault(); mandar("espera_abajo"); }
+    else if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S")) { e.preventDefault(); mandar("guardar"); }
+  });
+  conectar();
+})();
+</script>
+</body>
+</html>

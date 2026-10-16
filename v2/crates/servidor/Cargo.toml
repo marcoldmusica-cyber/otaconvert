@@ -1,0 +1,17 @@
+[package]
+name = "otaconvert-servidor"
+description = "Canal seguro entre la ventana y el motor de Otaconvert V2 (HTTP + WebSocket solo en 127.0.0.1, con token)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+getrandom = "0.4.3"
+otaconvert-show = { path = "../show" }
+serde_json = "1.0.154"
+tungstenite = "0.30.0"
+
+[dev-dependencies]
+otaconvert-show = { path = "../show" }
