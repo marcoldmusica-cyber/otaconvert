@@ -13,6 +13,11 @@ mod componentes;
 mod equipo;
 mod pantallas;
 mod show_cmd;
+#[cfg(windows)]
+mod proyector;
+mod proyector_cliente;
+#[cfg(windows)]
+mod prueba_proyector;
 mod ventana_ui;
 mod sonido_cpal;
 mod prueba_hardware;
@@ -118,9 +123,18 @@ fn main() -> ExitCode {
                 salida,
                 auriculares.as_deref(),
                 margen.as_deref().and_then(|m| m.parse().ok()).unwrap_or(50),
+                pantalla,
             ),
             None => Err("falta el show: --abrir-show <carpeta o archivo .otashow>".into()),
         },
+        // Uso interno: el proceso de proyección que abre y vigila el motor.
+        #[cfg(windows)]
+        Some("--proyector") => {
+            vigilante::sin_ventanas_de_error();
+            proyector::ejecutar(&args)
+        }
+        #[cfg(windows)]
+        Some("--prueba-proyector") => prueba_proyector::ejecutar(num(1, 30), pantalla),
         Some("--info-equipo") => {
             equipo::imprimir();
             Ok(true)
@@ -157,6 +171,7 @@ fn main() -> ExitCode {
             println!("  --tono [segundos] [margen_ms]          tono de 440 Hz a -12 dBFS");
             println!("  --prueba-vivo [segundos] [margen_ms]   órdenes al azar en la salida real");
             println!("  --prueba-video [cambios]               cambios de vídeo por capas, contando cuadros negros");
+            println!("  --prueba-proyector [cambios]           el proceso de proyección de verdad: cambios sin negros, telón, parar, fundir y caída");
             println!("  --salida <número | nombre | id>        elige la salida de audio (si no, la predeterminada)");
             println!("  --prueba-reproduccion [segundos] --archivo <vídeo>   reproducción continua contando cuadros perdidos");
             println!("  --pantalla <número | nombre | id>      pantalla para el vídeo (si no, la que no es principal)");

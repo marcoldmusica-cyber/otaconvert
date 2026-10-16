@@ -12,6 +12,7 @@
 pub mod sesion;
 pub mod sonido;
 pub mod texto;
+pub mod proyector;
 
 use std::io::{self, Read, Write};
 use std::net::{Ipv4Addr, SocketAddrV4, TcpListener, TcpStream};
@@ -27,6 +28,7 @@ use tungstenite::{Error as ErrorWs, Message};
 pub use sesion::Sesion;
 pub use sonido::{Destino, Sonido};
 pub use texto::{Idioma, Texto};
+pub use proyector::{AvisoProyector, OrdenProyector, Proyector};
 
 const PLANTILLA: &str = include_str!("../ui/index.html");
 /// Textos de la interfaz en español e inglés (también los consejos y la

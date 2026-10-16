@@ -68,7 +68,7 @@ impl Cuenta {
     }
 }
 
-fn elegir_pantalla(pedida: Option<&str>) -> Result<Pantalla, String> {
+pub fn elegir_pantalla(pedida: Option<&str>) -> Result<Pantalla, String> {
     let lista = pantallas::listar();
     if lista.is_empty() {
         return Err("no hay pantallas".into());

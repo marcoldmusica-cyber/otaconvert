@@ -71,7 +71,51 @@ pub enum Interfaz {
 }
 
 /// Abre el show con sonido y sirve la interfaz hasta que se cierre el programa.
-pub fn abrir(ruta: &Path, interfaz: Interfaz, salida: Option<&str>, auriculares: Option<&str>, margen_ms: u64) -> Result<bool, String> {
+/// Abre la proyección: en la pantalla pedida (`--pantalla`), o en la primera
+/// que no es la principal (el proyector) a pantalla completa. Con una sola
+/// pantalla, o con `--pantalla vista`, una ventana chica de vista previa
+/// arriba a la derecha que no tapa los botones del programa.
+#[cfg(windows)]
+fn abrir_proyeccion(pantalla: Option<&str>) -> Result<crate::proyector_cliente::ProyectorProceso, String> {
+    use crate::proyector_cliente::ProyectorProceso;
+    let lista = crate::pantallas::listar();
+    let elegida = match pantalla {
+        Some("vista") => None,
+        Some(p) => Some(crate::prueba_video::elegir_pantalla(Some(p))?),
+        None => lista.iter().find(|p| !p.principal).cloned(),
+    };
+    let p = match elegida {
+        Some(p) => {
+            println!("Proyección: {} · {} × {} a pantalla completa", p.nombre, p.ancho, p.alto);
+            ProyectorProceso::abrir(p.x, p.y, p.ancho, p.alto, false)?
+        }
+        None => {
+            let base = lista.iter().find(|p| p.principal).or(lista.first()).ok_or("no hay pantallas")?;
+            let w = (base.ancho / 4).max(320);
+            let h = w * 9 / 16 + 32;
+            println!("Proyección: vista previa en una ventana (hay una sola pantalla)");
+            ProyectorProceso::abrir(base.x + base.ancho - w - 24, base.y + 140, w, h, true)?
+        }
+    };
+    if !p.esperar_hola(std::time::Duration::from_secs(10)) {
+        return Err("la proyección no arrancó (¿falta libmpv-2.dll junto al programa?)".into());
+    }
+    Ok(p)
+}
+
+#[cfg(not(windows))]
+fn abrir_proyeccion(_pantalla: Option<&str>) -> Result<crate::proyector_cliente::ProyectorProceso, String> {
+    Err("la proyección solo funciona en Windows".into())
+}
+
+pub fn abrir(
+    ruta: &Path,
+    interfaz: Interfaz,
+    salida: Option<&str>,
+    auriculares: Option<&str>,
+    margen_ms: u64,
+    pantalla: Option<&str>,
+) -> Result<bool, String> {
     let mut sesion = Sesion::abrir(ruta).map_err(|e| e.to_string())?;
     println!("Show: {} ({} cues) · {}", sesion.show.nombre, sesion.show.cues.len(), sesion.ruta.display());
     // Las salidas viven aquí, en el hilo principal, mientras dure el programa.
@@ -101,6 +145,19 @@ pub fn abrir(ruta: &Path, interfaz: Interfaz, salida: Option<&str>, auriculares:
         frecuencia,
         auriculares: control_auriculares,
     }));
+    // La proyección (vídeo e imagen), en un proceso aparte. Si no se puede
+    // abrir, el sonido funciona igual y se avisa.
+    match abrir_proyeccion(pantalla) {
+        Ok(p) => sesion.conectar_proyector(Box::new(p)),
+        Err(e) => {
+            println!("Aviso: sin proyección: {e}");
+            sesion.anotar("ERROR", &format!("proyección: {e}"));
+            sesion.aviso = Some(otaconvert_servidor::Texto::nuevo(
+                format!("No se pudo abrir la proyección: {e}. El sonido funciona igual."),
+                format!("The projection could not be opened: {e}. Sound works as usual."),
+            ));
+        }
+    }
     let sesion = Arc::new(Mutex::new(sesion));
     let srv = Servidor::iniciar(sesion.clone()).map_err(|e| e.to_string())?;
     println!("Interfaz en {}", srv.url().split("?t=").next().unwrap_or(""));

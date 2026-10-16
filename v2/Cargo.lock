@@ -1721,6 +1721,7 @@ dependencies = [
  "otaconvert-servidor",
  "otaconvert-show",
  "otaconvert-video",
+ "serde_json",
  "windows-sys 0.61.2",
  "winresource",
 ]

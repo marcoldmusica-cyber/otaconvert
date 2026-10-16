@@ -422,6 +422,7 @@ fieldset:disabled{opacity:.45}
     var nx = e.cues[e.en_espera];
     $("goNext").textContent = nx ? nx.numero + " · " + nx.nombre : T("fin_lista");
     if (!e.con_sonido) avisoConexion(T("sin_sonido"), "warn");
+    else if (!e.con_proyeccion) avisoConexion(T("sin_proyeccion"), "warn");
     $("lado").dataset.help = funcion ? "lado_funcion" : "lado_edicion";
     dibujarLista();
     dibujarLado(funcion);
@@ -542,7 +543,14 @@ fieldset:disabled{opacity:.45}
       if (c.duracion_s != null) fs.appendChild(el("p", "note-small", T("duracion", { d: mmss(c.duracion_s) }) + (c.bucle ? T("por_vuelta") : "")));
       fs.appendChild(el("p", "note-small", T("onda_pronto")));
     } else {
-      fs.appendChild(el("p", "note-small", T("video_pronto")));
+      if (c.tipo === "video") {
+        var tgv = el("label", "toggle"), cbv = el("input"); cbv.type = "checkbox"; cbv.checked = c.bucle;
+        cbv.onchange = function () { editar({ bucle: cbv.checked }); };
+        tgv.appendChild(cbv); tgv.appendChild(document.createTextNode(T("repetir_bucle"))); tgv.appendChild(botonConsejo("bucle"));
+        fs.appendChild(tgv);
+        if (c.duracion_s != null) fs.appendChild(el("p", "note-small", T("duracion", { d: mmss(c.duracion_s) }) + (c.bucle ? T("por_vuelta") : "")));
+      }
+      fs.appendChild(el("p", "note-small", c.tipo === "video" ? T("video_pronto") : T("proyector")));
     }
     props.appendChild(fs);
     lado.appendChild(props);
@@ -577,11 +585,12 @@ fieldset:disabled{opacity:.45}
       var c = e.cues[s.cue] || {};
       var b = el("div", "big now"), k = el("div", "k");
       k.appendChild(el("span", "", T("sonando_cue", { n: c.numero || "" })));
-      k.appendChild(el("span", "", salidaTexto(s.salida) + (c.bucle ? " · " + T("bucle") : "")));
+      k.appendChild(el("span", "", (s.visual ? T("proyector") : salidaTexto(s.salida)) + (c.bucle ? " · " + T("bucle") : "")));
       b.appendChild(k);
       b.appendChild(el("div", "t", s.nombre));
-      b.appendChild(el("div", "remain num", (s.fundiendo ? T("fundiendo") : "") + (s.restante_s != null ? "-" + mmss(s.restante_s) : T("en_bucle"))));
-      var bar = el("div", "bigbar"), i = el("i"); i.style.width = (s.progreso * 100) + "%"; bar.appendChild(i); b.appendChild(bar);
+      var resto = s.imagen ? T("imagen_fija") : s.restante_s != null ? "-" + mmss(s.restante_s) : T("en_bucle");
+      b.appendChild(el("div", "remain num", (s.fundiendo ? T("fundiendo") : "") + resto));
+      if (!s.imagen) { var bar = el("div", "bigbar"), i = el("i"); i.style.width = (s.progreso * 100) + "%"; bar.appendChild(i); b.appendChild(bar); }
       now.appendChild(b);
     });
     live.appendChild(now);
