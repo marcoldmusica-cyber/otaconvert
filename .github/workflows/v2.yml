@@ -107,8 +107,10 @@ jobs:
       - name: Probar la ventana
         shell: pwsh
         run: |
-          "http://malo.com/?t=x" | target\release\otaconvert-ventana.exe
-          if ($LASTEXITCODE -ne 2) { Write-Error "La ventana no rechazó la dirección falsa (código $LASTEXITCODE)"; exit 1 }
+          # Es un programa sin consola: PowerShell no lo espera si se llama directo.
+          Set-Content -Path falsa.txt -Value "http://malo.com/?t=x"
+          $p = Start-Process -FilePath target\release\otaconvert-ventana.exe -RedirectStandardInput falsa.txt -NoNewWindow -Wait -PassThru
+          if ($p.ExitCode -ne 2) { Write-Error "La ventana no rechazó la dirección falsa (código $($p.ExitCode))"; exit 1 }
           "La ventana rechazó la dirección falsa: bien"
 
       # Dependencias de terceros desde la copia propia (Release
