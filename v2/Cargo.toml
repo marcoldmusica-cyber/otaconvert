@@ -5,7 +5,7 @@ members = ["crates/audio", "crates/motor", "crates/servidor", "crates/show", "cr
 [workspace.package]
 version = "0.0.1"
 edition = "2021"
-rust-version = "1.85"
+rust-version = "1.87"
 license = "GPL-3.0-or-later"
 repository = "https://github.com/marcoldmusica-cyber/otaconvert"
 

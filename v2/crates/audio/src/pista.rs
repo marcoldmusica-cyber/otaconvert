@@ -31,6 +31,11 @@ impl Pista {
         self.muestras.len() / self.canales as usize
     }
 
+    /// Muestras intercaladas (para medir y para la onda).
+    pub fn muestras(&self) -> &[f32] {
+        &self.muestras
+    }
+
     pub fn canales(&self) -> u16 {
         self.canales
     }

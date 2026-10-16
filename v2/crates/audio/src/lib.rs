@@ -14,6 +14,7 @@ pub mod consejos;
 mod detector;
 mod mezclador;
 mod pista;
+pub mod preparar;
 pub mod prueba;
 mod rampa;
 
