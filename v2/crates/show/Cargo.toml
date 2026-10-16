@@ -1,0 +1,12 @@
+[package]
+name = "otaconvert-show"
+description = "Archivo del show de Otaconvert V2: modelo, abrir y guardar con copias, rutas seguras y registro de la función"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1.0.154"

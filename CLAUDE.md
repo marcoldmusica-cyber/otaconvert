@@ -462,3 +462,32 @@ Regla: si una prueba automática falla, no se avanza.
 
 
 
+
+## 11. Fase 1: plan aprobado (16/10/2026)
+
+El usuario aprobó hacer la Fase 1 en **6 etapas**, cada una termina en algo que se puede probar:
+1. **Base del show:** archivo del show (JSON con número de versión, rutas relativas seguras dentro de la carpeta), guardado automático con copias, registro de la función; motor que abre un show; canal seguro ventana ↔ motor (127.0.0.1 + token, regla de seguridad 1).
+2. **Cues de audio reales:** preparar cualquier audio en memoria a la frecuencia de la tarjeta (en segundo plano, con picos), GO / Pausa / Parar todo / Fundir todo / Mayús+F, volumen, fundidos, bucle, inicio y fin, limitador maestro, protección contra doble GO, salidas *Principal* y *Auriculares* (preescucha).
+3. **Interfaz:** la ventana del boceto (lista, GO, Edición/Función con Tab, barra de menús, Modo Ayuda y consejos), español e inglés desde el principio.
+4. **Vídeo e imagen:** proyección en proceso aparte con vigilante, precarga y capas, imágenes, superficie de 4 puntos, miniatura.
+5. **Edición completa:** deshacer/rehacer, notas, numeración libre, ir a cue / empezar desde un punto, onda, Reunir medios, Ajustes del show (rampas con consejos), perfiles de teatro, comprobación previa (luz verde), **botonera**, panel Sonando, medidor, Modo noche/día.
+6. **Entrega:** instalador y portable (Vulkan, WebView2, firma de SignPath si la aprueban), manual al día, piloto en un teatro.
+Después: pestaña Convertir.
+Antes de programar se verifican tres decisiones técnicas: cómo se dibuja la ventana (WebView2 desde Rust), cómo se leen todos los formatos de audio y el formato del archivo del show.
+
+### Decisiones técnicas verificadas (16/10/2026)
+| Decisión | Elección | Verificado |
+|---|---|---|
+| Ventana | **wry 0.57.0** (Apache-2.0 OR MIT, MSRV 1.85) + **tao 0.37.1** (Apache-2.0): WebView2 en Windows (README de wry). La ventana carga la interfaz que sirve el motor en `http://127.0.0.1:<puerto>`; sin WebView2, la misma interfaz se abre en el navegador. | README de wry; crates.io |
+| Leer audios | **Symphonia 0.6.1** (MPL-2.0, compatible con GPLv3: sin aviso de "Incompatible With Secondary Licenses") para decodificar y **rubato 5.0.1** (MIT OR Apache-2.0, MSRV **1.87** → subir el MSRV del workspace) para adaptar la frecuencia al prepararlos. Formatos: MP3, MP1/2, AAC-LC, ALAC, FLAC, Vorbis, Opus, ADPCM, PCM/WAV, WavPack; contenedores WAV, OGG, MKV/WebM, AIFF, CAF, MP4/M4A (los no predeterminados se activan con features). **No: WMA, AC3, DTS, AMR**: para esos, FFmpeg de la pestaña Convertir (a decidir en la etapa 2). Según su README, rinde ±15 % de FFmpeg. | README de Symphonia; LICENSE |
+| Archivo del show | **JSON** con `serde` + `serde_json` 1.0.154 (MIT OR Apache-2.0), con `version_formato`. | crates.io |
+| Canal ventana ↔ motor | HTTP + WebSocket mínimos con **tungstenite 0.30.0** (MIT OR Apache-2.0) sobre `std::net::TcpListener` en 127.0.0.1, token por sesión, comprobación de `Host`/`Origin`. `tiny_http` descartado (sin cambios desde 2022). | crates.io |
+
+### Etapa 1, parte A: archivo del show (16/10/2026)
+- `crates/show` (`otaconvert-show`, deps: serde, serde_json): `modelo` (Show, Cue, TipoCue audio/vídeo/imagen, AjustesShow con rampas en ms —inicio 0 por defecto—, tiempo mínimo entre GO 300 ms, Fundir todo 3000 ms, volumen maestro; botonera con PaginaBotonera/BotonSonido y `al_repetir` parar/reiniciar/superponer), `archivo` (abrir/guardar/validar), `rutas` (validar/resolver), `registro` (registro de la función).
+- Archivo `<nombre>.otashow` (JSON con `version_formato` = 1) en la carpeta del show. Campos que faltan → valores por defecto. Formato más nuevo → aviso "Actualiza Otaconvert" (se lee primero solo la versión). Dañado → error con línea y columna, nunca se cierra el programa. Límites: 20 MB, 10.000 cues, volúmenes ≤ +24 dB y finitos, fin > inicio, rampas 0–10.000 ms. Acepta la marca BOM del Bloc de notas.
+- Guardar: valida, copia el anterior a `.otaconvert/copias/<nombre>-AAAAMMDD-HHMMSS.otashow` (se conservan **20**), escribe a `.otashow.tmp`, `sync_all` y renombra (reemplazo atómico en Windows).
+- Rutas de medios: relativas con `/`; se rechazan `..`, absolutas, unidades (`C:`), red (`\servidor`, `//servidor`), flujos alternativos (`a.wav:x`), caracteres `<>"|?*` y de control, nombres reservados (CON, NUL, COM1…), nombres que terminan en punto o espacio. `resolver` además comprueba con la ruta canónica que un enlace o **unión de carpetas** no saque el archivo de la carpeta.
+- Registro: `registros/funcion-AAAA-MM-DD.txt`, una línea por evento con hora y milisegundos; quita saltos de línea; si no se puede escribir, sigue sin registro (nunca frena la función).
+- **14 pruebas, todas en verde** en la PC del usuario (ida y vuelta, campos que faltan, versión más nueva, dañado con línea, rutas peligrosas en cues y botonera, valores imposibles, archivo de 20 MB+1, BOM, 26 guardados → 20 copias y la última es la anterior, resolver, **unión que apunta afuera rechazada** (creada con `mklink /J`, sin administrador), registro).
+- Siguiente (parte B): canal seguro ventana ↔ motor, motor que abre un show y guardado automático.
