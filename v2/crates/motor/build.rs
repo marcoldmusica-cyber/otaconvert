@@ -25,8 +25,20 @@ fn main() {
         .set("InternalName", "otaconvert-motor")
         .set("ProductVersion", version)
         .set("FileVersion", version)
-        .set_icon("../../../assets/otaconvert.ico")
-        .set_manifest(&std::fs::read_to_string("otaconvert.manifest").expect("falta otaconvert.manifest"));
+        .set_icon("../../../assets/otaconvert.ico");
+    if std::env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc") {
+        // Con MSVC el manifiesto lo inserta el enlazador (vía documentada por
+        // Microsoft). Meterlo como recurso con rc.exe dejó un manifiesto que
+        // Windows rechazaba ("side-by-side configuration is incorrect").
+        // /MANIFESTUAC:NO porque nuestro manifiesto ya dice asInvoker.
+        let dir = std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR");
+        let ruta = std::path::Path::new(&dir).join("otaconvert.manifest");
+        println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
+        println!("cargo:rustc-link-arg=/MANIFESTINPUT:{}", ruta.display());
+        println!("cargo:rustc-link-arg=/MANIFESTUAC:NO");
+    } else {
+        r.set_manifest(&std::fs::read_to_string("otaconvert.manifest").expect("falta otaconvert.manifest"));
+    }
     if let Err(e) = r.compile() {
         panic!("no se pudieron agregar los datos de versión al exe: {e}");
     }
