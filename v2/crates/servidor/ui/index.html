@@ -36,6 +36,12 @@ button{font:inherit;color:inherit;cursor:pointer}
 .go:active{transform:translateY(1px)}
 .stop{min-height:76px;border-radius:16px;border:1px solid var(--err);background:var(--card);color:var(--err);font-weight:700;font-size:16px}
 kbd{font:12px "Cascadia Mono",Consolas,monospace;background:var(--card2);border:1px solid var(--border);border-bottom-width:2px;border-radius:6px;padding:1px 6px;color:var(--text);margin-left:8px}
+.prep{font-size:11px;margin-left:8px;color:var(--dim)}
+.prep.listo{color:var(--ok)}
+.prep.error{color:var(--err)}
+.sonando{display:flex;flex-wrap:wrap;gap:8px;align-items:center;color:var(--muted);font-size:13px;min-height:22px}
+.sonando b{color:var(--ok);font-weight:600}
+.pausado{color:var(--warn);font-weight:700}
 .aviso{background:var(--card2);border-left:3px solid var(--warn);border-radius:0 12px 12px 0;padding:8px 12px;color:var(--text)}
 [hidden]{display:none!important}
 </style>
@@ -49,6 +55,7 @@ kbd{font:12px "Cascadia Mono",Consolas,monospace;background:var(--card2);border:
 </header>
 <div class="aviso" id="aviso" hidden></div>
 <main id="lista" aria-label="Lista de cues"></main>
+<div class="sonando" id="sonando" aria-live="polite"></div>
 <footer>
   <button class="go" id="go">GO<kbd>Espacio</kbd></button>
   <button class="stop" id="parar">Parar todo<kbd>Esc</kbd></button>
@@ -77,12 +84,34 @@ kbd{font:12px "Cascadia Mono",Consolas,monospace;background:var(--card2);border:
       lista.appendChild(v);
       return;
     }
+    var so = $("sonando");
+    so.textContent = "";
+    if (e.pausado) { var pa = document.createElement("span"); pa.className = "pausado"; pa.textContent = "En pausa · P para seguir"; so.appendChild(pa); }
+    (e.sonando || []).forEach(function (s) {
+      var x = document.createElement("span");
+      var b = document.createElement("b"); b.textContent = s.nombre;
+      x.appendChild(b);
+      if (s.restante_s != null) {
+        var r = Math.max(0, Math.ceil(s.restante_s));
+        x.appendChild(document.createTextNode(" · -" + Math.floor(r / 60) + ":" + String(r % 60).padStart(2, "0")));
+      } else {
+        x.appendChild(document.createTextNode(" · en bucle"));
+      }
+      so.appendChild(x);
+    });
     e.cues.forEach(function (c, i) {
       var f = document.createElement("div");
       f.className = "row" + (i === e.en_espera ? " espera" : "") + (i === e.ultimo ? " disparado" : "");
       var n = document.createElement("span"); n.className = "num"; n.textContent = c.numero;
       var t = document.createElement("span"); t.textContent = c.nombre + (c.bucle ? " · bucle" : "");
       if (c.nota) { var no = document.createElement("span"); no.className = "nota"; no.textContent = c.nota; t.appendChild(no); }
+      if (c.preparacion) {
+        var pr = document.createElement("span");
+        pr.className = "prep " + c.preparacion;
+        pr.textContent = { listo: "Listo", preparando: "Preparando…", error: "No se puede reproducir" }[c.preparacion] || "";
+        if (c.error) pr.title = c.error;
+        t.appendChild(pr);
+      }
       var ti = document.createElement("span"); ti.className = "tipo";
       ti.textContent = { audio: "Audio", video: "Vídeo", imagen: "Imagen" }[c.tipo] || "";
       f.appendChild(n); f.appendChild(t); f.appendChild(ti);
@@ -108,6 +137,9 @@ kbd{font:12px "Cascadia Mono",Consolas,monospace;background:var(--card2);border:
   document.addEventListener("keydown", function (e) {
     if (e.key === " ") { e.preventDefault(); mandar("go"); }
     else if (e.key === "Escape") { mandar("parar_todo"); }
+    else if ((e.key === "f" || e.key === "F") && e.shiftKey) { mandar("fundir_ultimo"); }
+    else if (e.key === "f" || e.key === "F") { mandar("fundir_todo"); }
+    else if ((e.key === "p" || e.key === "P") && !e.ctrlKey) { mandar("pausa"); }
     else if (e.key === "ArrowUp") { e.preventDefault(); mandar("espera_arriba"); }
     else if (e.key === "ArrowDown") { e.preventDefault(); mandar("espera_abajo"); }
     else if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S")) { e.preventDefault(); mandar("guardar"); }

@@ -10,6 +10,7 @@
 //!   mandar el pedido.
 
 pub mod sesion;
+pub mod sonido;
 
 use std::io::{self, Read, Write};
 use std::net::{Ipv4Addr, SocketAddrV4, TcpListener, TcpStream};
@@ -23,6 +24,7 @@ use tungstenite::protocol::WebSocketConfig;
 use tungstenite::{Error as ErrorWs, Message};
 
 pub use sesion::Sesion;
+pub use sonido::{Destino, Sonido};
 
 const PAGINA: &str = include_str!("../ui/index.html");
 const MAX_CONEXIONES: usize = 16;
@@ -30,6 +32,7 @@ const MAX_CABECERAS: usize = 8 * 1024;
 const MAX_MENSAJE: usize = 64 * 1024;
 const ESPERA_PEDIDO: Duration = Duration::from_secs(5);
 const GUARDADO_AUTOMATICO: Duration = Duration::from_secs(30);
+const REFRESCO: Duration = Duration::from_millis(250);
 
 struct Contexto {
     puerto: u16,
@@ -92,6 +95,42 @@ impl Servidor {
             std::thread::sleep(GUARDADO_AUTOMATICO);
             if let Ok(mut s) = sesion.lock() {
                 s.guardar_si_hace_falta();
+            }
+        })?;
+        // Prepara en segundo plano los audios que vienen (sin tener la sesión
+        // bloqueada mientras lee el disco) y refresca lo que suena.
+        let c3 = ctx.clone();
+        std::thread::Builder::new().name("preparador".into()).spawn(move || loop {
+            let tarea = c3.sesion.lock().ok().and_then(|mut s| s.siguiente_a_preparar());
+            match tarea {
+                Some((i, ruta, fs)) => {
+                    let r = otaconvert_audio::preparar::preparar(&ruta, fs).map_err(|e| e.to_string());
+                    let estado = c3.sesion.lock().ok().map(|mut s| {
+                        s.preparado(i, r);
+                        s.estado_json()
+                    });
+                    if let Some(e) = estado {
+                        difundir(&c3, e);
+                    }
+                }
+                None => std::thread::sleep(Duration::from_millis(100)),
+            }
+        })?;
+        let c4 = ctx.clone();
+        std::thread::Builder::new().name("refresco".into()).spawn(move || {
+            let mut ultimo = String::new();
+            loop {
+                std::thread::sleep(REFRESCO);
+                let estado = c4.sesion.lock().ok().map(|mut s| {
+                    s.limpiar();
+                    s.estado_json()
+                });
+                if let Some(e) = estado {
+                    if e != ultimo {
+                        ultimo = e.clone();
+                        difundir(&c4, e);
+                    }
+                }
             }
         })?;
         Ok(Self { puerto, token })
@@ -195,6 +234,9 @@ fn ejecutar(ctx: &Contexto, texto: &str) {
                 s.go();
             }
             Some("parar_todo") => s.parar_todo(),
+            Some("pausa") => s.pausa(),
+            Some("fundir_todo") => s.fundir_todo(),
+            Some("fundir_ultimo") => s.fundir_ultimo(),
             Some("espera_arriba") => s.mover_espera(-1),
             Some("espera_abajo") => s.mover_espera(1),
             Some("guardar") => {

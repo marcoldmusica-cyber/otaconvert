@@ -663,6 +663,7 @@ name = "otaconvert-servidor"
 version = "0.0.1"
 dependencies = [
  "getrandom",
+ "otaconvert-audio",
  "otaconvert-show",
  "serde_json",
  "tungstenite",

@@ -96,6 +96,18 @@ fn conectar_ws(srv: &Servidor, origen: Option<&str>, tok: &str) -> Result<tungst
     tungstenite::client(req, s).map(|(ws, _)| ws).map_err(|e| e.to_string())
 }
 
+/// Lee estados hasta uno que cumpla `cond` (el motor también manda refrescos periódicos).
+fn esperar(ws: &mut tungstenite::WebSocket<TcpStream>, cond: impl Fn(&serde_json::Value) -> bool) -> serde_json::Value {
+    let fin = std::time::Instant::now() + Duration::from_secs(3);
+    loop {
+        let e = leer_estado(ws);
+        if cond(&e) {
+            return e;
+        }
+        assert!(std::time::Instant::now() < fin, "no llegó el estado esperado; último: {e}");
+    }
+}
+
 fn leer_estado(ws: &mut tungstenite::WebSocket<TcpStream>) -> serde_json::Value {
     loop {
         if let Message::Text(t) = ws.read().unwrap() {
@@ -131,24 +143,22 @@ fn go_avanza_y_protege_contra_doble_go() {
     assert_eq!(e["en_espera"], 0);
 
     ws.send(Message::text(r#"{"orden":"go"}"#)).unwrap();
-    let e = leer_estado(&mut ws);
-    assert_eq!(e["en_espera"], 1);
+    let e = esperar(&mut ws, |e| e["en_espera"] == 1);
     assert_eq!(e["ultimo"], 0);
 
     // Segundo GO enseguida: ignorado.
     ws.send(Message::text(r#"{"orden":"go"}"#)).unwrap();
-    let e = leer_estado(&mut ws);
+    let e = esperar(&mut ws, |e| e["aviso"].as_str().is_some_and(|a| a.contains("doble GO")));
     assert_eq!(e["en_espera"], 1, "el doble GO no debe disparar");
-    assert!(e["aviso"].as_str().unwrap().contains("doble GO"));
 
     std::thread::sleep(Duration::from_millis(350));
     ws.send(Message::text(r#"{"orden":"go"}"#)).unwrap();
-    assert_eq!(leer_estado(&mut ws)["en_espera"], 2);
+    esperar(&mut ws, |e| e["en_espera"] == 2);
 
     ws.send(Message::text(r#"{"orden":"espera_arriba"}"#)).unwrap();
-    assert_eq!(leer_estado(&mut ws)["en_espera"], 1);
+    esperar(&mut ws, |e| e["en_espera"] == 1);
     ws.send(Message::text("esto no es JSON")).unwrap();
-    assert_eq!(leer_estado(&mut ws)["aviso"], "Orden desconocida.");
+    esperar(&mut ws, |e| e["aviso"] == "Orden desconocida.");
 
     // El registro de la función anotó los GO y el ignorado.
     let reg = std::fs::read_dir(d.join("registros")).unwrap().next().unwrap().unwrap().path();
@@ -167,8 +177,8 @@ fn varias_ventanas_ven_lo_mismo() {
     leer_estado(&mut a);
     leer_estado(&mut b);
     a.send(Message::text(r#"{"orden":"go"}"#)).unwrap();
-    assert_eq!(leer_estado(&mut a)["en_espera"], 1);
-    assert_eq!(leer_estado(&mut b)["en_espera"], 1, "la otra ventana también se entera");
+    esperar(&mut a, |e| e["en_espera"] == 1);
+    esperar(&mut b, |e| e["en_espera"] == 1); // la otra ventana también se entera
 }
 
 #[test]

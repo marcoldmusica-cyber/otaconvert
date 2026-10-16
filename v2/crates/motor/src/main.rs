@@ -13,6 +13,7 @@ mod componentes;
 mod equipo;
 mod pantallas;
 mod show_cmd;
+mod sonido_cpal;
 mod prueba_hardware;
 mod vigilante;
 #[cfg(windows)]
@@ -48,6 +49,8 @@ fn main() -> ExitCode {
     let mut carpeta: Option<String> = None;
     let mut archivo: Option<String> = None;
     let mut fallo: Option<(String, u64)> = None;
+    let mut auriculares: Option<String> = None;
+    let mut margen: Option<String> = None;
     let mut args: Vec<String> = Vec::new();
     let mut it = todos.into_iter();
     while let Some(a) = it.next() {
@@ -59,6 +62,10 @@ fn main() -> ExitCode {
             carpeta = it.next();
         } else if a == "--archivo" {
             archivo = it.next();
+        } else if a == "--auriculares" {
+            auriculares = it.next();
+        } else if a == "--margen" {
+            margen = it.next();
         } else if a == "--fallo" {
             let tipo = it.next().unwrap_or_default();
             let en = it.next().and_then(|s| s.parse().ok()).unwrap_or(2000);
@@ -95,7 +102,13 @@ fn main() -> ExitCode {
             None => Err("falta la carpeta: --show-ejemplo <carpeta>".into()),
         },
         Some("--abrir-show") => match args.get(1) {
-            Some(r) => show_cmd::abrir(std::path::Path::new(r), !sin_navegador),
+            Some(r) => show_cmd::abrir(
+                std::path::Path::new(r),
+                !sin_navegador,
+                salida,
+                auriculares.as_deref(),
+                margen.as_deref().and_then(|m| m.parse().ok()).unwrap_or(50),
+            ),
             None => Err("falta el show: --abrir-show <carpeta o archivo .otashow>".into()),
         },
         Some("--info-equipo") => {
@@ -126,7 +139,7 @@ fn main() -> ExitCode {
             println!("  --prueba-hardware [--sin-pausa]        todas las pruebas en orden, con informe (también con doble clic en \"Prueba de hardware.exe\")");
             println!("  --info-equipo                          Windows, procesador, memoria, tarjetas gráficas, corriente");
             println!("  --show-ejemplo <carpeta>               crea un show de ejemplo");
-            println!("  --abrir-show <carpeta | .otashow> [--sin-navegador]   abre el show con la interfaz mínima");
+            println!("  --abrir-show <carpeta | .otashow> [--salida X] [--auriculares Y] [--margen ms] [--sin-navegador]   abre el show con sonido");
             println!("  --comprobar                            componentes necesarios: qué hay y qué falta");
             println!("  --listar-salidas                       salidas de audio, con número e identificador");
             println!("  --listar-pantallas                     pantallas para la salida de vídeo");

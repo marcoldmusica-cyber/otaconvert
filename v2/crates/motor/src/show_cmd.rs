@@ -61,12 +61,39 @@ fn abrir_navegador(url: &str) {
 #[cfg(not(windows))]
 fn abrir_navegador(_url: &str) {}
 
-/// Abre el show y sirve la interfaz hasta que se cierre el programa.
-pub fn abrir(ruta: &Path, navegador: bool) -> Result<bool, String> {
-    let sesion = Sesion::abrir(ruta).map_err(|e| e.to_string())?;
+/// Abre el show con sonido y sirve la interfaz hasta que se cierre el programa.
+pub fn abrir(ruta: &Path, navegador: bool, salida: Option<&str>, auriculares: Option<&str>, margen_ms: u64) -> Result<bool, String> {
+    let mut sesion = Sesion::abrir(ruta).map_err(|e| e.to_string())?;
     println!("Show: {} ({} cues) · {}", sesion.show.nombre, sesion.show.cues.len(), sesion.ruta.display());
+    // Las salidas viven aquí, en el hilo principal, mientras dure el programa.
+    let principal = crate::sonido_cpal::abrir_salida(salida, margen_ms)?;
+    println!("Principal: {} · {} Hz · margen {margen_ms} ms", principal.nombre, principal.frecuencia);
+    let mut salidas = Vec::new();
+    let mut vigilar_errores = vec![("Principal", principal.errores.clone())];
+    let mut control_auriculares = None;
+    if let Some(a) = auriculares {
+        let s = crate::sonido_cpal::abrir_salida(Some(a), margen_ms)?;
+        if s.frecuencia == principal.frecuencia {
+            println!("Auriculares: {} · {} Hz", s.nombre, s.frecuencia);
+            control_auriculares = Some(s.control);
+            vigilar_errores.push(("Auriculares", s.errores.clone()));
+            salidas.push(s.stream);
+        } else {
+            println!(
+                "Aviso: Auriculares ({}) trabaja a {} Hz y Principal a {} Hz; por ahora deben ser iguales. Auriculares queda sin usar.",
+                s.nombre, s.frecuencia, principal.frecuencia
+            );
+        }
+    }
+    let frecuencia = principal.frecuencia;
+    salidas.push(principal.stream);
+    sesion.conectar_sonido(Box::new(crate::sonido_cpal::SonidoCpal {
+        principal: principal.control,
+        frecuencia,
+        auriculares: control_auriculares,
+    }));
     let sesion = Arc::new(Mutex::new(sesion));
-    let srv = Servidor::iniciar(sesion).map_err(|e| e.to_string())?;
+    let srv = Servidor::iniciar(sesion.clone()).map_err(|e| e.to_string())?;
     println!("Interfaz en {}", srv.url().split("?t=").next().unwrap_or(""));
     println!("(La dirección completa lleva una clave secreta; ábrela solo desde aquí.)");
     if navegador {
@@ -75,7 +102,23 @@ pub fn abrir(ruta: &Path, navegador: bool) -> Result<bool, String> {
     } else {
         println!("{}", srv.url());
     }
+    // Si una tarjeta da errores (por ejemplo, se desconectó), avisar fuerte:
+    // nunca se cambia en silencio a otra salida.
+    let mut vistos = vec![0u64; vigilar_errores.len()];
     loop {
-        std::thread::park();
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        for (k, (nombre, contador)) in vigilar_errores.iter().enumerate() {
+            let n = contador.load(std::sync::atomic::Ordering::Relaxed);
+            if n > vistos[k] {
+                vistos[k] = n;
+                let texto = format!("¡Atención! La salida {nombre} dio un error: puede haberse desconectado la tarjeta de sonido. Revisa el cable.");
+                println!("{texto}");
+                if let Ok(mut s) = sesion.lock() {
+                    s.anotar_error(&texto);
+                    s.aviso = Some(texto);
+                }
+            }
+        }
+        let _ = &salidas;
     }
 }

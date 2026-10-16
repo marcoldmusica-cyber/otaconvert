@@ -355,7 +355,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
 </section>
 
 <section class="card" id="botones">
-  <h2>Los botones de la función</h2>
+  <h2>Los botones de la función <span class="estado ya">Ya funciona (sonido)</span></h2>
   <div class="botones">
     <div class="boton go"><div class="nombre">GO <kbd>Espacio</kbd></div>Empieza el cue que sigue en la lista. Es como pasar la página de un cuento.</div>
     <div class="boton"><div class="nombre">Pausa <kbd>P</kbd></div>Congela todo. Lo tocas otra vez y sigue desde donde quedó.</div>
@@ -364,6 +364,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
   </div>
   <p>Con <kbd>Mayús</kbd> + <kbd>F</kbd> se funde solo el último cue que empezó; lo demás sigue sonando.</p>
   <p>En el panel <strong>Sonando</strong> también puedes parar o fundir un solo cue.</p>
+  <p class="muted">Antes de cada GO, el programa ya preparó el audio de ese cue y de los dos siguientes. Si un cue todavía se está preparando, el GO no hace nada y te avisa; vuelve a darlo en un momento. Si un archivo falta o no se puede leer, el cue se salta con un aviso y la función sigue.</p>
   <div class="nota">El programa no deja que un doble toque de GO dispare dos cues sin querer: entre un GO y el siguiente hay un tiempo mínimo, que puedes ajustar.</div>
 </section>
 
@@ -489,7 +490,8 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <tr><td>Prioridad</td><td>Hilo de audio con prioridad de tiempo real de Windows (MMCSS, feature <code>realtime</code> de cpal).</td></tr>
     <tr><td>Tiempo real</td><td>El hilo de audio no bloquea ni pide o libera memoria: comandos por cola sin bloqueo (<code>rtrb</code>); los audios que dejan de sonar vuelven al hilo de control para liberarse. Verificado con un asignador que cuenta.</td></tr>
     <tr><td>Rampas</td><td>Lineales, en cuadros. Por defecto: inicio 0, reanudar 5 ms, pausa 10 ms, parada 10 ms, salto 5 + 5 ms, volumen 5 ms, final de archivo 10 ms. Configurables de 0 en adelante y cambiables en vivo.</td></tr>
-    <tr><td>Salida</td><td>Por ahora estéreo; valores fuera de ±1 se recortan y se cuentan. Limitador maestro transparente: <span class="estado pronto">Próximamente</span></td></tr>
+    <tr><td>Salida</td><td>Estéreo. <strong>Limitador maestro transparente</strong> activo por defecto: mira 1,5 ms adelante y nunca deja pasar de −0,1 dBFS; si nada pasa del techo, no toca el sonido. <span class="estado ya">Ya funciona</span></td></tr>
+    <tr><td>Preparación</td><td>Cada audio se lee entero (Symphonia: MP3, AAC/M4A, ALAC, FLAC, OGG/Vorbis, WAV, AIFF, CAF, MKV/WebM) y se adapta a la frecuencia de la tarjeta (rubato) en segundo plano: el cue en espera y los dos siguientes. Opus, WMA, AC3 y DTS: convertirlos antes en la pestaña Convertir. <span class="estado ya">Ya funciona</span></td></tr>
     <tr><td>Salidas lógicas</td><td>El show guarda nombres (<em>Principal</em>, <em>Auriculares</em>); cada teatro tiene un perfil que los empareja con tarjeta y canales.</td></tr>
   </table></div>
 
@@ -537,7 +539,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <tr><td><code>--prueba-hardware [--sin-pausa]</code></td><td>Todas las pruebas en orden (equipo, componentes, sonido por cada salida, pantallas, cambios de vídeo, reproducción 1080p y 4K, vigilante) con informe de texto. También con doble clic en <code>Prueba de hardware.exe</code>.</td></tr>
     <tr><td><code>--info-equipo</code></td><td>Windows, procesador, memoria, tarjetas gráficas y si está enchufado.</td></tr>
     <tr><td><code>--show-ejemplo &lt;carpeta&gt;</code></td><td>Crea un show de ejemplo (6 cues y una página de botonera) para probar.</td></tr>
-    <tr><td><code>--abrir-show &lt;carpeta | .otashow&gt; [--sin-navegador]</code></td><td>Abre el show y muestra la interfaz mínima en el navegador (lista, GO, Parar todo). La ventana propia llega más adelante.</td></tr>
+    <tr><td><code>--abrir-show &lt;show&gt; [--salida X] [--auriculares Y] [--margen ms] [--sin-navegador]</code></td><td>Abre el show con sonido y la interfaz mínima en el navegador: GO, Pausa (P), Fundir todo (F), Mayús+F, Parar todo (Esc). Si una tarjeta da errores, avisa fuerte. La ventana propia llega más adelante.</td></tr>
     <tr><td><code>--comprobar</code></td><td>Revisa los componentes: Windows 10/11, libmpv, Vulkan y WebView2. Dice qué falta y cómo se arregla; código de error si falta algo.</td></tr>
     <tr><td><code>--listar-salidas</code></td><td>Salidas de audio numeradas, con su configuración, cuál es la predeterminada y su identificador estable.</td></tr>
     <tr><td><code>--listar-pantallas</code></td><td>Pantallas: nombre del monitor o proyector, tarjeta gráfica, resolución en píxeles reales, frecuencia, posición y cuál es la principal.</td></tr>
