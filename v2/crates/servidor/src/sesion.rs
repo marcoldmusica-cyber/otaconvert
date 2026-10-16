@@ -1109,6 +1109,7 @@ impl Sesion {
                     "bucle": c.bucle,
                     "salida": c.salida,
                     "volumen_db": c.volumen_db,
+                    "inicio_s": c.inicio_ms as f64 / 1000.0,
                     "fundido_entrada_ms": c.fundido_entrada_ms,
                     "fundido_salida_ms": c.fundido_salida_ms,
                     "duracion_s": duracion_s,

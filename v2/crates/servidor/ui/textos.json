@@ -79,6 +79,23 @@
       "video_mudo": "La imagen sale por el Proyector. Este vídeo no tiene sonido.",
       "imagen_fija": "Imagen fija",
       "sin_proyeccion": "Sin proyección",
+      "estilo": "Estilo",
+      "estilo_lista": "Lista (como QLab)",
+      "estilo_estudio": "Estudio (como OBS)",
+      "previa_movimiento": "Vista previa en movimiento",
+      "buscar_ph": "Buscar cue (número o nombre) · Ctrl+F",
+      "sin_coincidencias": "Ningún cue coincide con la búsqueda.",
+      "vista_previa": "Vista previa · lo que viene",
+      "al_aire": "En el proyector · al aire",
+      "proyector_negro": "Negro",
+      "salir_principio": "Salir desde el principio",
+      "salir_aqui": "Salir desde aquí ({t})",
+      "sale_desde": "Con el GO sale desde {t}",
+      "reproducir_previa": "Reproducir aquí (sin sonido)",
+      "pausar_previa": "Pausar",
+      "previa_no_disponible": "Este vídeo no se puede ver en la vista previa; en el proyector sale igual.",
+      "atajo_buscar": "Buscar un cue",
+      "solo_sonido": "Solo sonido",
       "audio": "Audio",
       "video": "Vídeo",
       "imagen": "Imagen",
@@ -203,6 +220,38 @@
         "ejemplo_activar": "Ej.: un compañero nuevo opera la función mañana y quiere entender cada opción.",
         "desactivar": "Apágalos si ya conoces el programa y prefieres una pantalla más limpia.",
         "ejemplo_desactivar": "Ej.: llevas meses con el mismo show y ya no necesitas las explicaciones."
+      },
+      "estilo_lista": {
+        "titulo": "Estilo Lista (como QLab)",
+        "que_hace": "La lista manda: cada GO dispara el siguiente cue, en orden. En Función no se elige con el ratón.",
+        "activar": "Úsalo en obras con un orden fijo de cues, ensayado.",
+        "ejemplo_activar": "Ej.: una obra de teatro con 80 cues que siguen el libreto, uno detrás de otro.",
+        "desactivar": "Cámbialo a Estudio si el orden no es fijo y tienes que buscar cues en el momento.",
+        "ejemplo_desactivar": "Ej.: una gala donde el presentador cambia el orden de los números sobre la marcha."
+      },
+      "estilo_estudio": {
+        "titulo": "Estilo Estudio (como OBS)",
+        "que_hace": "Clic en un cue: lo ves en la vista previa sin que salga. Con GO pasa al proyector.",
+        "activar": "Úsalo cuando el orden no es fijo o quieres ver cada vídeo antes de mandarlo.",
+        "ejemplo_activar": "Ej.: un evento con vídeos de cada orador que salen cuando cada uno sube al escenario.",
+        "desactivar": "Vuelve a Lista para una obra ensayada, con más espacio para la lista y menos clics.",
+        "ejemplo_desactivar": "Ej.: la función número 20 de una obra que ya sale de memoria."
+      },
+      "previa_movimiento": {
+        "titulo": "Vista previa en movimiento",
+        "que_hace": "En la vista previa el vídeo se mueve (sin sonido). Apagado, se ve solo una foto fija.",
+        "activar": "Déjala encendida si el equipo anda bien y quieres ver el vídeo antes del GO.",
+        "ejemplo_activar": "Ej.: eliges entre dos vídeos parecidos y quieres ver cuál es cuál.",
+        "desactivar": "Apágala en equipos justos: la vista previa es un vídeo más moviéndose a la vez.",
+        "ejemplo_desactivar": "Ej.: una notebook vieja con un vídeo 4K al aire en el proyector."
+      },
+      "salir_desde": {
+        "titulo": "Desde dónde sale",
+        "que_hace": "Elige si el vídeo sale desde el principio o desde el punto donde lo dejaste en la vista previa.",
+        "activar": "Elige \"desde aquí\" para empezar a mitad de un vídeo, con imagen y sonido juntos.",
+        "ejemplo_activar": "Ej.: el director pide arrancar el vídeo de la tormenta justo desde el primer rayo.",
+        "desactivar": "Deja \"desde el principio\" para que salga entero, como se preparó.",
+        "ejemplo_desactivar": "Ej.: el vídeo de apertura, que siempre sale completo."
       }
     },
     "ayuda": {
@@ -218,7 +267,10 @@
       "pausa": ["Pausa", "Congela todo, como cuando pausas una película. Lo tocas otra vez y sigue desde donde quedó. También con la tecla P."],
       "fundir": ["Fundir todo", "Baja el sonido despacito, en 3 segundos, hasta que no queda nada. Sirve para terminar suave. Con Mayús y F se va despacito solo lo último que empezó."],
       "parar": ["Parar todo", "El botón de emergencia. Apaga todo al instante, sin ruidos feos en los altavoces. También con la tecla Esc, que funciona siempre."],
-      "aviso": ["Avisos", "Cuando algo no salió como esperabas, el programa te lo cuenta aquí con palabras simples. Lo cierras con la cruz."]
+      "aviso": ["Avisos", "Cuando algo no salió como esperabas, el programa te lo cuenta aquí con palabras simples. Lo cierras con la cruz."],
+      "buscador": ["Buscar un cue", "Escribe un número o parte del nombre y la lista muestra solo los que coinciden. Con Enter, ese cue queda listo para el próximo GO. Buscar nunca dispara nada."],
+      "previa": ["Vista previa", "Te muestra el cue que elegiste, antes de mandarlo al proyector. Puedes darle play aquí para verlo entero, sin sonido y sin que lo vea el público. Recién con GO sale al proyector."],
+      "aire": ["Al aire", "Te muestra lo que está saliendo ahora por el proyector y cuánto le falta. Si dice Negro, el proyector no muestra nada."]
     },
     "pasos": [
       ["Bienvenido a Otaconvert", "En cinco pasos te cuento cómo se usa. Puedes volver a verlo cuando quieras en Ayuda → Primeros pasos."],
@@ -309,6 +361,23 @@
       "video_mudo": "The picture goes to the Projector. This video has no sound.",
       "imagen_fija": "Still image",
       "sin_proyeccion": "No projection",
+      "estilo": "Style",
+      "estilo_lista": "List (like QLab)",
+      "estilo_estudio": "Studio (like OBS)",
+      "previa_movimiento": "Moving preview",
+      "buscar_ph": "Find cue (number or name) · Ctrl+F",
+      "sin_coincidencias": "No cue matches the search.",
+      "vista_previa": "Preview · what's next",
+      "al_aire": "On the projector · live",
+      "proyector_negro": "Black",
+      "salir_principio": "Start from the beginning",
+      "salir_aqui": "Start from here ({t})",
+      "sale_desde": "GO starts it at {t}",
+      "reproducir_previa": "Play here (muted)",
+      "pausar_previa": "Pause",
+      "previa_no_disponible": "This video can't be shown in the preview; it plays normally on the projector.",
+      "atajo_buscar": "Find a cue",
+      "solo_sonido": "Sound only",
       "audio": "Audio",
       "video": "Video",
       "imagen": "Image",
@@ -433,6 +502,38 @@
         "ejemplo_activar": "E.g.: a new colleague runs the show tomorrow and wants to understand each option.",
         "desactivar": "Turn them off if you know the program and prefer a cleaner screen.",
         "ejemplo_desactivar": "E.g.: you've run the same show for months and no longer need the explanations."
+      },
+      "estilo_lista": {
+        "titulo": "List style (like QLab)",
+        "que_hace": "The list leads: each GO fires the next cue, in order. In Live mode you don't pick with the mouse.",
+        "activar": "Use it for shows with a fixed, rehearsed cue order.",
+        "ejemplo_activar": "E.g.: a play with 80 cues that follow the script, one after another.",
+        "desactivar": "Switch to Studio if the order isn't fixed and you need to find cues on the fly.",
+        "ejemplo_desactivar": "E.g.: a gala where the host changes the running order on the spot."
+      },
+      "estilo_estudio": {
+        "titulo": "Studio style (like OBS)",
+        "que_hace": "Click a cue: you see it in the preview without it going out. GO sends it to the projector.",
+        "activar": "Use it when the order isn't fixed or you want to see each video before sending it.",
+        "ejemplo_activar": "E.g.: an event with a video for each speaker, played as each one walks on stage.",
+        "desactivar": "Go back to List for a rehearsed show, with more room for the list and fewer clicks.",
+        "ejemplo_desactivar": "E.g.: the 20th performance of a play you run by heart."
+      },
+      "previa_movimiento": {
+        "titulo": "Moving preview",
+        "que_hace": "The preview video moves (muted). Turned off, you only see a still picture.",
+        "activar": "Keep it on if the computer runs well and you want to see the video before GO.",
+        "ejemplo_activar": "E.g.: you're choosing between two similar videos and want to see which is which.",
+        "desactivar": "Turn it off on weak computers: the preview is one more video playing at once.",
+        "ejemplo_desactivar": "E.g.: an old laptop with a 4K video live on the projector."
+      },
+      "salir_desde": {
+        "titulo": "Where it starts",
+        "que_hace": "Choose whether the video starts from the beginning or from where you left it in the preview.",
+        "activar": "Choose \"from here\" to start mid-video, with picture and sound together.",
+        "ejemplo_activar": "E.g.: the director wants the storm video to start right at the first lightning bolt.",
+        "desactivar": "Keep \"from the beginning\" so it plays in full, as prepared.",
+        "ejemplo_desactivar": "E.g.: the opening video, which always plays complete."
       }
     },
     "ayuda": {
@@ -448,7 +549,10 @@
       "pausa": ["Pause", "Freezes everything, like pausing a movie. Press it again and it continues where it stopped. Also with the P key."],
       "fundir": ["Fade all", "Lowers the sound slowly, over 3 seconds, until nothing is left. It's for ending softly. With Shift and F, only the last thing that started fades away."],
       "parar": ["Stop all", "The emergency button. Turns everything off at once, with no nasty noises in the speakers. Also with the Esc key, which always works."],
-      "aviso": ["Messages", "When something didn't go as expected, the program tells you here in simple words. Close it with the cross."]
+      "aviso": ["Messages", "When something didn't go as expected, the program tells you here in simple words. Close it with the cross."],
+      "buscador": ["Find a cue", "Type a number or part of the name and the list shows only what matches. Press Enter and that cue is ready for the next GO. Searching never fires anything."],
+      "previa": ["Preview", "It shows the cue you picked, before sending it to the projector. You can play it here to watch it all, muted and without the audience seeing it. Only GO sends it to the projector."],
+      "aire": ["Live", "It shows what's on the projector right now and how long is left. If it says Black, the projector shows nothing."]
     },
     "pasos": [
       ["Welcome to Otaconvert", "In five steps I'll show you how it works. You can see this again anytime in Help → First steps."],

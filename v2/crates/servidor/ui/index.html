@@ -104,7 +104,7 @@ kbd{font:12px var(--mono);background:var(--card2);border:1px solid var(--border)
 
 /* Lista de cues */
 .list{overflow:auto;flex:1;padding:6px}
-.row{display:grid;grid-template-columns:40px 22px minmax(0,1fr) 92px 64px;align-items:center;gap:10px;padding:9px 10px;border-radius:12px;position:relative;border:1px solid transparent}
+.row{display:grid;grid-template-columns:40px 44px minmax(0,1fr) 92px 64px;align-items:center;gap:10px;padding:9px 10px;border-radius:12px;position:relative;border:1px solid transparent}
 .edicion .row{cursor:pointer}
 .edicion .row:hover{background:var(--hover)}
 .row .n{color:var(--dim);font:13px var(--mono);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -197,7 +197,7 @@ fieldset:disabled{opacity:.45}
   .app{height:auto;min-height:100%}
   .body,.transport{grid-template-columns:1fr}
   .list{max-height:420px}
-  .row{grid-template-columns:34px 20px minmax(0,1fr) 54px}
+  .row{grid-template-columns:34px 44px minmax(0,1fr) 54px}
   .row .out{display:none}
   .spacer{display:none}
 }
@@ -226,6 +226,27 @@ fieldset:disabled{opacity:.45}
 .dlg .nav .atras{background:var(--card);color:var(--text);border:1px solid var(--border)}
 .dlg .nav span{color:var(--dim);font-size:12px}
 .menu .q{margin-left:auto}
+/* Vista Estudio y buscador */
+.row svg{justify-self:center}
+.mini{width:44px;height:25px;object-fit:cover;border-radius:4px;background:#000;display:block}
+.buscador{padding:6px 6px 0}
+.buscador input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:7px 10px;color:var(--text);font:inherit}
+.row.oculta{display:none}
+.estudio{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:12px}
+.caja{background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.caja.previa{border-color:var(--accent)}
+.caja .k{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:13px}
+.pantalla{position:relative;aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden;display:grid;place-items:center;color:#9098A8}
+.pantalla video,.pantalla img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.pantalla .rotulo{position:absolute;left:8px;bottom:6px;right:8px;color:#E9ECF2;font-size:13px;text-shadow:0 1px 2px #000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.aire .pantalla{max-height:150px;aspect-ratio:auto;height:150px}
+.controles{display:flex;align-items:center;gap:8px}
+.controles input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
+.controles .val{min-width:84px;text-align:right}
+.salida-desde{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.salida-desde button{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:6px 10px;color:var(--text)}
+.salida-desde button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);font-weight:600}
+.caja .meta{white-space:pre-wrap;color:var(--muted);font-size:13px}
 </style>
 </head>
 <body>
@@ -264,6 +285,11 @@ fieldset:disabled{opacity:.45}
         <button role="menuitemcheckbox" data-tema="noche" data-consejo="modo_noche" aria-checked="false"><span data-t="modo_noche"></span><span class="q" aria-hidden="true">?</span></button>
         <button role="menuitemcheckbox" data-tema="dia" data-consejo="modo_dia" aria-checked="false"><span data-t="modo_dia"></span><span class="q" aria-hidden="true">?</span></button>
         <button role="menuitemcheckbox" data-tema="contraste" data-consejo="alto_contraste" aria-checked="false"><span data-t="alto_contraste"></span><span class="q" aria-hidden="true">?</span></button>
+        <div class="sep"></div>
+        <div class="lbl" data-t="estilo"></div>
+        <button role="menuitemradio" data-estilo="lista" data-consejo="estilo_lista" aria-checked="true"><span data-t="estilo_lista"></span><span class="q" aria-hidden="true">?</span></button>
+        <button role="menuitemradio" data-estilo="estudio" data-consejo="estilo_estudio" aria-checked="false"><span data-t="estilo_estudio"></span><span class="q" aria-hidden="true">?</span></button>
+        <button role="menuitemcheckbox" data-accion="previa_mov" data-consejo="previa_movimiento" aria-checked="true"><span data-t="previa_movimiento"></span><span class="q" aria-hidden="true">?</span></button>
         <div class="sep"></div>
         <div class="lbl" data-t="idioma"></div>
         <button role="menuitemradio" data-idioma="es" aria-checked="true">Español</button>
@@ -315,6 +341,7 @@ fieldset:disabled{opacity:.45}
   <main class="body">
     <section class="panel" data-help="lista">
       <div class="panel-h"><strong data-t="cues"></strong><span id="info" class="num"></span></div>
+      <div class="buscador" data-help="buscador"><input type="text" id="buscar" autocomplete="off" spellcheck="false"></div>
       <div class="list" id="lista"></div>
     </section>
     <section class="panel" id="lado" data-help="lado_edicion"></section>
@@ -348,6 +375,11 @@ fieldset:disabled{opacity:.45}
   var idioma = leer("ota-idioma", "es") === "en" ? "en" : "es";
   var consejos = leer("ota-consejos", "si") !== "no";
   var tema = leer("ota-tema", "");
+  // Estilo de trabajo: "lista" (como QLab) o "estudio" (como OBS). Vista previa en movimiento o fija.
+  var estilo = leer("ota-estilo", "lista") === "estudio" ? "estudio" : "lista";
+  // Vista previa en movimiento: el vídeo arranca solo al elegirlo (apagado por defecto: queda en su primer cuadro y se le da ▶).
+  var previaMov = leer("ota-previa-mov", "no") === "si";
+  var busqueda = "";
 
   // ---- Textos ----
   function T(k, vars) {
@@ -363,6 +395,8 @@ fieldset:disabled{opacity:.45}
     $("segModo").setAttribute("aria-label", T("modo_grupo"));
     $("lista").setAttribute("aria-label", T("lista_cues"));
     $("aviso-cerrar").setAttribute("aria-label", T("cerrar_aviso"));
+    $("buscar").placeholder = T("buscar_ph");
+    $("buscar").setAttribute("aria-label", T("atajo_buscar"));
     document.querySelectorAll("[data-idioma]").forEach(function (b) { b.setAttribute("aria-checked", String(b.dataset.idioma === idioma)); });
     if (!abierto) avisoConexion(T("conectando"), "");
     else avisoConexion(T("conectado"), "on");
@@ -435,13 +469,23 @@ fieldset:disabled{opacity:.45}
     $("info").textContent = T("n_cues", { n: e.cues.length }) + " · " + T("n_sonando", { n: (e.sonando || []).length });
     if (!e.cues.length) { lista.appendChild(el("div", "vacio", T("vacio"))); return; }
     var funcion = e.modo === "funcion";
+    var elegible = !funcion || estilo === "estudio";
+    var visibles = 0;
     e.cues.forEach(function (c, i) {
       var s = son[i];
-      var f = el("div", "row" + (i === e.en_espera ? " standby" : "") + (s ? " playing" : ""));
+      var oculta = busqueda && !coincide(c, busqueda);
+      if (!oculta) visibles++;
+      var f = el("div", "row" + (i === e.en_espera ? " standby" : "") + (s ? " playing" : "") + (oculta ? " oculta" : ""));
       f.dataset.i = i;
-      if (!funcion) f.tabIndex = 0;
+      if (elegible) f.tabIndex = 0;
       f.appendChild(el("span", "n", c.numero));
-      f.appendChild(icono(c.tipo));
+      // Foto chica del vídeo o imagen (si ya está hecha); si no, el icono del tipo.
+      if (c.miniatura) {
+        var im = el("img", "mini"); im.alt = ""; im.loading = "lazy"; im.src = urlMiniatura(i, c);
+        f.appendChild(im);
+      } else {
+        f.appendChild(icono(c.tipo));
+      }
       var nm = el("span", "nm"), linea = el("div");
       linea.appendChild(document.createTextNode(c.nombre));
       if (c.bucle) linea.appendChild(el("span", "tag", T("bucle")));
@@ -459,10 +503,20 @@ fieldset:disabled{opacity:.45}
       if (s) { var p = el("span", "prog"), b = el("i"); b.style.width = (s.progreso * 100) + "%"; p.appendChild(b); f.appendChild(p); }
       lista.appendChild(f);
     });
+    if (busqueda && !visibles) lista.appendChild(el("div", "vacio", T("sin_coincidencias")));
     lista.scrollTop = arriba;
-    var sb = lista.querySelector(".standby");
+    var sb = lista.querySelector(".standby:not(.oculta)");
     if (sb) sb.scrollIntoView({ block: "nearest" });
   }
+
+  // ---- Buscador: número o nombre, sin importar mayúsculas ni tildes ----
+  function sinTildes(s) { return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
+  function coincide(c, q) {
+    var b = sinTildes(q).trim();
+    return !b || sinTildes(c.numero) === b || sinTildes(c.numero + " " + c.nombre + " " + c.nota + " " + c.archivo).indexOf(b) >= 0;
+  }
+  function urlMiniatura(i, c) { return "/miniatura?t=" + encodeURIComponent(token) + "&cue=" + i + "&v=" + encodeURIComponent(c.miniatura || ""); }
+  function urlMedio(i) { return "/medio?t=" + encodeURIComponent(token) + "&cue=" + i; }
 
   // Botoncito "?" con el consejo de una opción (regla de interfaz de CLAUDE.md).
   function botonConsejo(k) {
@@ -476,8 +530,15 @@ fieldset:disabled{opacity:.45}
 
   // Panel lateral. En Edición: el cue en espera, editable. En Función: lo que suena y lo que viene.
   function dibujarLado(funcion) {
+    if (estilo === "estudio") { dibujarEstudio(funcion); return; }
     var lado = $("lado");
+    if (lado.dataset.estilo) { lado.textContent = ""; delete lado.dataset.estilo; ladoClave = ""; }
     if (funcion) { ladoClave = ""; dibujarEnVivo(lado); return; }
+    dibujarDetalle(lado);
+  }
+
+  // Ajustes del cue en espera (Edición), dentro de `lado`.
+  function dibujarDetalle(lado) {
     var i = e.en_espera, c = e.cues[i];
     var suena = !!sonandoPorCue()[i];
     var clave = JSON.stringify([i, c, suena, desbloqueado, idioma, consejos]);
@@ -502,7 +563,7 @@ fieldset:disabled{opacity:.45}
       t.appendChild(el("p", "", T("bloqueado_t")));
       t.appendChild(el("small", "", T("bloqueado_s")));
       var u = el("button", "btn", T("editar_igualmente"));
-      u.onclick = function () { desbloqueado = i; ladoClave = ""; dibujarLado(false); dibujarLista(); };
+      u.onclick = function () { desbloqueado = i; ladoClave = ""; dibujarLado(e.modo === "funcion"); dibujarLista(); };
       lk.appendChild(t); lk.appendChild(u); props.appendChild(lk);
     }
     var fs = el("fieldset"); fs.disabled = bloqueado;
@@ -571,6 +632,143 @@ fieldset:disabled{opacity:.45}
     });
     s.onchange = function () { cambio(+s.value); };
     return s;
+  }
+
+  // ---- Vista Estudio (como el Modo Estudio de OBS) ----
+  // Arriba la vista previa del cue elegido (lo que viene), abajo lo que está al
+  // aire en el proyector; en Edición, debajo, los ajustes del cue elegido.
+  // Las partes con vídeo no se rehacen en cada refresco (el vídeo volvería a empezar).
+  var previaClave = "", aireClave = "", previaVideo = null;
+  function caja(cls, ayuda, titulo, consejo) {
+    var c = el("div", "caja " + cls); c.dataset.help = ayuda;
+    var k = el("div", "k"), s = el("span", "", titulo);
+    if (consejo) s.appendChild(botonConsejo(consejo));
+    k.appendChild(s); c.appendChild(k);
+    return c;
+  }
+  function dibujarEstudio(funcion) {
+    var lado = $("lado");
+    if (lado.dataset.estilo !== "estudio") {
+      lado.textContent = ""; lado.dataset.estilo = "estudio";
+      previaClave = aireClave = ladoClave = ""; previaVideo = null;
+      var est = el("div", "estudio");
+      var cp = caja("previa", "previa", T("vista_previa"));
+      var pp = el("div", "pantalla"); pp.id = "previaPantalla"; cp.appendChild(pp);
+      var ctl = el("div", "controles"); ctl.id = "previaControles"; cp.appendChild(ctl);
+      var inf = el("div", "meta"); inf.id = "previaInfo"; cp.appendChild(inf);
+      var sd = el("div", "salida-desde"); sd.id = "salidaDesde"; cp.appendChild(sd);
+      est.appendChild(cp);
+      var ca = caja("aire", "aire", T("al_aire"));
+      var pa = el("div", "pantalla"); pa.id = "airePantalla"; ca.appendChild(pa);
+      var ai = el("div", "meta"); ai.id = "aireInfo"; ca.appendChild(ai);
+      est.appendChild(ca);
+      var det = el("div"); det.id = "detalle"; est.appendChild(det);
+      lado.appendChild(est);
+    }
+    dibujarPrevia();
+    dibujarAire();
+    var dt = $("detalle");
+    dt.hidden = funcion;
+    if (funcion) ladoClave = "";
+    else dibujarDetalle(dt);
+  }
+
+  function dibujarPrevia() {
+    var i = e.en_espera, c = e.cues[i];
+    var clave = JSON.stringify([i, c && c.archivo, c && c.tipo, c && c.miniatura, c && c.inicio_s, previaMov, idioma]);
+    // Lo que cambia seguido (estado, duración, desde dónde sale) se actualiza siempre.
+    var inf = $("previaInfo");
+    inf.textContent = c ? c.numero + " · " + c.nombre + " · " + [tipoTexto(c.tipo), c.duracion_s != null ? mmss(c.duracion_s) : "", prepTexto(c.preparacion)].filter(Boolean).join(" · ") + (c.nota ? "\n" + c.nota : "") : T("fin_lista");
+    actualizarSalidaDesde();
+    if (clave === previaClave) return;
+    previaClave = clave;
+    var pp = $("previaPantalla"), ctl = $("previaControles"), sd = $("salidaDesde");
+    if (previaVideo) { previaVideo.pause(); previaVideo.removeAttribute("src"); previaVideo.load(); previaVideo = null; }
+    pp.textContent = ""; ctl.textContent = ""; sd.textContent = "";
+    if (!c) { pp.appendChild(el("span", "", T("fin_lista"))); return; }
+    if (c.tipo === "audio") {
+      var ic = icono("audio"); ic.style.width = "48px"; ic.style.height = "48px";
+      pp.appendChild(ic); pp.appendChild(el("span", "rotulo", T("solo_sonido") + " · " + c.nombre));
+      return;
+    }
+    if (c.tipo === "imagen") {
+      var im = el("img"); im.alt = ""; im.src = urlMedio(i); pp.appendChild(im);
+      return;
+    }
+    // Vídeo: queda quieto en su primer cuadro; con ▶ se ve entero aquí (sin sonido).
+    var v = document.createElement("video");
+    v.muted = true; v.playsInline = true; v.preload = "auto"; v.loop = !!c.bucle;
+    if (c.miniatura) v.poster = urlMiniatura(i, c);
+    v.src = urlMedio(i);
+    var inicio = c.inicio_s || 0;
+    v.addEventListener("loadedmetadata", function () {
+      if (inicio > 0) v.currentTime = inicio;
+      barra.max = v.duration || 0;
+      if (previaMov) v.play().catch(function () {});
+    });
+    v.addEventListener("error", function () {
+      // No se puede ver aquí (p. ej. HEVC sin la extensión de Windows): foto fija.
+      pp.textContent = "";
+      if (c.miniatura) { var f = el("img"); f.alt = ""; f.src = urlMiniatura(i, c); pp.appendChild(f); }
+      pp.appendChild(el("span", "rotulo", T("previa_no_disponible")));
+      ctl.textContent = "";
+    });
+    pp.appendChild(v);
+    previaVideo = v;
+    var bp = el("button", "btn", "▶"); bp.setAttribute("aria-label", T("reproducir_previa")); bp.title = T("reproducir_previa");
+    bp.onclick = function () { if (v.paused) v.play().catch(function () {}); else v.pause(); };
+    var barra = el("input"); barra.type = "range"; barra.min = 0; barra.step = 0.04; barra.value = 0;
+    barra.setAttribute("aria-label", T("vista_previa"));
+    barra.oninput = function () { v.currentTime = +barra.value; };
+    var tiempo = el("span", "val num", "0:00");
+    v.addEventListener("play", function () { bp.textContent = "⏸"; bp.title = T("pausar_previa"); });
+    v.addEventListener("pause", function () { bp.textContent = "▶"; bp.title = T("reproducir_previa"); });
+    v.addEventListener("timeupdate", function () {
+      if (document.activeElement !== barra) barra.value = v.currentTime;
+      tiempo.textContent = mmss(v.currentTime) + " / " + mmss(v.duration || 0);
+      actualizarSalidaDesde();
+    });
+    ctl.appendChild(bp); ctl.appendChild(barra); ctl.appendChild(tiempo);
+    // Desde dónde sale con el GO: el principio o el punto de la vista previa.
+    var b1 = el("button", "", T("salir_principio")); b1.id = "desdePrincipio";
+    b1.onclick = function () { mandar("elegir_desde", { cue: i, s: null }); };
+    var b2 = el("button", "", ""); b2.id = "desdeAqui";
+    b2.onclick = function () { v.pause(); mandar("elegir_desde", { cue: i, s: v.currentTime }); };
+    sd.appendChild(b1); sd.appendChild(b2); sd.appendChild(botonConsejo("salir_desde"));
+    actualizarSalidaDesde();
+  }
+
+  function actualizarSalidaDesde() {
+    var b1 = $("desdePrincipio"), b2 = $("desdeAqui");
+    if (!b1 || !b2) return;
+    var elegido = e.desde_s != null;
+    b1.setAttribute("aria-pressed", String(!elegido));
+    b2.setAttribute("aria-pressed", String(elegido));
+    b2.textContent = elegido ? T("sale_desde", { t: mmss(e.desde_s) }) : T("salir_aqui", { t: mmss(previaVideo ? previaVideo.currentTime : 0) });
+  }
+
+  function dibujarAire() {
+    var lista = e.sonando || [];
+    var sv = lista.filter(function (s) { return s.visual; })[0];
+    var cv = sv ? e.cues[sv.cue] : null;
+    var clave = sv ? JSON.stringify([sv.cue, cv && cv.miniatura, sv.imagen]) : "negro|" + idioma;
+    if (clave !== aireClave) {
+      aireClave = clave;
+      var pa = $("airePantalla"); pa.textContent = "";
+      if (sv && cv) {
+        if (sv.imagen || cv.miniatura) { var im = el("img"); im.alt = ""; im.src = sv.imagen ? urlMedio(sv.cue) : urlMiniatura(sv.cue, cv); pa.appendChild(im); }
+        pa.appendChild(el("span", "rotulo", cv.numero + " · " + cv.nombre));
+      } else {
+        pa.appendChild(el("span", "", T("proyector_negro")));
+      }
+    }
+    var lineas = [];
+    if (sv) lineas.push((sv.fundiendo ? T("fundiendo") : "") + (sv.imagen ? T("imagen_fija") : sv.restante_s != null ? "-" + mmss(sv.restante_s) : T("en_bucle")));
+    lista.filter(function (s) { return !s.visual; }).forEach(function (s) {
+      lineas.push("♪ " + s.nombre + " · " + (s.fundiendo ? T("fundiendo") : "") + (s.restante_s != null ? "-" + mmss(s.restante_s) : T("en_bucle")));
+    });
+    if (e.pausado) lineas.unshift(T("en_pausa"));
+    $("aireInfo").textContent = lineas.join("\n");
   }
 
   function dibujarEnVivo(lado) {
@@ -652,6 +850,8 @@ fieldset:disabled{opacity:.45}
       if (it.dataset.orden) mandar(it.dataset.orden);
       else if (it.dataset.tema) ponerTema(tema === it.dataset.tema ? "" : it.dataset.tema);
       else if (it.dataset.idioma) ponerIdioma(it.dataset.idioma);
+      else if (it.dataset.estilo) ponerEstilo(it.dataset.estilo);
+      else if (it.dataset.accion === "previa_mov") ponerPreviaMov(!previaMov);
       else if (it.dataset.accion === "restaurar") ponerTema("");
       else if (it.dataset.accion === "modo_ayuda") ponerAyuda(!ayudando);
       else if (it.dataset.accion === "pasos") primerosPasos(0);
@@ -673,7 +873,23 @@ fieldset:disabled{opacity:.45}
     idioma = i === "en" ? "en" : "es";
     escribir("ota-idioma", idioma);
     mandar("idioma", { idioma: idioma });
+    delete $("lado").dataset.estilo; // la Vista Estudio se rearma con los textos nuevos
     aplicarTextos();
+  }
+  // Estilo de trabajo (Vista → Estilo): Lista (como QLab) o Estudio (como OBS).
+  function ponerEstilo(s) {
+    estilo = s === "estudio" ? "estudio" : "lista";
+    escribir("ota-estilo", estilo);
+    document.querySelectorAll("[data-estilo]").forEach(function (b) { b.setAttribute("aria-checked", String(b.dataset.estilo === estilo)); });
+    $("app").classList.toggle("estudio", estilo === "estudio");
+    if (e) dibujar();
+  }
+  function ponerPreviaMov(si) {
+    previaMov = si;
+    escribir("ota-previa-mov", si ? "si" : "no");
+    document.querySelector('[data-accion="previa_mov"]').setAttribute("aria-checked", String(si));
+    previaClave = "";
+    if (e) dibujar();
   }
   // Consejos: se pueden ocultar; la casilla para volver a mostrarlos nunca se oculta.
   function ponerConsejos(si) {
@@ -785,7 +1001,7 @@ fieldset:disabled{opacity:.45}
   function dialogoAtajos() {
     dialogo(T("atajos"), function (d) {
       var t = el("table");
-      [[T("tecla_espacio"), "atajo_go"], ["Esc", "atajo_esc"], ["P", "atajo_p"], ["F", "atajo_f"], [T("tecla_mayus") + " + F", "atajo_mf"], ["↑  ↓", "atajo_flechas"], ["Tab", "atajo_tab"], ["H", "atajo_h"], ["Ctrl + S", "atajo_s"]]
+      [[T("tecla_espacio"), "atajo_go"], ["Esc", "atajo_esc"], ["P", "atajo_p"], ["F", "atajo_f"], [T("tecla_mayus") + " + F", "atajo_mf"], ["↑  ↓", "atajo_flechas"], ["Tab", "atajo_tab"], ["H", "atajo_h"], ["Ctrl + F", "atajo_buscar"], ["Ctrl + S", "atajo_s"]]
         .forEach(function (f) { var tr = el("tr"), a = el("td"); a.appendChild(el("kbd", "", f[0])); tr.appendChild(a); tr.appendChild(el("td", "", T(f[1]))); t.appendChild(tr); });
       d.appendChild(t);
     });
@@ -828,12 +1044,23 @@ fieldset:disabled{opacity:.45}
   $("mEdicion").onclick = function () { mandar("modo_edicion"); };
   $("mFuncion").onclick = function () { mandar("modo_funcion"); };
   $("aviso-cerrar").onclick = function () { mandar("cerrar_aviso"); };
+  // Buscador: filtra la lista mientras se escribe; Enter deja en espera el
+  // primer cue que coincide (nunca dispara) y suelta el foco para que Espacio sea GO.
+  $("buscar").addEventListener("input", function () { busqueda = $("buscar").value; if (e) dibujarLista(); });
+  $("buscar").addEventListener("keydown", function (ev) {
+    if (ev.key !== "Enter") return;
+    ev.preventDefault();
+    var r = $("lista").querySelector(".row:not(.oculta)");
+    if (r) mandar("ir_a", { cue: +r.dataset.i });
+    $("buscar").blur();
+  });
   $("lista").addEventListener("click", function (ev) {
-    if (!e || e.modo === "funcion") return;
+    // En Función solo se elige con el ratón en la Vista Estudio (nunca dispara).
+    if (!e || (e.modo === "funcion" && estilo !== "estudio")) return;
     var r = ev.target.closest(".row"); if (r) mandar("ir_a", { cue: +r.dataset.i });
   });
   $("lista").addEventListener("keydown", function (ev) {
-    if (ev.key === "Enter" && e && e.modo !== "funcion") { var r = ev.target.closest(".row"); if (r) mandar("ir_a", { cue: +r.dataset.i }); }
+    if (ev.key === "Enter" && e && (e.modo !== "funcion" || estilo === "estudio")) { var r = ev.target.closest(".row"); if (r) mandar("ir_a", { cue: +r.dataset.i }); }
   });
 
   // ---- Teclado (también funciona en el Modo Ayuda: GO y Parar todo nunca se bloquean) ----
@@ -842,6 +1069,9 @@ fieldset:disabled{opacity:.45}
     if (ev.key === "Escape") { ev.preventDefault(); mandar("parar_todo"); cerrarMenus(); cerrarDialogo(); cerrarBurbuja(); ponerAyuda(false); return; }
     var escribiendo = ev.target.matches && ev.target.matches("input[type=text],textarea,select");
     if ((ev.ctrlKey || ev.metaKey) && (ev.key === "s" || ev.key === "S")) { ev.preventDefault(); mandar("guardar"); return; }
+    // Buscar un cue: Ctrl+F, o la tecla / (si no se está escribiendo).
+    if ((ev.ctrlKey || ev.metaKey) && (ev.key === "f" || ev.key === "F")) { ev.preventDefault(); $("buscar").focus(); $("buscar").select(); return; }
+    if (ev.key === "/" && !escribiendo) { ev.preventDefault(); $("buscar").focus(); $("buscar").select(); return; }
     if (escribiendo || ev.ctrlKey || ev.metaKey || ev.altKey) return;   // con foco en un campo, Tab pasa de campo
     if (ev.key === " ") { ev.preventDefault(); cerrarDialogo(); cerrarMenus(); cerrarBurbuja(); mandar("go"); return; }
     if (velo) return;
@@ -862,6 +1092,8 @@ fieldset:disabled{opacity:.45}
 
   // ---- Arranque ----
   ponerTema(tema);
+  ponerEstilo(estilo);
+  ponerPreviaMov(previaMov);
   ponerConsejos(consejos);
   aplicarTextos();
   reloj(); setInterval(reloj, 1000);
