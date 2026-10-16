@@ -632,6 +632,7 @@ Antes de programar se verifican tres decisiones técnicas: cómo se dibuja la ve
 - **Sin hacer y por qué:**
   - **Que el reloj de la tarjeta de sonido mande sobre el vídeo:** hoy imagen (mpv) y sonido (tarjeta) arrancan juntos y cada uno sigue su reloj. En vídeos de minutos la diferencia esperada es de milisegundos; hay que medirla en vídeos largos antes de corregirla (ajustar la velocidad de mpv).
   - **Miniatura del proyector y elegir pantalla en la interfaz:** **decidido por el usuario (16/10/2026): van a la etapa 5.** La miniatura con capturas de mpv cada segundo cargaría a los equipos modestos durante la función; elegir la pantalla va en Ajustes del show → Salidas. Hoy se elige con `--pantalla`.
+- **Subida y comprobada:** run 38925664454 (commit 020540b), **todo verde**.
 - Siguiente: **demo portable** para probar en el teatro con el proyector; luego 4C (4 puntos).
 
 ### Demo portable para probar en el teatro (16/10/2026)
