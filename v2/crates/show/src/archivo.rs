@@ -74,6 +74,12 @@ pub fn validar(show: &Show) -> Result<(), ErrorShow> {
                 return Err(ErrorShow::ValorMalo(format!("{donde}: el fin está antes del inicio")));
             }
         }
+        if let Some(p) = c.encuadre.problema() {
+            return Err(ErrorShow::ValorMalo(format!("{donde}: {p}")));
+        }
+    }
+    if let Some(p) = show.superficie.problema() {
+        return Err(ErrorShow::ValorMalo(format!("superficie del proyector: {p}")));
     }
     for p in &show.botonera {
         for b in &p.botones {

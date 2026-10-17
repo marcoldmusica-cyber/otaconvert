@@ -25,10 +25,10 @@ use tungstenite::handshake::server::{ErrorResponse, Request, Response};
 use tungstenite::protocol::WebSocketConfig;
 use tungstenite::{Error as ErrorWs, Message};
 
-pub use sesion::{Sesion, TareaPreparar};
+pub use sesion::{Modo, Sesion, TareaPreparar};
 pub use sonido::{Destino, Sonido};
 pub use texto::{Idioma, Texto};
-pub use proyector::{AvisoProyector, OrdenProyector, Proyector};
+pub use proyector::{motivo, AvisoProyector, OrdenProyector, Proyector};
 
 const PLANTILLA: &str = include_str!("../ui/index.html");
 /// Textos de la interfaz en español e inglés (también los consejos y la
@@ -365,6 +365,29 @@ fn ejecutar(ctx: &Contexto, texto: &str) {
                     None => Err(Texto::nuevo("Cue no válido.", "Invalid cue.")),
                 };
                 if let Err(e) = r {
+                    s.aviso = Some(e);
+                }
+            }
+            // Etapa 4C: las 4 esquinas del Proyector ([[x,y] × 4], fracciones de la pantalla).
+            Some("esquinas") => {
+                let leidas: Option<Vec<[f64; 2]>> = v.get("esquinas").and_then(|e| e.as_array()).map(|a| {
+                    a.iter()
+                        .filter_map(|p| {
+                            let p = p.as_array()?;
+                            Some([p.first()?.as_f64()?, p.get(1)?.as_f64()?])
+                        })
+                        .collect()
+                });
+                let r = match leidas.and_then(|l| <[[f64; 2]; 4]>::try_from(l).ok()) {
+                    Some(e) => s.cambiar_esquinas(e),
+                    None => Err(Texto::nuevo("Esquinas no válidas.", "Invalid corners.")),
+                };
+                if let Err(e) = r {
+                    s.aviso = Some(e);
+                }
+            }
+            Some("patron") => {
+                if let Err(e) = s.mostrar_patron(v.get("si").and_then(|x| x.as_bool()).unwrap_or(false)) {
                     s.aviso = Some(e);
                 }
             }

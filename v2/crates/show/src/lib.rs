@@ -8,6 +8,7 @@ pub mod archivo;
 pub mod modelo;
 pub mod registro;
 pub mod rutas;
+pub mod superficie;
 
 pub use archivo::{abrir, desde_texto, guardar, validar, ErrorShow, EXTENSION};
 pub use modelo::*;

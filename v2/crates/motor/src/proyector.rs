@@ -18,6 +18,14 @@
 //!
 //! Avisos (`"a"`): además `fin {id}` (un vídeo sin bucle llegó al final y se
 //! queda en su último cuadro) y `latido` cada 100 ms.
+//!
+//! Etapa 4C:
+//! - `precargar` trae además el `encuadre` del cue (modo, zoom, mover, recortes).
+//! - `esquinas {h: [8 números]}`: las 4 esquinas del Proyector, con un shader
+//!   propio de libplacebo en la etapa final (`SHADER`). Si la tarjeta gráfica
+//!   no puede con él, mpv lo apaga solo ("Failed executing hook, disabling") y
+//!   la imagen se sigue viendo sin deformar: se avisa `aviso {codigo: "esquinas"}`.
+//! - `patron {si}`: un patrón de prueba encima de todo para encajar las esquinas.
 
 use std::io::{BufRead, Write};
 use std::sync::mpsc;
@@ -47,6 +55,143 @@ enum Estado {
 struct Capa {
     rep: Reproductor,
     estado: Estado,
+    /// Recortes del cue que se carga (arriba, abajo, izquierda, derecha), en
+    /// fracciones: se aplican cuando ya se sabe el tamaño de la imagen.
+    recorte: [f32; 4],
+}
+
+/// Shader de las 4 esquinas (homografía inversa, probado con `--prueba-esquinas`).
+pub const SHADER: &str = r#"//!PARAM h0
+//!TYPE DYNAMIC float
+1.0
+//!PARAM h1
+//!TYPE DYNAMIC float
+0.0
+//!PARAM h2
+//!TYPE DYNAMIC float
+0.0
+//!PARAM h3
+//!TYPE DYNAMIC float
+0.0
+//!PARAM h4
+//!TYPE DYNAMIC float
+1.0
+//!PARAM h5
+//!TYPE DYNAMIC float
+0.0
+//!PARAM h6
+//!TYPE DYNAMIC float
+0.0
+//!PARAM h7
+//!TYPE DYNAMIC float
+0.0
+
+//!HOOK OUTPUT
+//!BIND HOOKED
+//!DESC Otaconvert: superficie de 4 esquinas
+vec4 hook() {
+    vec2 p = HOOKED_pos;
+    vec3 q = vec3(h0 * p.x + h1 * p.y + h2, h3 * p.x + h4 * p.y + h5, h6 * p.x + h7 * p.y + 1.0);
+    if (q.z <= 0.0)
+        return vec4(0.0, 0.0, 0.0, 1.0);
+    vec2 s = q.xy / q.z;
+    if (s.x < 0.0 || s.y < 0.0 || s.x > 1.0 || s.y > 1.0)
+        return vec4(0.0, 0.0, 0.0, 1.0);
+    return HOOKED_tex(s);
+}
+"#;
+
+/// Lo que mpv escribe cuando apaga un shader que no pudo usar.
+const SHADER_FALLO: &str = "Failed executing hook";
+
+/// Carpeta de datos del programa (como la ventana): junto al exe si es la
+/// versión portable, si no `%LOCALAPPDATA%\Otaconvert`.
+fn carpeta_datos() -> Option<std::path::PathBuf> {
+    let exe_dir = std::env::current_exe().ok()?.parent()?.to_path_buf();
+    if exe_dir.join("portable.txt").is_file() {
+        return Some(exe_dir.join("datos"));
+    }
+    std::env::var_os("LOCALAPPDATA").map(|d| std::path::PathBuf::from(d).join("Otaconvert"))
+}
+
+/// Patrón de prueba (1920×1080): cuadrícula, bordes, diagonales, círculo y
+/// una esquina de cada color (arriba-izq. roja, arriba-der. verde,
+/// abajo-der. azul, abajo-izq. amarilla) para saber cuál se está moviendo.
+pub fn escribir_patron(ruta: &std::path::Path) -> std::io::Result<()> {
+    let (w, h) = (1920u32, 1080u32);
+    let tam = w * 3 * h;
+    let mut d = Vec::with_capacity(54 + tam as usize);
+    d.extend_from_slice(b"BM");
+    d.extend_from_slice(&(54 + tam).to_le_bytes());
+    d.extend_from_slice(&0u32.to_le_bytes());
+    d.extend_from_slice(&54u32.to_le_bytes());
+    d.extend_from_slice(&40u32.to_le_bytes());
+    d.extend_from_slice(&(w as i32).to_le_bytes());
+    d.extend_from_slice(&(h as i32).to_le_bytes());
+    d.extend_from_slice(&1u16.to_le_bytes());
+    d.extend_from_slice(&24u16.to_le_bytes());
+    d.extend_from_slice(&[0u8; 24]);
+    let esquina = 160;
+    for fila in (0..h).rev() {
+        for x in 0..w {
+            let y = fila;
+            let (fx, fy) = (x as f64 / w as f64, y as f64 / h as f64);
+            let borde = x < 6 || y < 6 || x >= w - 6 || y >= h - 6;
+            let grilla = x % 240 < 3 || y % 135 < 3;
+            let diag = ((fx - fy).abs() * w as f64) < 3.0 || ((fx - (1.0 - fy)).abs() * w as f64) < 3.0;
+            let (cx, cy) = (x as f64 - w as f64 / 2.0, y as f64 - h as f64 / 2.0);
+            let r = (cx * cx + cy * cy).sqrt();
+            let circulo = (r - 400.0).abs() < 3.0;
+            let c: (u8, u8, u8) = if x < esquina && y < esquina {
+                (220, 50, 50)
+            } else if x >= w - esquina && y < esquina {
+                (50, 200, 80)
+            } else if x >= w - esquina && y >= h - esquina {
+                (60, 90, 230)
+            } else if x < esquina && y >= h - esquina {
+                (230, 200, 40)
+            } else if borde || grilla || diag || circulo {
+                (240, 240, 240)
+            } else {
+                (12, 12, 12)
+            };
+            d.extend_from_slice(&[c.2, c.1, c.0]);
+        }
+    }
+    std::fs::write(ruta, d)
+}
+
+/// Opciones de mpv para el encuadre de un cue (todas, para no heredar las del cue anterior).
+fn aplicar_encuadre(rep: &Reproductor, e: &Value) -> [f32; 4] {
+    let f = |k: &str, d: f64| e[k].as_f64().filter(|v| v.is_finite()).unwrap_or(d);
+    let modo = e["modo"].as_str().unwrap_or("ajustar");
+    let zoom = f("zoom", 1.0).clamp(0.1, 10.0);
+    let _ = rep.propiedad("panscan", if modo == "llenar" { "1.0" } else { "0.0" });
+    let _ = rep.propiedad("keepaspect", if modo == "estirar" { "no" } else { "yes" });
+    let _ = rep.propiedad("video-zoom", &format!("{:.6}", zoom.log2()));
+    let _ = rep.propiedad("video-pan-x", &format!("{:.6}", f("mover_x", 0.0).clamp(-2.0, 2.0)));
+    let _ = rep.propiedad("video-pan-y", &format!("{:.6}", f("mover_y", 0.0).clamp(-2.0, 2.0)));
+    let _ = rep.propiedad("video-crop", "");
+    let r = |k: &str| (f(k, 0.0) as f32).clamp(0.0, 0.45);
+    [r("recorte_arriba"), r("recorte_abajo"), r("recorte_izquierda"), r("recorte_derecha")]
+}
+
+/// Con la imagen ya cargada (se sabe su tamaño), aplica los recortes.
+fn aplicar_recorte(rep: &Reproductor, rec: [f32; 4]) {
+    if rec.iter().all(|v| *v <= 0.0) {
+        return;
+    }
+    let n = |k: &str| rep.leer(k).and_then(|s| s.parse::<f64>().ok()).unwrap_or(0.0);
+    let (w, h) = (n("video-params/w"), n("video-params/h"));
+    if w < 2.0 || h < 2.0 {
+        return;
+    }
+    let (arr, aba, izq, der) = (rec[0] as f64, rec[1] as f64, rec[2] as f64, rec[3] as f64);
+    let x = (w * izq).round();
+    let y = (h * arr).round();
+    let cw = (w * (1.0 - izq - der)).round().max(2.0);
+    let ch = (h * (1.0 - arr - aba)).round().max(2.0);
+    let _ = rep.propiedad("video-crop", &format!("{cw}x{ch}+{x}+{y}"));
 }
 
 /// Fundido a negro en curso: baja el brillo de la capa que se ve.
@@ -78,11 +223,38 @@ pub fn ejecutar(args: &[String]) -> Result<bool, String> {
     let rect = Rect { x: n(1)?, y: n(2)?, ancho: n(3)?, alto: n(4)? };
     let modo = if args.get(5).map(String::as_str) == Some("vista") { Modo::VistaPrevia } else { Modo::Completa };
     let lib = Libmpv::cargar(&ruta_junto_al_exe()?)?;
-    let proy = Proyeccion::abrir_con(rect, CAPAS, modo)?;
-    let mut capas: Vec<Capa> = Vec::with_capacity(CAPAS);
-    for i in 0..CAPAS {
-        capas.push(Capa { rep: Reproductor::nuevo(lib.clone(), proy.capa(i), &[])?, estado: Estado::Libre });
+    // Una capa más, la última, para el patrón de prueba.
+    let proy = Proyeccion::abrir_con(rect, CAPAS + 1, modo)?;
+    // El shader de las esquinas y el patrón, escritos en la carpeta de datos
+    // del programa. Si no se puede, todo funciona igual pero sin esquinas.
+    let datos = carpeta_datos().map(|d| d.join("proyeccion"));
+    let shader = datos.as_ref().and_then(|d| {
+        std::fs::create_dir_all(d).ok()?;
+        let r = d.join("esquinas.glsl");
+        std::fs::write(&r, SHADER).ok()?;
+        Some(r.to_string_lossy().into_owned())
+    });
+    let patron = datos.as_ref().and_then(|d| {
+        let r = d.join("patron.bmp");
+        escribir_patron(&r).ok()?;
+        Some(r.to_string_lossy().into_owned())
+    });
+    let extra: Vec<(&str, &str)> = match &shader {
+        Some(s) => vec![("glsl-shaders", s.as_str())],
+        None => Vec::new(),
+    };
+    let mut capas: Vec<Capa> = Vec::with_capacity(CAPAS + 1);
+    for i in 0..=CAPAS {
+        let rep = Reproductor::nuevo(lib.clone(), proy.capa(i), &extra)?;
+        // Para notar si la tarjeta gráfica apaga el shader.
+        let _ = rep.pedir_mensajes("error");
+        capas.push(Capa { rep, estado: Estado::Libre, recorte: [0.0; 4] });
     }
+    let mut esquinas_aviso = shader.is_none();
+    if shader.is_none() {
+        avisar(json!({ "a": "aviso", "codigo": "esquinas" }));
+    }
+    let mut patron_cargado = false;
 
     // Las órdenes llegan por la entrada estándar; si se cierra, el motor ya no está: salir.
     let (tx, rx) = mpsc::channel::<Value>();
@@ -137,6 +309,32 @@ pub fn ejecutar(args: &[String]) -> Result<bool, String> {
                         }
                     }
                 }
+                "esquinas" => {
+                    let h: Vec<f64> = o["h"].as_array().map(|a| a.iter().filter_map(Value::as_f64).collect()).unwrap_or_default();
+                    if h.len() == 8 && h.iter().all(|v| v.is_finite()) {
+                        let opts = (0..8).map(|k| format!("h{k}={:.9}", h[k])).collect::<Vec<_>>().join(",");
+                        for c in &capas {
+                            let _ = c.rep.propiedad("glsl-shader-opts", &opts);
+                        }
+                    }
+                }
+                "patron" => {
+                    let si = o["si"].as_bool().unwrap_or(false);
+                    let c = &capas[CAPAS];
+                    match (&patron, si) {
+                        (Some(p), true) => {
+                            if !patron_cargado {
+                                let _ = c.rep.propiedad("image-display-duration", "inf");
+                                patron_cargado = c.rep.precargar(p, LIMITE_CARGA).is_ok();
+                            }
+                            if patron_cargado {
+                                let _ = c.rep.propiedad("pause", "no");
+                                proy.arriba(CAPAS);
+                            }
+                        }
+                        _ => proy.abajo(CAPAS),
+                    }
+                }
                 "quitar" => {
                     let id = o["id"].as_u64().unwrap_or(0);
                     for c in &mut capas {
@@ -166,11 +364,18 @@ pub fn ejecutar(args: &[String]) -> Result<bool, String> {
                                     c.estado = Estado::Cargando { id, desde, buscar: None };
                                 }
                                 None => {
+                                    aplicar_recorte(&c.rep, c.recorte);
                                     let dur = c.rep.leer("duration").and_then(|d| d.parse::<f64>().ok());
                                     c.estado = Estado::Lista { id };
                                     avisar(json!({ "a": "listo", "id": id, "duracion": dur }));
                                 }
                             }
+                        }
+                    }
+                    Evento::Mensaje => {
+                        if !esquinas_aviso && c.rep.tomar_mensajes().iter().any(|m| m.contains(SHADER_FALLO)) {
+                            esquinas_aviso = true;
+                            avisar(json!({ "a": "aviso", "codigo": "esquinas" }));
                         }
                     }
                     Evento::FinArchivo(true) => {
@@ -240,7 +445,8 @@ fn precargar(proy: &Proyeccion, capas: &mut [Capa], o: &Value) {
         avisar(json!({ "a": "error", "id": id, "motivo": "ruta" }));
         return;
     }
-    let Some(i) = capas.iter().position(|c| c.estado == Estado::Libre) else {
+    // La última capa es la del patrón de prueba: no se usa para los cues.
+    let Some(i) = capas[..CAPAS].iter().position(|c| c.estado == Estado::Libre) else {
         avisar(json!({ "a": "error", "id": id, "motivo": "capas" }));
         return;
     };
@@ -251,6 +457,7 @@ fn precargar(proy: &Proyeccion, capas: &mut [Capa], o: &Value) {
     let fin = o["fin"].as_f64().filter(|f| *f > inicio);
     proy.abajo(i);
     c.rep.vaciar_eventos();
+    c.recorte = aplicar_encuadre(&c.rep, &o["encuadre"]);
     let ok = (|| -> Result<(), String> {
         c.rep.propiedad("pause", "yes")?;
         c.rep.propiedad("brightness", "0")?;

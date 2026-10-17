@@ -196,7 +196,33 @@ pub fn ejecutar(carpeta: Option<&Path>, pantalla: Option<&str>) -> Result<bool, 
     let (rojo, azul) = ((208, 72, 72), (72, 104, 208));
 
     let lib = Libmpv::cargar(&ruta_junto_al_exe()?)?;
-    let proy = Proyeccion::abrir(Rect { x, y, ancho: w, alto: h }, 1)?;
+    let proy = Proyeccion::abrir(Rect { x, y, ancho: w, alto: h }, 2)?;
+
+    // 0. Un shader roto a propósito: qué dice mpv y qué se ve (para detectarlo
+    //    en un equipo donde la tarjeta gráfica no pueda con el de verdad).
+    let roto = dir.join("roto.glsl");
+    std::fs::write(&roto, "//!HOOK OUTPUT\n//!BIND HOOKED\nvec4 hook() { esto no compila; }\n").map_err(|e| e.to_string())?;
+    {
+        let roto_s = roto.to_string_lossy().into_owned();
+        let r2 = Reproductor::nuevo(lib.clone(), proy.capa(1), &[("image-display-duration", "inf"), ("glsl-shaders", &roto_s)])?;
+        r2.pedir_mensajes("warn")?;
+        r2.precargar(&blanco.to_string_lossy(), Duration::from_secs(10))?;
+        proy.arriba(1);
+        r2.propiedad("pause", "no")?;
+        let fin = Instant::now() + Duration::from_millis(1500);
+        while Instant::now() < fin {
+            let _ = r2.evento(0.05);
+        }
+        let mensajes = r2.tomar_mensajes();
+        let (cx, cy) = en(0.5, 0.5);
+        println!("Shader roto: en pantalla se ve {:?}; mpv dijo:", pixel(cx, cy));
+        // mpv copia el shader línea por línea ("[ 42] …"): eso no interesa.
+        let es_codigo = |m: &str| m.contains(": [") || m.contains("    #") || m.contains("Backtrace");
+        for m in mensajes.iter().filter(|m| !es_codigo(m)).take(12) {
+            println!("   {m}");
+        }
+        proy.abajo(1);
+    }
     let shader_s = shader.to_string_lossy().into_owned();
     let rep = Reproductor::nuevo(lib.clone(), proy.capa(0), &[("image-display-duration", "inf"), ("loop-file", "inf"), ("glsl-shaders", &shader_s)])?;
     rep.precargar(&blanco.to_string_lossy(), Duration::from_secs(10))?;

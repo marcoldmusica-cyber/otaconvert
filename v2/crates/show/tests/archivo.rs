@@ -187,3 +187,27 @@ fn registro_de_la_funcion() {
     assert_eq!(texto.lines().count(), 2, "un salto de línea no debe partir el registro");
     assert!(r.ruta.starts_with(d.join("registros")));
 }
+
+#[test]
+fn encuadre_y_esquinas_van_y_vuelven_y_los_shows_viejos_siguen_abriendo() {
+    // Etapa 4C: el archivo suma el encuadre de cada cue y las 4 esquinas del
+    // proyector. Un show sin esos datos (hecho antes) abre igual, y si no se
+    // tocaron no se escriben (el archivo queda como antes).
+    let d = carpeta();
+    let ruta = d.join(format!("show.{EXTENSION}"));
+    let mut s = show_de_ejemplo();
+    let texto_viejo = serde_json::to_string(&s).unwrap();
+    assert!(!texto_viejo.contains("encuadre") && !texto_viejo.contains("superficie"), "sin tocar, no se escriben");
+    s.cues[1].encuadre = Encuadre { modo: ModoEncuadre::Llenar, zoom: 1.25, mover_x: -0.1, recorte_izquierda: 0.05, ..Default::default() };
+    s.superficie = Superficie { esquinas: [[0.05, 0.02], [0.97, 0.0], [0.93, 0.98], [0.02, 1.0]] };
+    guardar(&s, &ruta, "20261017-120000").unwrap();
+    assert_eq!(abrir(&ruta).unwrap(), s);
+    let viejo = desde_texto(r#"{"version_formato":1,"cues":[{"nombre":"Luna","tipo":"video","archivo":"luna.mp4"}]}"#).unwrap();
+    assert!(viejo.cues[0].encuadre.es_normal() && viejo.superficie.es_normal());
+    // Valores imposibles: no se guardan ni se abren.
+    let mut malo = s.clone();
+    malo.cues[1].encuadre.zoom = 50.0;
+    assert!(matches!(guardar(&malo, &ruta, "20261017-120001"), Err(ErrorShow::ValorMalo(_))));
+    let cruzadas = r#"{"superficie":{"esquinas":[[0,0],[1,1],[1,0],[0,1]]}}"#;
+    assert!(matches!(desde_texto(cruzadas), Err(ErrorShow::ValorMalo(_))));
+}

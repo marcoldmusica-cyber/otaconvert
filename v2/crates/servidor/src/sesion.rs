@@ -100,6 +100,8 @@ pub struct Sesion {
     /// "Salir desde aquí" (Vista Estudio): cue en espera y segundo del archivo
     /// desde el que sale con el próximo GO. `None` = desde su inicio.
     desde_elegido: Option<(usize, f64)>,
+    /// Patrón de prueba a la vista en el proyector (para encajar las esquinas).
+    patron: bool,
 }
 
 /// Un audio para preparar en segundo plano (sin tener la sesión bloqueada).
@@ -179,6 +181,7 @@ impl Sesion {
             miniaturas_fallidas: std::collections::HashSet::new(),
             miniaturas_hechas: HashMap::new(),
             desde_elegido: None,
+            patron: false,
         })
     }
 
@@ -375,6 +378,7 @@ impl Sesion {
         self.registro.anotar("PROYECCION", "proyección conectada");
         self.proyector = Some(p);
         self.visuales.clear();
+        self.enviar_esquinas();
     }
 
     fn al_proyector(&mut self, o: OrdenProyector) {
@@ -517,6 +521,11 @@ impl Sesion {
                         "La proyección se cerró sola y se volvió a abrir. El sonido no se cortó.",
                         "The projection closed by itself and was reopened. The sound was not interrupted.",
                     ));
+                    // La proyección nueva no sabe las esquinas ni si estaba el patrón.
+                    self.enviar_esquinas();
+                    if self.patron {
+                        self.al_proyector(OrdenProyector::Patron(true));
+                    }
                     // Lo precargado se perdió: se vuelve a pedir.
                     self.visuales.clear();
                     // Lo que se veía vuelve desde donde iba.
@@ -541,11 +550,16 @@ impl Sesion {
                                 inicio_s: base,
                                 fin_s: c.fin_ms.map(|f| f as f64 / 1000.0),
                                 desde_s: (c.tipo == TipoCue::Video).then_some(desde),
+                                encuadre: c.encuadre,
                             };
                             self.remostrar = Some(i);
                             self.al_proyector(o);
                         }
                     }
+                }
+                AvisoProyector::Aviso { motivo } => {
+                    self.registro.anotar("AVISO", &format!("proyección: {}", motivo.es));
+                    self.aviso = Some(motivo);
                 }
                 AvisoProyector::Caido { motivo } => {
                     self.registro.anotar("ERROR", &format!("proyección: {}", motivo.es));
@@ -625,6 +639,10 @@ impl Sesion {
         if self.modo != modo {
             self.modo = modo;
             self.registro.anotar("MODO", if modo == Modo::Funcion { "Función" } else { "Edición" });
+            // El patrón de prueba nunca queda a la vista en Función.
+            if modo == Modo::Funcion && self.patron {
+                let _ = self.mostrar_patron(false);
+            }
         }
     }
 
@@ -773,6 +791,37 @@ impl Sesion {
                     }
                     c.salida = s.to_string();
                 }
+                // Encuadre (etapa 4C): solo vídeos e imágenes.
+                "encuadre_modo" | "zoom" | "mover_x" | "mover_y" | "recorte_arriba" | "recorte_abajo" | "recorte_izquierda"
+                | "recorte_derecha" => {
+                    if c.tipo == TipoCue::Audio {
+                        return Err(t("El encuadre es solo para vídeos e imágenes.", "Framing is only for videos and images."));
+                    }
+                    let numero = || {
+                        v.as_f64()
+                            .filter(|x| x.is_finite())
+                            .map(|x| x as f32)
+                            .ok_or_else(|| t("El encuadre necesita un número.", "Framing needs a number."))
+                    };
+                    let e = &mut c.encuadre;
+                    match k.as_str() {
+                        "encuadre_modo" => {
+                            e.modo = match v.as_str() {
+                                Some("ajustar") => otaconvert_show::ModoEncuadre::Ajustar,
+                                Some("llenar") => otaconvert_show::ModoEncuadre::Llenar,
+                                Some("estirar") => otaconvert_show::ModoEncuadre::Estirar,
+                                _ => return Err(t("El encuadre es Ajustar, Llenar o Estirar.", "Framing is Fit, Fill or Stretch.")),
+                            }
+                        }
+                        "zoom" => e.zoom = numero()?,
+                        "mover_x" => e.mover_x = numero()?,
+                        "mover_y" => e.mover_y = numero()?,
+                        "recorte_arriba" => e.recorte_arriba = numero()?,
+                        "recorte_abajo" => e.recorte_abajo = numero()?,
+                        "recorte_izquierda" => e.recorte_izquierda = numero()?,
+                        _ => e.recorte_derecha = numero()?,
+                    }
+                }
                 _ => {
                     return Err(t(format!("No se puede cambiar «{k}» desde aquí."), format!("“{k}” can't be changed from here.")));
                 }
@@ -783,10 +832,55 @@ impl Sesion {
         // El detalle de `validar` está en español (viene del archivo del show).
         otaconvert_show::validar(&prueba).map_err(|e| t(format!("Valor no válido: {e}"), format!("Invalid value: {e}")))?;
         if prueba.cues[i] != self.show.cues[i] {
+            let encuadre_cambio = prueba.cues[i].encuadre != self.show.cues[i].encuadre;
             self.show = prueba;
             self.sucio = true;
             let d = self.describir(i);
             self.registro.anotar("EDITAR", &d);
+            // Si estaba precargado con el encuadre viejo, se vuelve a precargar.
+            if encuadre_cambio && self.visuales.remove(&i).is_some() {
+                self.al_proyector(OrdenProyector::Quitar { id: i as u64 });
+            }
+        }
+        Ok(())
+    }
+
+    /// Manda a la proyección las 4 esquinas del show.
+    fn enviar_esquinas(&mut self) {
+        if let Some(h) = self.show.superficie.homografia_inversa() {
+            self.al_proyector(OrdenProyector::Esquinas(h));
+        }
+    }
+
+    /// Mueve las 4 esquinas del Proyector (solo en Edición). Se ve enseguida.
+    pub fn cambiar_esquinas(&mut self, esquinas: [[f64; 2]; 4]) -> Result<(), Texto> {
+        if self.modo == Modo::Funcion {
+            return Err(t(
+                "En Función las esquinas están bloqueadas. Pasa a Edición con Tab.",
+                "Corners are locked in Live mode. Switch to Edit with Tab.",
+            ));
+        }
+        let s = otaconvert_show::Superficie { esquinas };
+        if let Some(p) = s.problema() {
+            return Err(t(format!("Esas esquinas no sirven: {p}"), "Those corners can't be used: they cross or are squashed.".to_string()));
+        }
+        if s != self.show.superficie {
+            self.show.superficie = s;
+            self.sucio = true;
+            self.enviar_esquinas();
+        }
+        Ok(())
+    }
+
+    /// Patrón de prueba en el proyector para encajar las esquinas (solo en Edición).
+    pub fn mostrar_patron(&mut self, si: bool) -> Result<(), Texto> {
+        if si && self.modo == Modo::Funcion {
+            return Err(t("En Función no se muestra el patrón de prueba.", "The test pattern is not shown in Live mode."));
+        }
+        if self.patron != si {
+            self.patron = si;
+            self.al_proyector(OrdenProyector::Patron(si));
+            self.registro.anotar("MAPEO", if si { "patrón de prueba a la vista" } else { "patrón de prueba quitado" });
         }
         Ok(())
     }
@@ -947,6 +1041,7 @@ impl Sesion {
                         fin_s: c.fin_ms.map(|f| f as f64 / 1000.0),
                         // Si se eligió "salir desde aquí" para este cue, queda esperando en ese punto.
                         desde_s: self.desde_elegido.filter(|(k, _)| *k == i).map(|(_, s)| s),
+                        encuadre: c.encuadre,
                     };
                     self.visuales.insert(i, Visual::Pidiendo);
                     self.al_proyector(o);
@@ -1184,6 +1279,7 @@ impl Sesion {
                     "mudo": self.mudos.contains(&i),
                     // Foto chica lista (la ventana la pide por /miniatura?cue=N; la versión cambia con el archivo).
                     "miniatura": self.miniaturas_hechas.get(&i),
+                    "encuadre": c.encuadre,
                 })
             })
             .collect();
@@ -1235,6 +1331,9 @@ impl Sesion {
             "modo": if self.modo == Modo::Funcion { "funcion" } else { "edicion" },
             // "Salir desde aquí" del cue en espera (segundos del archivo), o null.
             "desde_s": self.desde_elegido.filter(|(k, _)| *k == self.en_espera).map(|(_, s)| s),
+            // Las 4 esquinas del Proyector y si se ve el patrón de prueba (etapa 4C).
+            "esquinas": self.show.superficie.esquinas,
+            "patron": self.patron,
         })
         .to_string()
     }

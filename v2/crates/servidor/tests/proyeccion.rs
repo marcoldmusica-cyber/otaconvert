@@ -55,6 +55,7 @@ fn abrir(d: &Path, cues: Vec<Cue>) -> (Sesion, Falso) {
     let mut s = Sesion::abrir(d).unwrap();
     let f = Falso::default();
     s.conectar_proyector(Box::new(f.clone()));
+    f.tomar(); // las esquinas iniciales
     (s, f)
 }
 
@@ -200,8 +201,10 @@ fn tras_una_caida_vuelve_lo_que_se_veia() {
     s.limpiar();
     assert!(s.aviso.as_ref().unwrap().contiene("se volvió a abrir"));
     let o = f.tomar();
+    // La proyección nueva recibe también sus 4 esquinas (etapa 4C).
     match o.as_slice() {
-        [OrdenProyector::Precargar { id: 0, inicio_s, desde_s: Some(d), .. }] => {
+        [OrdenProyector::Esquinas(_), OrdenProyector::Precargar { id: 0, inicio_s, desde_s: Some(d), .. }]
+        | [OrdenProyector::Precargar { id: 0, inicio_s, desde_s: Some(d), .. }, OrdenProyector::Esquinas(_)] => {
             assert_eq!(*inicio_s, 0.0, "el bucle sigue volviendo al inicio del cue");
             assert!(*d >= 0.1, "sigue desde donde iba: {d}")
         }
@@ -290,6 +293,7 @@ fn abrir_con_sonido(d: &Path, cues: Vec<Cue>) -> (Sesion, Falso, SonidoFalso) {
     son.recibido.lock().unwrap().clear();
     let f = Falso::default();
     s.conectar_proyector(Box::new(f.clone()));
+    f.tomar(); // las esquinas iniciales
     (s, f, son)
 }
 
@@ -466,4 +470,79 @@ fn otro_go_al_video_que_esta_al_aire_lo_vuelve_a_empezar() {
     }
     let e: serde_json::Value = serde_json::from_str(&s.estado_json()).unwrap();
     assert_eq!(e["sonando"].as_array().unwrap().len(), 1, "sigue uno solo al aire");
+}
+
+#[test]
+fn esquinas_patron_y_encuadre_llegan_a_la_proyeccion() {
+    use otaconvert_show::Superficie;
+    let d = carpeta();
+    let (mut s, f) = show_basico(&d);
+    // Al conectar la proyección se mandan las esquinas del show.
+    let otro = Falso::default();
+    s.conectar_proyector(Box::new(otro.clone()));
+    assert_eq!(otro.tomar(), vec![OrdenProyector::Esquinas([1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])]);
+    s.conectar_proyector(Box::new(f.clone()));
+    f.tomar();
+
+    // Mover las esquinas: se ven enseguida y quedan para guardar.
+    let esquinas = [[0.05, 0.02], [0.97, 0.0], [0.93, 0.98], [0.02, 1.0]];
+    s.cambiar_esquinas(esquinas).unwrap();
+    let h = Superficie { esquinas }.homografia_inversa().unwrap();
+    assert_eq!(f.tomar(), vec![OrdenProyector::Esquinas(h)]);
+    assert!(s.sucio);
+    // Esquinas cruzadas: no se aceptan ni se mandan.
+    assert!(s.cambiar_esquinas([[0.0, 0.0], [1.0, 1.0], [1.0, 0.0], [0.0, 1.0]]).is_err());
+    assert!(f.tomar().is_empty());
+
+    // Patrón de prueba en Edición; al pasar a Función se quita solo; en Función no se puede.
+    s.mostrar_patron(true).unwrap();
+    assert_eq!(f.tomar(), vec![OrdenProyector::Patron(true)]);
+    s.cambiar_modo(otaconvert_servidor::Modo::Funcion);
+    assert_eq!(f.tomar(), vec![OrdenProyector::Patron(false)]);
+    assert!(s.mostrar_patron(true).is_err());
+    assert!(s.cambiar_esquinas(esquinas).is_err(), "en Función las esquinas están bloqueadas");
+    s.cambiar_modo(otaconvert_servidor::Modo::Edicion);
+    s.mostrar_patron(true).unwrap();
+    f.tomar();
+
+    // Tras una caída, la proyección nueva recibe las esquinas y el patrón.
+    f.avisar(AvisoProyector::Reiniciado { ms: 90 });
+    s.limpiar();
+    let o = f.tomar();
+    assert!(o.contains(&OrdenProyector::Esquinas(h)) && o.contains(&OrdenProyector::Patron(true)), "{o:?}");
+    s.mostrar_patron(false).unwrap();
+    f.tomar();
+
+    // Encuadre: un vídeo precargado con el encuadre viejo se vuelve a precargar con el nuevo.
+    s.siguiente_a_preparar();
+    f.tomar();
+    f.avisar(AvisoProyector::Listo { id: 0, duracion: Some(5.0) });
+    s.limpiar();
+    s.editar_cue(0, &serde_json::json!({ "zoom": 1.5, "encuadre_modo": "llenar", "recorte_izquierda": 0.1 }), false).unwrap();
+    assert_eq!(f.tomar(), vec![OrdenProyector::Quitar { id: 0 }]);
+    s.siguiente_a_preparar();
+    match f.tomar().iter().find(|x| matches!(x, OrdenProyector::Precargar { id: 0, .. })) {
+        Some(OrdenProyector::Precargar { encuadre, .. }) => {
+            assert_eq!(encuadre.zoom, 1.5);
+            assert_eq!(encuadre.modo, otaconvert_show::ModoEncuadre::Llenar);
+            assert_eq!(encuadre.recorte_izquierda, 0.1);
+        }
+        x => panic!("{x:?}"),
+    }
+    // Valores imposibles o en un audio: no cambian nada.
+    assert!(s.editar_cue(0, &serde_json::json!({ "zoom": 50.0 }), false).is_err());
+    assert!(s.editar_cue(0, &serde_json::json!({ "encuadre_modo": "girar" }), false).is_err());
+    assert!(s.editar_cue(0, &serde_json::json!({ "recorte_arriba": -0.2 }), false).is_err());
+    assert_eq!(s.show.cues[0].encuadre.zoom, 1.5);
+
+    // El estado lleva todo para la ventana.
+    let e: serde_json::Value = serde_json::from_str(&s.estado_json()).unwrap();
+    assert_eq!(e["esquinas"][1][0], 0.97);
+    assert_eq!(e["patron"], false);
+    assert_eq!(e["cues"][0]["encuadre"]["modo"], "llenar");
+
+    // Un aviso de la proyección (la tarjeta no pudo con las esquinas) llega a la pantalla.
+    f.avisar(AvisoProyector::Aviso { motivo: otaconvert_servidor::motivo("esquinas") });
+    s.limpiar();
+    assert!(s.aviso.as_ref().is_some_and(|a| a.es.contains("4 esquinas")));
 }

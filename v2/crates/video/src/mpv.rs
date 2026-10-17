@@ -39,6 +39,7 @@ struct Api {
     get_property_string: unsafe extern "C" fn(Handle, *const c_char) -> *mut c_char,
     command: unsafe extern "C" fn(Handle, *mut *const c_char) -> c_int,
     wait_event: unsafe extern "C" fn(Handle, f64) -> *mut EventoC,
+    request_log_messages: unsafe extern "C" fn(Handle, *const c_char) -> c_int,
 }
 
 /// La biblioteca cargada. Se comparte entre reproductores y no se descarga.
@@ -110,6 +111,7 @@ impl Libmpv {
             get_property_string: funcion!("mpv_get_property_string"),
             command: funcion!("mpv_command"),
             wait_event: funcion!("mpv_wait_event"),
+            request_log_messages: funcion!("mpv_request_log_messages"),
         };
         // SAFETY: función sin argumentos.
         let v = unsafe { (api.client_api_version)() };
@@ -132,13 +134,25 @@ pub enum Evento {
     ArchivoCargado,
     /// Reproducción lista tras cargar o saltar: el primer cuadro ya está.
     Listo,
+    /// Un mensaje del registro de mpv (pedido con `pedir_mensajes`); se lee con `tomar_mensajes`.
+    Mensaje,
     Otro(i32),
+}
+
+#[repr(C)]
+struct MensajeC {
+    prefix: *const c_char,
+    level: *const c_char,
+    text: *const c_char,
+    log_level: c_int,
 }
 
 /// Un reproductor mpv dibujando en una ventana (una capa).
 pub struct Reproductor {
     lib: Arc<Libmpv>,
     h: Handle,
+    /// Mensajes del registro de mpv que llegaron (los últimos 400).
+    mensajes: std::sync::Mutex<Vec<String>>,
 }
 
 // SAFETY: la API de cliente de mpv es segura entre hilos.
@@ -181,7 +195,7 @@ impl Reproductor {
         if h.is_null() {
             return Err("mpv no pudo crear el reproductor".into());
         }
-        let r = Self { lib, h };
+        let r = Self { lib, h, mensajes: std::sync::Mutex::new(Vec::new()) };
         // mpv pide el HWND como entero sin signo de 32 bits (manual de mpv, --wid).
         r.opcion("wid", &(wid as u32).to_string())?;
         for (k, v) in OPCIONES_SEGURAS.iter().chain(extra) {
@@ -206,7 +220,7 @@ impl Reproductor {
         if h.is_null() {
             return Err("mpv no pudo crear el reproductor".into());
         }
-        let r = Self { lib, h };
+        let r = Self { lib, h, mensajes: std::sync::Mutex::new(Vec::new()) };
         let base: &[(&str, &str)] = &[
             ("config", "no"),
             ("load-scripts", "no"),
@@ -289,8 +303,40 @@ impl Reproductor {
             7 => Evento::FinArchivo(!e.data.is_null() && unsafe { *(e.data as *const c_int) } == 4),
             8 => Evento::ArchivoCargado,
             21 => Evento::Listo,
+            2 => {
+                // SAFETY: para el evento 2, `data` apunta a un mpv_event_log_message
+                // con cadenas válidas hasta la próxima llamada.
+                if !e.data.is_null() {
+                    let m = unsafe { &*(e.data as *const MensajeC) };
+                    let texto = |p: *const c_char| if p.is_null() { String::new() } else { unsafe { CStr::from_ptr(p) }.to_string_lossy().into_owned() };
+                    let linea = format!("[{}] {}: {}", texto(m.prefix), texto(m.level), texto(m.text).trim_end());
+                    if let Ok(mut v) = self.mensajes.lock() {
+                        if v.len() >= 400 {
+                            v.remove(0);
+                        }
+                        v.push(linea);
+                    }
+                }
+                Evento::Mensaje
+            }
             n => Evento::Otro(n),
         }
+    }
+
+    /// Pide a mpv los mensajes de su registro desde `nivel` ("error", "warn", "info"…).
+    pub fn pedir_mensajes(&self, nivel: &str) -> Result<(), String> {
+        let n = c(nivel)?;
+        // SAFETY: handle válido y cadena terminada en 0.
+        let e = unsafe { (self.lib.api.request_log_messages)(self.h, n.as_ptr()) };
+        if e < 0 {
+            return Err(format!("mensajes de mpv: {}", mensaje(&self.lib.api, e)));
+        }
+        Ok(())
+    }
+
+    /// Los mensajes que llegaron desde la última vez.
+    pub fn tomar_mensajes(&self) -> Vec<String> {
+        self.mensajes.lock().map(|mut v| std::mem::take(&mut *v)).unwrap_or_default()
     }
 
     /// Descarta los eventos pendientes.

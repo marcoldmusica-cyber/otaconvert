@@ -4,6 +4,8 @@
 
 use std::path::PathBuf;
 
+use otaconvert_show::Encuadre;
+
 use crate::texto::Texto;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -11,7 +13,22 @@ pub enum OrdenProyector {
     /// Cargar en pausa, debajo del telón, sin que se vea.
     /// `inicio_s`/`fin_s`: los del cue (el bucle vuelve a `inicio_s`).
     /// `desde_s`: dónde queda esperando (salir desde un punto, o tras una caída).
-    Precargar { id: u64, ruta: PathBuf, bucle: bool, imagen: bool, inicio_s: f64, fin_s: Option<f64>, desde_s: Option<f64> },
+    /// `encuadre`: cómo entra en la pantalla (zoom, mover, recortar).
+    Precargar {
+        id: u64,
+        ruta: PathBuf,
+        bucle: bool,
+        imagen: bool,
+        inicio_s: f64,
+        fin_s: Option<f64>,
+        desde_s: Option<f64>,
+        encuadre: Encuadre,
+    },
+    /// Las 4 esquinas del Proyector: los 8 números de la homografía inversa
+    /// (`Superficie::homografia_inversa`). Vale para todo lo que se proyecte.
+    Esquinas([f64; 8]),
+    /// Patrón de prueba encima de todo (para encajar las esquinas), o quitarlo.
+    Patron(bool),
     /// Subir encima de todo y arrancar; la anterior se retira sola.
     Mostrar { id: u64 },
     /// Parar todo: telón negro al instante.
@@ -35,6 +52,8 @@ pub enum AvisoProyector {
     Reiniciado { ms: u64 },
     /// No se pudo volver a abrir la proyección.
     Caido { motivo: Texto },
+    /// Algo para avisar que no impide proyectar (p. ej. las esquinas no se pueden usar en esta tarjeta).
+    Aviso { motivo: Texto },
 }
 
 pub trait Proyector: Send {
@@ -51,6 +70,10 @@ pub fn motivo(codigo: &str) -> Texto {
         "capas" => Texto::nuevo("no hay capas libres en la proyección", "no free layers in the projection"),
         "tiempo" => Texto::nuevo("tardó demasiado en cargar", "it took too long to load"),
         "no_listo" => Texto::nuevo("no estaba listo", "it was not ready"),
+        "esquinas" => Texto::nuevo(
+            "La tarjeta gráfica de este equipo no pudo usar las 4 esquinas: la imagen sale sin deformar. Revisa el driver de la tarjeta gráfica o prueba con la Prueba de hardware.",
+            "This computer's graphics card could not use the 4 corners: the image is shown without warping. Check the graphics driver or run the Hardware test.",
+        ),
         otro => Texto::from(otro.to_string()),
     }
 }

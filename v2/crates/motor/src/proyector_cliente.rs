@@ -141,6 +141,7 @@ fn convertir(v: &Value) -> Option<AvisoProyector> {
         "error" => AvisoProyector::Error { id, motivo: motivo(v["motivo"].as_str().unwrap_or("")) },
         "mostrando" => AvisoProyector::Mostrando { id },
         "fin" => AvisoProyector::Fin { id },
+        "aviso" => AvisoProyector::Aviso { motivo: motivo(v["codigo"].as_str().unwrap_or("")) },
         _ => return None,
     })
 }
@@ -148,10 +149,12 @@ fn convertir(v: &Value) -> Option<AvisoProyector> {
 impl Proyector for ProyectorProceso {
     fn enviar(&mut self, orden: OrdenProyector) {
         let v = match orden {
-            OrdenProyector::Precargar { id, ruta, bucle, imagen, inicio_s, fin_s, desde_s } => json!({
+            OrdenProyector::Precargar { id, ruta, bucle, imagen, inicio_s, fin_s, desde_s, encuadre } => json!({
                 "o": "precargar", "id": id, "ruta": ruta.to_string_lossy(), "bucle": bucle,
-                "imagen": imagen, "inicio": inicio_s, "fin": fin_s, "desde": desde_s,
+                "imagen": imagen, "inicio": inicio_s, "fin": fin_s, "desde": desde_s, "encuadre": encuadre,
             }),
+            OrdenProyector::Esquinas(h) => json!({ "o": "esquinas", "h": h }),
+            OrdenProyector::Patron(si) => json!({ "o": "patron", "si": si }),
             OrdenProyector::Mostrar { id } => json!({ "o": "mostrar", "id": id }),
             OrdenProyector::Negro => json!({ "o": "negro" }),
             OrdenProyector::Fundir { ms } => json!({ "o": "fundir", "ms": ms }),

@@ -56,6 +56,7 @@ fn orden_precargar(id: u64, rgb: u32) -> OrdenProyector {
         imagen: false,
         inicio_s: 0.0,
         desde_s: None,
+        encuadre: Default::default(),
         fin_s: None,
     }
 }
@@ -90,7 +91,7 @@ pub fn movimiento(archivo: &std::path::Path) -> Result<bool, String> {
     if !pr.esperar_hola(Duration::from_secs(10)) {
         return Err("la proyección no arrancó".into());
     }
-    pr.enviar(OrdenProyector::Precargar { id: 1, ruta, bucle: true, imagen: false, inicio_s: 0.0, fin_s: None, desde_s: None });
+    pr.enviar(OrdenProyector::Precargar { id: 1, ruta, bucle: true, imagen: false, inicio_s: 0.0, fin_s: None, desde_s: None, encuadre: Default::default() });
     esperar(&mut pr, Duration::from_secs(10), |a| matches!(a, AvisoProyector::Listo { id: 1, .. }))?;
     pr.enviar(OrdenProyector::Mostrar { id: 1 });
     std::thread::sleep(Duration::from_millis(500));

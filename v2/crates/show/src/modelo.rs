@@ -4,6 +4,8 @@
 
 use serde::{Deserialize, Serialize};
 
+pub use crate::superficie::{Encuadre, ModoEncuadre, Superficie};
+
 /// Versión del formato del archivo. Subirla cuando cambie algo que un
 /// programa viejo no entendería, y agregar la migración en `archivo.rs`.
 pub const VERSION_FORMATO: u32 = 1;
@@ -19,6 +21,9 @@ pub struct Show {
     pub ajustes: AjustesShow,
     pub cues: Vec<Cue>,
     pub botonera: Vec<PaginaBotonera>,
+    /// Las 4 esquinas del Proyector (etapa 4C). Más adelante, por teatro.
+    #[serde(skip_serializing_if = "Superficie::es_normal")]
+    pub superficie: Superficie,
 }
 
 impl Default for Show {
@@ -29,6 +34,7 @@ impl Default for Show {
             ajustes: AjustesShow::default(),
             cues: Vec::new(),
             botonera: Vec::new(),
+            superficie: Superficie::default(),
         }
     }
 }
@@ -64,6 +70,9 @@ pub struct Cue {
     pub nota: String,
     /// Salida lógica ("Principal", "Auriculares"…).
     pub salida: String,
+    /// Vídeo o imagen: cómo entra en la pantalla (zoom, mover, recortar).
+    #[serde(skip_serializing_if = "Encuadre::es_normal")]
+    pub encuadre: Encuadre,
 }
 
 impl Default for Cue {
@@ -82,6 +91,7 @@ impl Default for Cue {
             fin_ms: None,
             nota: String::new(),
             salida: SALIDA_PRINCIPAL.into(),
+            encuadre: Encuadre::default(),
         }
     }
 }
