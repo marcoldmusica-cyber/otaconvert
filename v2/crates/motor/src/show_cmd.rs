@@ -102,16 +102,7 @@ fn generar_miniaturas(sesion: Arc<Mutex<Sesion>>) {
     }
 }
 
-/// Tipo de cue según la extensión del archivo (para armar un show desde una carpeta).
-fn tipo_por_extension(p: &Path) -> Option<TipoCue> {
-    let ext = p.extension()?.to_str()?.to_ascii_lowercase();
-    match ext.as_str() {
-        "wav" | "mp3" | "flac" | "ogg" | "oga" | "m4a" | "aac" | "aif" | "aiff" | "aifc" | "caf" | "mka" => Some(TipoCue::Audio),
-        "mp4" | "m4v" | "mov" | "mkv" | "webm" | "avi" => Some(TipoCue::Video),
-        "png" | "jpg" | "jpeg" | "bmp" | "gif" | "webp" => Some(TipoCue::Imagen),
-        _ => None,
-    }
-}
+use otaconvert_show::tipo_por_extension;
 
 /// Carpeta sin archivo `.otashow`: arma un show con un cue por cada audio,
 /// vídeo e imagen que tenga (también en sus subcarpetas, hasta 3 niveles), en

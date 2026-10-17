@@ -183,3 +183,15 @@ pub struct PaginaBotonera {
     pub nombre: String,
     pub botones: Vec<BotonSonido>,
 }
+
+/// Tipo de cue según la extensión del archivo (al armar un show desde una
+/// carpeta o al agregar archivos). `None` = no es un medio que se pueda usar.
+pub fn tipo_por_extension(p: &std::path::Path) -> Option<TipoCue> {
+    let ext = p.extension()?.to_str()?.to_ascii_lowercase();
+    match ext.as_str() {
+        "wav" | "mp3" | "flac" | "ogg" | "oga" | "m4a" | "aac" | "aif" | "aiff" | "aifc" | "caf" | "mka" => Some(TipoCue::Audio),
+        "mp4" | "m4v" | "mov" | "mkv" | "webm" | "avi" => Some(TipoCue::Video),
+        "png" | "jpg" | "jpeg" | "bmp" | "gif" | "webp" => Some(TipoCue::Imagen),
+        _ => None,
+    }
+}

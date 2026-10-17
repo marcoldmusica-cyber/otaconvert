@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use otaconvert_audio::{Comando, Pista};
-use otaconvert_show::{abrir, guardar, marca_de_tiempo, rutas, ErrorShow, Registro, Show, TipoCue, EXTENSION, SALIDA_AURICULARES};
+use otaconvert_show::{abrir, guardar, marca_de_tiempo, rutas, Cue, ErrorShow, Registro, Show, TipoCue, EXTENSION, SALIDA_AURICULARES};
 use serde_json::json;
 
 use crate::sonido::{Destino, Sonido};
@@ -102,7 +102,21 @@ pub struct Sesion {
     desde_elegido: Option<(usize, f64)>,
     /// Patrón de prueba a la vista en el proyector (para encajar las esquinas).
     patron: bool,
+    /// Deshacer y rehacer (etapa 5A): cómo era el show antes de cada cambio.
+    historial: Vec<Show>,
+    rehechos: Vec<Show>,
+    /// Último cambio (tipo y cuándo): varios movimientos seguidos de las
+    /// esquinas cuentan como uno solo para deshacer.
+    ultimo_cambio: Option<(&'static str, Instant)>,
+    /// La preparación en curso quedó vieja (cambió el orden de los cues):
+    /// su resultado se descarta y se vuelve a pedir.
+    descartar_preparacion: bool,
 }
+
+/// Cuántos pasos se pueden deshacer.
+const MAX_DESHACER: usize = 100;
+/// Largo máximo del número de un cue ("1", "1.5", "2A"…).
+const MAX_NUMERO: usize = 20;
 
 /// Un audio para preparar en segundo plano (sin tener la sesión bloqueada).
 #[derive(Debug, Clone)]
@@ -150,7 +164,15 @@ fn db_a_lineal(db: f32) -> f32 {
 impl Sesion {
     pub fn abrir(ruta: &Path) -> Result<Self, ErrorShow> {
         let archivo = buscar_archivo(ruta)?;
-        let show = abrir(&archivo)?;
+        let mut show = abrir(&archivo)?;
+        // Cada cue con un número interno distinto (los shows viejos o hechos
+        // a mano pueden traer repetidos): si hay repetidos, se numeran en orden.
+        let mut vistos = std::collections::HashSet::new();
+        if !show.cues.iter().all(|c| vistos.insert(c.id)) {
+            for (i, c) in show.cues.iter_mut().enumerate() {
+                c.id = i as u64;
+            }
+        }
         let carpeta = archivo.parent().unwrap_or(Path::new(".")).to_path_buf();
         let mut registro = Registro::abrir(&carpeta);
         registro.anotar("ABRIR", &format!("Show «{}», {} cues", show.nombre, show.cues.len()));
@@ -182,7 +204,278 @@ impl Sesion {
             miniaturas_hechas: HashMap::new(),
             desde_elegido: None,
             patron: false,
+            historial: Vec::new(),
+            rehechos: Vec::new(),
+            ultimo_cambio: None,
+            descartar_preparacion: false,
         })
+    }
+
+    /// Lugar en la lista del cue con este número interno.
+    pub fn indice_de_id(&self, id: u64) -> Option<usize> {
+        self.show.cues.iter().position(|c| c.id == id)
+    }
+
+    fn nuevo_id(&self) -> u64 {
+        self.show.cues.iter().map(|c| c.id).max().map_or(0, |m| m + 1)
+    }
+
+    /// Solo en Edición se cambia el show.
+    fn solo_en_edicion(&self) -> Result<(), Texto> {
+        if self.modo == Modo::Funcion {
+            return Err(t("En Función no se puede cambiar el show. Pasa a Edición con Tab.", "The show can't be changed in Live mode. Switch to Edit with Tab."));
+        }
+        Ok(())
+    }
+
+    /// Guarda cómo era el show antes de un cambio (para deshacer). Varios
+    /// cambios seguidos del mismo `grupo` en poco tiempo cuentan como uno.
+    fn antes_de_cambiar(&mut self, grupo: Option<&'static str>) {
+        let junto = matches!((grupo, self.ultimo_cambio), (Some(g), Some((u, cuando))) if g == u && cuando.elapsed() < Duration::from_millis(1500));
+        if !junto {
+            self.historial.push(self.show.clone());
+            if self.historial.len() > MAX_DESHACER {
+                self.historial.remove(0);
+            }
+        }
+        self.rehechos.clear();
+        self.ultimo_cambio = grupo.map(|g| (g, Instant::now()));
+        self.sucio = true;
+    }
+
+    /// Olvida lo preparado y precargado de un cue (cambió algo que lo afecta):
+    /// se vuelve a preparar. Lo que suena sigue igual hasta el próximo GO.
+    fn invalidar_cue(&mut self, i: usize) {
+        if self.sonando.iter().any(|s| s.cue == i) {
+            return;
+        }
+        self.preparados.remove(&i);
+        self.preparado_en_bucle.remove(&i);
+        self.errores.remove(&i);
+        self.mudos.remove(&i);
+        if self.preparando == Some(i) {
+            self.preparando = None;
+            self.descartar_preparacion = true;
+        }
+        if self.visuales.remove(&i).is_some() {
+            if let Some(id) = self.show.cues.get(i).map(|c| c.id) {
+                self.al_proyector(OrdenProyector::Quitar { id });
+            }
+        }
+    }
+
+    /// Tras cambiar el orden o la cantidad de cues, todo lo que se recuerda por
+    /// lugar en la lista pasa al lugar nuevo de su cue (por su número interno).
+    /// Lo de cues que ya no están se suelta, y si sonaban se paran.
+    fn reindexar(&mut self, ids_antes: &[u64], espera_antes: Option<u64>) {
+        let mapa: HashMap<usize, usize> =
+            ids_antes.iter().enumerate().filter_map(|(viejo, id)| self.indice_de_id(*id).map(|nuevo| (viejo, nuevo))).collect();
+        let m = |i: usize| mapa.get(&i).copied();
+        // Precargados de cues que ya no están: se sueltan en la proyección.
+        for (&k, _) in self.visuales.iter() {
+            if m(k).is_none() {
+                if let Some(&id) = ids_antes.get(k) {
+                    if let Some(p) = self.proyector.as_mut() {
+                        p.enviar(OrdenProyector::Quitar { id });
+                    }
+                }
+            }
+        }
+        fn mover<V>(h: HashMap<usize, V>, m: &impl Fn(usize) -> Option<usize>) -> HashMap<usize, V> {
+            h.into_iter().filter_map(|(k, v)| m(k).map(|n| (n, v))).collect()
+        }
+        self.preparados = mover(std::mem::take(&mut self.preparados), &m);
+        self.preparado_en_bucle = mover(std::mem::take(&mut self.preparado_en_bucle), &m);
+        self.errores = mover(std::mem::take(&mut self.errores), &m);
+        self.visuales = mover(std::mem::take(&mut self.visuales), &m);
+        self.miniaturas_hechas = mover(std::mem::take(&mut self.miniaturas_hechas), &m);
+        self.mudos = self.mudos.iter().filter_map(|&k| m(k)).collect();
+        self.miniaturas_fallidas = self.miniaturas_fallidas.iter().filter_map(|&k| m(k)).collect();
+        if self.preparando.take().is_some() {
+            self.descartar_preparacion = true;
+        }
+        self.remostrar = self.remostrar.and_then(m);
+        self.ultimo_disparado = self.ultimo_disparado.and_then(m);
+        self.desde_elegido = self.desde_elegido.and_then(|(k, s)| m(k).map(|n| (n, s)));
+        // Lo que suena de cues que ya no están se para.
+        let mut parar_voces = Vec::new();
+        let mut negro = false;
+        for s in &mut self.sonando {
+            match m(s.cue) {
+                Some(n) => s.cue = n,
+                None => {
+                    if s.voz {
+                        parar_voces.push((s.id, s.destino));
+                    }
+                    negro |= s.visual;
+                    s.cue = usize::MAX;
+                }
+            }
+        }
+        self.sonando.retain(|s| s.cue != usize::MAX);
+        let parada = self.cuadros(self.show.ajustes.rampas_ms.parada.max(0.0) as u64) as u32;
+        for (id, destino) in parar_voces {
+            if let Some(son) = self.sonido.as_mut() {
+                let _ = son.enviar(destino, Comando::Parar { id, fundido: parada });
+            }
+        }
+        if negro {
+            self.al_proyector(OrdenProyector::Negro);
+        }
+        // El cue en espera sigue siendo el mismo (si todavía está).
+        self.en_espera = match espera_antes.and_then(|id| self.indice_de_id(id)) {
+            Some(i) => i,
+            None => self.en_espera.min(self.show.cues.len()),
+        };
+    }
+
+    /// Pone otro show en lugar del actual (deshacer y rehacer): reacomoda lo
+    /// recordado y olvida lo preparado de los cues que cambiaron.
+    fn poner_show(&mut self, nuevo: Show) {
+        let ids_antes: Vec<u64> = self.show.cues.iter().map(|c| c.id).collect();
+        let espera = self.show.cues.get(self.en_espera).map(|c| c.id);
+        let viejo = std::mem::replace(&mut self.show, nuevo);
+        self.reindexar(&ids_antes, espera);
+        let cambiados: Vec<usize> = (0..self.show.cues.len())
+            .filter(|&i| {
+                let c = &self.show.cues[i];
+                viejo.cues.iter().find(|v| v.id == c.id).is_none_or(|v| {
+                    v.archivo != c.archivo || v.tipo != c.tipo || v.inicio_ms != c.inicio_ms || v.fin_ms != c.fin_ms || v.bucle != c.bucle || v.encuadre != c.encuadre
+                })
+            })
+            .collect();
+        for i in cambiados {
+            self.invalidar_cue(i);
+        }
+        if viejo.superficie != self.show.superficie {
+            self.enviar_esquinas();
+        }
+        self.sucio = true;
+    }
+
+    pub fn deshacer(&mut self) -> Result<(), Texto> {
+        self.solo_en_edicion()?;
+        let Some(anterior) = self.historial.pop() else {
+            return Err(t("No hay nada para deshacer.", "There is nothing to undo."));
+        };
+        self.rehechos.push(self.show.clone());
+        self.poner_show(anterior);
+        self.ultimo_cambio = None;
+        self.registro.anotar("DESHACER", "último cambio deshecho");
+        Ok(())
+    }
+
+    pub fn rehacer(&mut self) -> Result<(), Texto> {
+        self.solo_en_edicion()?;
+        let Some(siguiente) = self.rehechos.pop() else {
+            return Err(t("No hay nada para rehacer.", "There is nothing to redo."));
+        };
+        self.historial.push(self.show.clone());
+        self.poner_show(siguiente);
+        self.ultimo_cambio = None;
+        self.registro.anotar("REHACER", "cambio vuelto a hacer");
+        Ok(())
+    }
+
+    /// Siguiente número libre para un cue nuevo: uno más que el mayor número entero.
+    fn numero_libre(&self) -> String {
+        let mayor = self
+            .show
+            .cues
+            .iter()
+            .filter_map(|c| c.numero.chars().take_while(|ch| ch.is_ascii_digit()).collect::<String>().parse::<u64>().ok())
+            .max()
+            .unwrap_or(0);
+        (mayor + 1).to_string()
+    }
+
+    /// Agrega cues con archivos que ya están dentro de la carpeta del show
+    /// (rutas relativas con `/`), después del cue `despues_de` (o al final).
+    /// Devuelve dónde quedaron.
+    pub fn agregar_cues(&mut self, archivos: &[String], despues_de: Option<usize>) -> Result<Vec<usize>, Texto> {
+        self.solo_en_edicion()?;
+        let carpeta = self.carpeta();
+        let mut nuevos = Vec::new();
+        for a in archivos {
+            let ruta = rutas::resolver(&carpeta, a).map_err(|e| t(format!("{a}: {e}"), format!("{a}: invalid path ({e})")))?;
+            let tipo = otaconvert_show::tipo_por_extension(&ruta)
+                .ok_or_else(|| t(format!("{a}: no es un audio, vídeo o imagen que se pueda usar."), format!("{a}: not a usable audio, video or image file.")))?;
+            if !ruta.is_file() {
+                return Err(t(format!("No se encontró el archivo {a}."), format!("File not found: {a}.")));
+            }
+            let nombre = std::path::Path::new(a).file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+            nuevos.push((a.clone(), tipo, nombre));
+        }
+        if nuevos.is_empty() {
+            return Ok(Vec::new());
+        }
+        let mut prueba = self.show.clone();
+        let mut lugar = despues_de.map(|d| (d + 1).min(prueba.cues.len())).unwrap_or(prueba.cues.len());
+        let primero = lugar;
+        let mut id = self.nuevo_id();
+        let mut numero = self.numero_libre().parse::<u64>().unwrap_or(1);
+        for (archivo, tipo, nombre) in &nuevos {
+            prueba.cues.insert(lugar, Cue { id, numero: numero.to_string(), nombre: nombre.chars().take(MAX_NOMBRE).collect(), tipo: *tipo, archivo: archivo.clone(), ..Default::default() });
+            lugar += 1;
+            id += 1;
+            numero += 1;
+        }
+        otaconvert_show::validar(&prueba).map_err(|e| t(format!("No se pudo agregar: {e}"), format!("Could not add: {e}")))?;
+        let ids_antes: Vec<u64> = self.show.cues.iter().map(|c| c.id).collect();
+        let espera = self.show.cues.get(self.en_espera).map(|c| c.id);
+        self.antes_de_cambiar(None);
+        self.show = prueba;
+        self.reindexar(&ids_antes, espera);
+        // Si no había nada en espera (lista vacía o al final), queda en espera el primero nuevo.
+        if espera.is_none() {
+            self.en_espera = primero;
+        }
+        self.registro.anotar("AGREGAR", &format!("{} cue(s) desde el {}", nuevos.len(), primero + 1));
+        Ok((primero..lugar).collect())
+    }
+
+    /// Quita un cue de la lista (el archivo no se borra). No se puede si está sonando.
+    pub fn quitar_cue(&mut self, i: usize) -> Result<(), Texto> {
+        self.solo_en_edicion()?;
+        if i >= self.show.cues.len() {
+            return Err(t("Ese cue no existe.", "That cue does not exist."));
+        }
+        if self.sonando.iter().any(|s| s.cue == i) {
+            return Err(t("Ese cue está sonando: páralo antes de quitarlo.", "That cue is playing: stop it before removing it."));
+        }
+        let d = self.describir(i);
+        let ids_antes: Vec<u64> = self.show.cues.iter().map(|c| c.id).collect();
+        let espera = self.show.cues.get(self.en_espera).map(|c| c.id).filter(|_| self.en_espera != i);
+        self.antes_de_cambiar(None);
+        self.show.cues.remove(i);
+        self.reindexar(&ids_antes, espera);
+        if espera.is_none() {
+            // Se quitó el que estaba en espera: queda en espera el que vino a su lugar.
+            self.en_espera = i.min(self.show.cues.len());
+        }
+        self.registro.anotar("QUITAR", &d);
+        Ok(())
+    }
+
+    /// Mueve el cue `desde` al lugar `hasta` (reordenar). Lo que suena sigue sonando.
+    pub fn mover_cue(&mut self, desde: usize, hasta: usize) -> Result<(), Texto> {
+        self.solo_en_edicion()?;
+        let n = self.show.cues.len();
+        if desde >= n || hasta >= n {
+            return Err(t("Ese cue no existe.", "That cue does not exist."));
+        }
+        if desde == hasta {
+            return Ok(());
+        }
+        let ids_antes: Vec<u64> = self.show.cues.iter().map(|c| c.id).collect();
+        let espera = self.show.cues.get(self.en_espera).map(|c| c.id);
+        self.antes_de_cambiar(None);
+        let c = self.show.cues.remove(desde);
+        self.show.cues.insert(hasta, c);
+        self.reindexar(&ids_antes, espera);
+        let d = self.describir(hasta);
+        self.registro.anotar("MOVER", &format!("{d} al lugar {}", hasta + 1));
+        Ok(())
     }
 
     pub fn carpeta(&self) -> PathBuf {
@@ -400,6 +693,9 @@ impl Sesion {
     /// Resultado de preparar el sonido del cue `i`: un vídeo sin sonido no es
     /// un error (queda "mudo"); lo demás va a `preparado`.
     pub fn resultado_preparar(&mut self, i: usize, r: Result<otaconvert_audio::preparar::Preparado, otaconvert_audio::preparar::ErrorPreparar>) {
+        if std::mem::take(&mut self.descartar_preparacion) {
+            return;
+        }
         match r {
             Err(otaconvert_audio::preparar::ErrorPreparar::SinAudio) if self.show.cues.get(i).is_some_and(|c| c.tipo == TipoCue::Video) => {
                 if self.preparando == Some(i) {
@@ -414,7 +710,7 @@ impl Sesion {
     /// GO de un vídeo o imagen ya precargado: sube encima y el anterior se retira.
     /// Si es un vídeo con sonido, el sonido arranca a la vez por el mezclador.
     fn mostrar_visual(&mut self, i: usize, duracion: Option<f64>) {
-        self.al_proyector(OrdenProyector::Mostrar { id: i as u64 });
+        self.al_proyector(OrdenProyector::Mostrar { id: self.show.cues[i].id });
         // Una sola superficie (Proyector) por ahora: lo que se veía deja de verse,
         // y si tenía sonido, su sonido se para (con la rampa de parada).
         let viejas: Vec<(u32, Destino)> = self.sonando.iter().filter(|s| s.visual && s.voz).map(|s| (s.id, s.destino)).collect();
@@ -485,7 +781,7 @@ impl Sesion {
         for a in avisos {
             match a {
                 AvisoProyector::Listo { id, duracion } => {
-                    let i = id as usize;
+                    let Some(i) = self.indice_de_id(id) else { continue };
                     if self.remostrar == Some(i) {
                         // Tras reiniciarse la proyección: vuelve lo que se veía.
                         self.remostrar = None;
@@ -498,7 +794,7 @@ impl Sesion {
                     }
                 }
                 AvisoProyector::Error { id, motivo } => {
-                    let i = id as usize;
+                    let Some(i) = self.indice_de_id(id) else { continue };
                     if i < self.show.cues.len() {
                         let d = self.describir(i);
                         self.registro.anotar("ERROR", &format!("{d}: {}", motivo.es));
@@ -512,7 +808,7 @@ impl Sesion {
                 }
                 AvisoProyector::Mostrando { .. } => {}
                 AvisoProyector::Fin { id } => {
-                    let i = id as usize;
+                    let Some(i) = self.indice_de_id(id) else { continue };
                     self.sonando.retain(|s| !(s.visual && s.cue == i));
                 }
                 AvisoProyector::Reiniciado { ms } => {
@@ -543,7 +839,7 @@ impl Sesion {
                         };
                         if let Ok(ruta) = rutas::resolver(&self.carpeta(), &c.archivo) {
                             let o = OrdenProyector::Precargar {
-                                id: i as u64,
+                                id: c.id,
                                 ruta,
                                 bucle: c.bucle,
                                 imagen: c.tipo == TipoCue::Imagen,
@@ -685,7 +981,7 @@ impl Sesion {
         }
         // Se vuelve a precargar en el punto nuevo.
         if self.visuales.remove(&i).is_some() {
-            self.al_proyector(OrdenProyector::Quitar { id: i as u64 });
+            self.al_proyector(OrdenProyector::Quitar { id: self.show.cues[i].id });
         }
         self.precargar_visuales();
         Ok(())
@@ -698,7 +994,9 @@ impl Sesion {
             if k != self.en_espera {
                 self.desde_elegido = None;
                 if self.visuales.remove(&k).is_some() {
-                    self.al_proyector(OrdenProyector::Quitar { id: k as u64 });
+                    if let Some(id) = self.show.cues.get(k).map(|c| c.id) {
+                        self.al_proyector(OrdenProyector::Quitar { id });
+                    }
                 }
             }
         }
@@ -791,6 +1089,31 @@ impl Sesion {
                     }
                     c.salida = s.to_string();
                 }
+                // Numeración libre, como en el libreto ("1", "1.5", "2A").
+                "numero" => {
+                    let s = v.as_str().ok_or_else(|| t("El número debe ser texto.", "The number must be text."))?.trim();
+                    if s.is_empty() || s.chars().count() > MAX_NUMERO || s.chars().any(char::is_control) {
+                        return Err(t(
+                            format!("El número va de 1 a {MAX_NUMERO} letras o cifras (por ejemplo 1, 1.5 o 2A)."),
+                            format!("The number has 1 to {MAX_NUMERO} letters or digits (for example 1, 1.5 or 2A)."),
+                        ));
+                    }
+                    c.numero = s.to_string();
+                }
+                // Inicio y fin dentro del archivo, en milisegundos (fin null = hasta el final).
+                "inicio_ms" => {
+                    c.inicio_ms = v
+                        .as_u64()
+                        .filter(|&x| x <= 24 * 3600 * 1000)
+                        .ok_or_else(|| t("El inicio debe ser un tiempo válido.", "The start must be a valid time."))?;
+                }
+                "fin_ms" => {
+                    c.fin_ms = if v.is_null() {
+                        None
+                    } else {
+                        Some(v.as_u64().filter(|&x| x <= 24 * 3600 * 1000).ok_or_else(|| t("El fin debe ser un tiempo válido.", "The end must be a valid time."))?)
+                    };
+                }
                 // Encuadre (etapa 4C): solo vídeos e imágenes.
                 "encuadre_modo" | "zoom" | "mover_x" | "mover_y" | "recorte_arriba" | "recorte_abajo" | "recorte_izquierda"
                 | "recorte_derecha" => {
@@ -832,14 +1155,18 @@ impl Sesion {
         // El detalle de `validar` está en español (viene del archivo del show).
         otaconvert_show::validar(&prueba).map_err(|e| t(format!("Valor no válido: {e}"), format!("Invalid value: {e}")))?;
         if prueba.cues[i] != self.show.cues[i] {
-            let encuadre_cambio = prueba.cues[i].encuadre != self.show.cues[i].encuadre;
+            let (antes, despues) = (&self.show.cues[i], &prueba.cues[i]);
+            // Lo que cambia cómo se prepara o se precarga: se vuelve a preparar.
+            let rehacer = antes.encuadre != despues.encuadre
+                || antes.inicio_ms != despues.inicio_ms
+                || antes.fin_ms != despues.fin_ms
+                || (antes.bucle != despues.bucle && despues.tipo != TipoCue::Audio);
+            self.antes_de_cambiar(None);
             self.show = prueba;
-            self.sucio = true;
             let d = self.describir(i);
             self.registro.anotar("EDITAR", &d);
-            // Si estaba precargado con el encuadre viejo, se vuelve a precargar.
-            if encuadre_cambio && self.visuales.remove(&i).is_some() {
-                self.al_proyector(OrdenProyector::Quitar { id: i as u64 });
+            if rehacer {
+                self.invalidar_cue(i);
             }
         }
         Ok(())
@@ -865,8 +1192,9 @@ impl Sesion {
             return Err(t(format!("Esas esquinas no sirven: {p}"), "Those corners can't be used: they cross or are squashed.".to_string()));
         }
         if s != self.show.superficie {
+            // Arrastrar una esquina manda muchos cambios: cuentan como uno para deshacer.
+            self.antes_de_cambiar(Some("esquinas"));
             self.show.superficie = s;
-            self.sucio = true;
             self.enviar_esquinas();
         }
         Ok(())
@@ -1021,7 +1349,9 @@ impl Sesion {
         let sobran: Vec<usize> = self.visuales.keys().copied().filter(|i| !quiero.contains(i)).collect();
         for i in sobran {
             self.visuales.remove(&i);
-            self.al_proyector(OrdenProyector::Quitar { id: i as u64 });
+            if let Some(id) = self.show.cues.get(i).map(|c| c.id) {
+                self.al_proyector(OrdenProyector::Quitar { id });
+            }
         }
         let carpeta = self.carpeta();
         for i in quiero {
@@ -1033,7 +1363,7 @@ impl Sesion {
             match rutas::resolver(&carpeta, &c.archivo) {
                 Ok(ruta) if ruta.is_file() => {
                     let o = OrdenProyector::Precargar {
-                        id: i as u64,
+                        id: c.id,
                         ruta,
                         bucle: c.bucle,
                         imagen: c.tipo == TipoCue::Imagen,
@@ -1116,6 +1446,10 @@ impl Sesion {
 
     /// Guarda el resultado de preparar el cue `i`.
     pub fn preparado<E: Into<Texto>>(&mut self, i: usize, resultado: Result<otaconvert_audio::preparar::Preparado, E>) {
+        // Se preparó para un orden de cues que ya cambió: se descarta (se vuelve a pedir).
+        if std::mem::take(&mut self.descartar_preparacion) {
+            return;
+        }
         if self.preparando == Some(i) {
             self.preparando = None;
         }
