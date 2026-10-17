@@ -21,6 +21,8 @@ mod proyector_cliente;
 mod prueba_proyector;
 #[cfg(windows)]
 mod prueba_funcion;
+#[cfg(windows)]
+mod prueba_esquinas;
 mod ventana_ui;
 #[cfg(windows)]
 mod miniatura;
@@ -162,6 +164,8 @@ fn main() -> ExitCode {
         }
         #[cfg(windows)]
         Some("--prueba-proyector") => prueba_proyector::ejecutar(num(1, 30), pantalla),
+        #[cfg(windows)]
+        Some("--prueba-esquinas") => prueba_esquinas::ejecutar(carpeta.as_deref().map(std::path::Path::new), pantalla),
         #[cfg(windows)]
         Some("--prueba-funcion") => prueba_funcion::ejecutar(num(1, 300), carpeta.as_deref().map(std::path::Path::new), pantalla, salida),
         #[cfg(windows)]
