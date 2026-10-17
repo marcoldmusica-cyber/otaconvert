@@ -278,3 +278,57 @@ fn miniatura_y_medio_solo_de_cues_del_show() {
     assert!(pag.contains("img-src 'self' data:") && pag.contains("media-src 'self'"));
     let _ = std::fs::remove_dir_all(&d);
 }
+
+/// Etapa 5A: archivos arrastrados desde fuera de la carpeta del show. Se copian
+/// a `Medios/` (sin pisar uno distinto con el mismo nombre), quedan como cues
+/// detrás del que está en espera, y lo que no es un medio se rechaza sin tocar nada.
+#[test]
+fn arrastrar_archivos_de_afuera_los_copia_y_agrega() {
+    let (d, sesion, srv) = show_de_prueba();
+    let t = token(&srv);
+    let origen = format!("http://127.0.0.1:{}", srv.puerto);
+    let mut ws = conectar_ws(&srv, Some(&origen), &t).unwrap();
+    let _ = leer_estado(&mut ws);
+
+    let afuera = d.with_extension("afuera");
+    let _ = std::fs::remove_dir_all(&afuera);
+    std::fs::create_dir_all(&afuera).unwrap();
+    std::fs::write(afuera.join("Timbre.wav"), b"RIFF datos de prueba").unwrap();
+    std::fs::write(afuera.join("notas.txt"), b"no es un medio").unwrap();
+    // Uno distinto con el mismo nombre ya en Medios: no se pisa.
+    std::fs::create_dir_all(d.join("Medios")).unwrap();
+    std::fs::write(d.join("Medios/Timbre.wav"), b"otro contenido").unwrap();
+
+    // Lo que no es un medio: aviso y nada cambia.
+    let importar = |rutas: &[std::path::PathBuf], despues_de: Option<usize>| {
+        let rutas: Vec<String> = rutas.iter().map(|r| r.to_string_lossy().into_owned()).collect();
+        Message::text(serde_json::json!({ "orden": "importar", "rutas": rutas, "despues_de": despues_de }).to_string())
+    };
+    ws.send(importar(&[afuera.join("notas.txt")], Some(0))).unwrap();
+    let e = esperar(&mut ws, |e| e["aviso"].as_str().is_some_and(|a| a.contains("notas.txt")));
+    assert_eq!(e["cues"].as_array().unwrap().len(), 4);
+
+    let wav = afuera.join("Timbre.wav");
+    ws.send(importar(&[wav.clone()], Some(0))).unwrap();
+    let e = esperar(&mut ws, |e| e["cues"].as_array().unwrap().len() == 5);
+    let nuevo = &e["cues"][1];
+    assert_eq!(nuevo["nombre"], "Timbre (1)");
+    assert_eq!(nuevo["archivo"], "Medios/Timbre (1).wav");
+    assert_eq!(std::fs::read(d.join("Medios/Timbre (1).wav")).unwrap(), b"RIFF datos de prueba");
+    assert_eq!(std::fs::read(d.join("Medios/Timbre.wav")).unwrap(), b"otro contenido", "no se pisa");
+    // El original sigue donde estaba y no quedan temporales.
+    assert!(afuera.join("Timbre.wav").is_file());
+    assert!(!std::fs::read_dir(d.join("Medios")).unwrap().flatten().any(|f| f.file_name().to_string_lossy().contains("copiando")));
+
+    // Se puede deshacer (el archivo copiado queda en la carpeta).
+    ws.send(Message::text(r#"{"orden":"deshacer"}"#)).unwrap();
+    let e = esperar(&mut ws, |e| e["cues"].as_array().unwrap().len() == 4);
+    assert_eq!(e["puede_rehacer"], true);
+
+    // En Función no se agrega nada.
+    sesion.lock().unwrap().cambiar_modo(otaconvert_servidor::Modo::Funcion);
+    ws.send(importar(&[wav], None)).unwrap();
+    let e = esperar(&mut ws, |e| e["aviso"].as_str().is_some_and(|a| a.contains("Función")));
+    assert_eq!(e["cues"].as_array().unwrap().len(), 4);
+    let _ = std::fs::remove_dir_all(&afuera);
+}

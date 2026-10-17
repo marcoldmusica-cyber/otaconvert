@@ -11,6 +11,7 @@ use otaconvert_audio::{crear, Ajustes, Comando, Control, Detector, Mezclador, Pi
 
 mod componentes;
 mod despierto;
+mod dialogo;
 mod equipo;
 mod pantallas;
 mod show_cmd;

@@ -320,6 +320,12 @@ pub fn abrir(
         let _ = std::thread::Builder::new().name("miniaturas".into()).spawn(move || generar_miniaturas(s2));
     }
     let srv = Servidor::iniciar(sesion.clone()).map_err(|e| e.to_string())?;
+    // "Buscar archivos…" de la ventana: el diálogo de Windows, en el idioma del programa.
+    let s_idioma = sesion.clone();
+    srv.al_buscar_archivos(Arc::new(move || {
+        let ingles = s_idioma.lock().map(|s| s.idioma == otaconvert_servidor::Idioma::En).unwrap_or(false);
+        crate::dialogo::elegir_archivos(ingles)
+    }));
     println!("Interfaz en {}", srv.url().split("?t=").next().unwrap_or(""));
     println!("(La dirección completa lleva una clave secreta; ábrela solo desde aquí.)");
     let mut ventana = None;

@@ -1590,6 +1590,10 @@ impl Sesion {
                     _ => None,
                 };
                 let duracion_s = if c.tipo == TipoCue::Video { del_video.or(duracion_s) } else { duracion_s };
+                let largo_s = match visual {
+                    Some(Visual::Listo { duracion: Some(d) }) if c.tipo == TipoCue::Video => Some(*d),
+                    _ => self.preparados.get(&i).map(|p| p.cuadros() as f64 / p.frecuencia() as f64),
+                };
                 let error = match visual {
                     Some(Visual::Error(e)) => Some(e.en_idioma(self.idioma)),
                     _ => self.errores.get(&i).map(|e| e.en_idioma(self.idioma)),
@@ -1604,6 +1608,9 @@ impl Sesion {
                     "salida": c.salida,
                     "volumen_db": c.volumen_db,
                     "inicio_s": c.inicio_ms as f64 / 1000.0,
+                    "fin_s": c.fin_ms.map(|f| f as f64 / 1000.0),
+                    // Largo del archivo entero (para limitar inicio y fin en la ventana).
+                    "largo_s": largo_s,
                     "fundido_entrada_ms": c.fundido_entrada_ms,
                     "fundido_salida_ms": c.fundido_salida_ms,
                     "duracion_s": duracion_s,
@@ -1668,6 +1675,9 @@ impl Sesion {
             // Las 4 esquinas del Proyector y si se ve el patrón de prueba (etapa 4C).
             "esquinas": self.show.superficie.esquinas,
             "patron": self.patron,
+            // Deshacer y rehacer (etapa 5A).
+            "puede_deshacer": !self.historial.is_empty(),
+            "puede_rehacer": !self.rehechos.is_empty(),
         })
         .to_string()
     }

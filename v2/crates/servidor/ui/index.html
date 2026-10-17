@@ -190,6 +190,25 @@ fieldset:disabled{opacity:.45}
 .dlg td:first-child{white-space:nowrap;width:1%}
 .dlg .ok{align-self:flex-end;background:var(--accent);color:var(--on-accent);border:0;border-radius:10px;padding:8px 18px;font-weight:600}
 .dlg.ancho{width:min(780px,100%)}
+.medios{max-height:min(46vh,420px);overflow:auto;border:1px solid var(--border);border-radius:12px;padding:6px;margin:10px 0}
+.medio{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:8px;cursor:pointer}
+.medio:hover{background:var(--hover)}
+.medio .ruta{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.acciones{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.acciones .esp{flex:1}
+.acciones .ok{margin:0}
+.dlg .ok:disabled{opacity:.45}
+.soltar{position:fixed;inset:10px;z-index:60;border:2px dashed var(--accent);border-radius:18px;background:rgba(14,17,23,.82);display:grid;place-items:center;pointer-events:none;text-align:center}
+.soltar strong{display:block;font-size:22px;margin-bottom:6px}
+.soltar small{color:var(--muted);font-size:14px}
+.inline.dos{display:grid;grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr);gap:6px;align-items:center}
+.mini-l{font-size:12px;color:var(--muted)}
+input.tiempo{width:100%;min-width:0}
+.vacio .btn{margin-top:10px}
+body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
+.row.arrastrada{opacity:.45}
+.row.caer-arriba{box-shadow:0 -2px 0 var(--accent)}
+.row.caer-abajo{box-shadow:0 2px 0 var(--accent)}
 .dlg .nav{display:flex;justify-content:space-between;gap:10px;align-items:center}
 .mapa{position:relative;width:100%;aspect-ratio:16/9;background:#05070b;border:1px solid var(--border);border-radius:12px;overflow:hidden;touch-action:none}
 .mapa svg{position:absolute;inset:0;width:100%;height:100%}
@@ -275,18 +294,21 @@ fieldset:disabled{opacity:.45}
         <div class="sep"></div>
         <button role="menuitem" data-orden="guardar"><span data-t="guardar"></span> <kbd>Ctrl S</kbd></button>
         <button role="menuitem" disabled><span data-t="guardar_como"></span> <span class="pronto" data-t="proximamente"></span></button>
-        <button role="menuitem" disabled><span data-t="reunir_medios"></span> <span class="pronto" data-t="proximamente"></span></button>
       </div>
     </div>
     <div class="mb">
       <button aria-haspopup="true" aria-expanded="false" data-menu data-t="edicion_menu"></button>
       <div class="menu" role="menu" hidden>
-        <button role="menuitem" disabled><span data-t="deshacer"></span> <span class="pronto" data-t="proximamente"></span></button>
-        <button role="menuitem" disabled><span data-t="rehacer"></span> <span class="pronto" data-t="proximamente"></span></button>
+        <button role="menuitem" data-orden="deshacer" data-edita="deshacer"><span data-t="deshacer"></span> <kbd>Ctrl Z</kbd></button>
+        <button role="menuitem" data-orden="rehacer" data-edita="rehacer"><span data-t="rehacer"></span> <kbd>Ctrl Y</kbd></button>
+        <div class="sep"></div>
+        <button role="menuitem" data-accion="agregar" data-edita="si" data-consejo="agregar"><span data-t="agregar_cues"></span> <kbd>Ctrl I</kbd><span class="q" aria-hidden="true">?</span></button>
+        <button role="menuitem" data-accion="eliminar" data-edita="cue"><span data-t="eliminar_cue"></span> <kbd data-t="tecla_supr"></kbd></button>
+        <button role="menuitem" data-accion="subir" data-edita="cue"><span data-t="subir_cue"></span> <kbd>Alt ↑</kbd></button>
+        <button role="menuitem" data-accion="bajar" data-edita="cue"><span data-t="bajar_cue"></span> <kbd>Alt ↓</kbd></button>
         <div class="sep"></div>
         <button role="menuitem" disabled><span data-t="copiar"></span> <span class="pronto" data-t="proximamente"></span></button>
         <button role="menuitem" disabled><span data-t="pegar"></span> <span class="pronto" data-t="proximamente"></span></button>
-        <button role="menuitem" disabled><span data-t="eliminar_cue"></span> <span class="pronto" data-t="proximamente"></span></button>
         <div class="sep"></div>
         <button role="menuitem" disabled><span data-t="ajustes_show"></span> <span class="pronto" data-t="proximamente"></span></button>
       </div>
@@ -329,6 +351,7 @@ fieldset:disabled{opacity:.45}
     </div>
   </nav>
 
+  <div id="soltar" class="soltar" hidden><div><strong data-t="soltar_t"></strong><small id="soltar-texto"></small></div></div>
   <div class="helpbar" role="status"><p data-t="ayuda_barra"></p><button class="btn" id="salirAyuda" data-t="salir_ayuda"></button></div>
 
   <header class="top" id="top">
@@ -466,9 +489,15 @@ fieldset:disabled{opacity:.45}
     document.title = (e.show ? e.show + " · " : "") + "Otaconvert";
     $("subtitulo").textContent = T("n_cues", { n: e.cues.length }) + " · " + (e.sucio ? T("sin_guardar") : T("guardado"));
     $("top").classList.toggle("busy", (e.sonando || []).length > 0 && !e.pausado);
-    $("aviso").hidden = !e.aviso;
-    $("aviso-texto").textContent = e.aviso || "";
+    $("aviso").hidden = !(avisoPropio || e.aviso);
+    $("aviso-texto").textContent = avisoPropio || e.aviso;
     $("pausa").setAttribute("aria-pressed", String(!!e.pausado));
+    // Menú Edición (etapa 5A): en Función no se cambia el show.
+    document.querySelectorAll("[data-edita]").forEach(function (b) {
+      var k = b.dataset.edita;
+      b.disabled = funcion || (k === "deshacer" && !e.puede_deshacer) || (k === "rehacer" && !e.puede_rehacer) || (k === "cue" && !e.cues[e.en_espera]);
+    });
+    $("soltar-texto").textContent = funcion ? T("soltar_funcion") : T("soltar_s");
     actualizarMapeo();
     var nx = e.cues[e.en_espera];
     $("goNext").textContent = nx ? nx.numero + " · " + nx.nombre : T("fin_lista");
@@ -484,7 +513,17 @@ fieldset:disabled{opacity:.45}
     var son = sonandoPorCue();
     lista.textContent = "";
     $("info").textContent = T("n_cues", { n: e.cues.length }) + " · " + T("n_sonando", { n: (e.sonando || []).length });
-    if (!e.cues.length) { lista.appendChild(el("div", "vacio", T("vacio"))); return; }
+    if (!e.cues.length) {
+      var va = el("div", "vacio");
+      va.appendChild(el("p", "", T("vacio")));
+      if (e.modo !== "funcion") {
+        va.appendChild(el("p", "note-small", T("vacio_agregar")));
+        var ba = el("button", "btn", T("agregar_cues")); ba.type = "button"; ba.onclick = dialogoAgregar;
+        va.appendChild(ba);
+      }
+      lista.appendChild(va);
+      return;
+    }
     var funcion = e.modo === "funcion";
     var elegible = !funcion || estilo === "estudio";
     var visibles = 0;
@@ -598,6 +637,22 @@ fieldset:disabled{opacity:.45}
     nota.placeholder = T("nota_ph");
     nota.onchange = function () { editar({ nota: nota.value }); };
     fs.appendChild(campo("nota", nota, "fNota", "nota"));
+    // Número libre (1, 1.5, 2A) para que coincida con el libreto.
+    var num = el("input"); num.type = "text"; num.value = c.numero; num.maxLength = 20;
+    num.onchange = function () { if (num.value.trim()) editar({ numero: num.value.trim() }); else num.value = c.numero; };
+    fs.appendChild(campo("numero", num, "fNumero", "numero"));
+    // Inicio y fin dentro del archivo (en segundos; fin vacío = hasta el final).
+    if (c.tipo !== "imagen") {
+      var ini = campoTiempo(c.inicio_s, c.largo_s, false, function (ms) { editar({ inicio_ms: ms }); });
+      var fin = campoTiempo(c.fin_s, c.largo_s, true, function (ms) { editar({ fin_ms: ms }); });
+      var w2 = el("div", "inline dos");
+      var li = el("label", "mini-l", T("inicio")); li.htmlFor = "fIni"; ini.id = "fIni";
+      var lf = el("label", "mini-l", T("fin")); lf.htmlFor = "fFin"; fin.id = "fFin";
+      w2.appendChild(li); w2.appendChild(ini); w2.appendChild(lf); w2.appendChild(fin);
+      var ft = el("div", "field"), lt = el("span", "k", T("inicio_fin")); lt.appendChild(botonConsejo("inicio_fin"));
+      ft.appendChild(lt); ft.appendChild(w2);
+      fs.appendChild(ft);
+    }
     var arch = el("div", "field"); arch.appendChild(el("span", "k", T("archivo_campo"))); arch.appendChild(el("span", "val", c.archivo)); arch.title = c.archivo;
     fs.appendChild(arch);
     // Un vídeo con sonido se ajusta igual que un audio (su sonido va por el mezclador).
@@ -679,6 +734,22 @@ fieldset:disabled{opacity:.45}
     sec.appendChild(rest);
     sec.appendChild(el("p", "note-small", T("encuadre_nota")));
     return sec;
+  }
+  // Un tiempo en segundos con decimales (coma o punto). `vacio`: se puede dejar
+  // vacío (= hasta el final del archivo).
+  function campoTiempo(valor, largo, vacio, cambio) {
+    var n = el("input"); n.type = "text"; n.inputMode = "decimal"; n.className = "tiempo num";
+    var fmt = function (s) { var t = (Math.round(s * 100) / 100).toString(); return idioma === "es" ? t.replace(".", ",") : t; };
+    n.value = valor == null ? "" : fmt(valor);
+    if (vacio) n.placeholder = T("hasta_final");
+    n.onchange = function () {
+      var t = n.value.trim().replace(",", ".");
+      if (!t && vacio) { cambio(null); return; }
+      var s = Number(t);
+      if (!t || !isFinite(s) || s < 0 || (largo != null && s > largo)) { n.value = valor == null ? "" : fmt(valor); avisoLocal(T("tiempo_malo", { max: largo != null ? fmt(largo) : "—" })); return; }
+      cambio(Math.round(s * 1000));
+    };
+    return n;
   }
   function fmtDb(x) {
     var s = (x > 0 ? "+" : "") + (+x).toFixed(1);
@@ -916,6 +987,7 @@ fieldset:disabled{opacity:.45}
     ws.onopen = function () { abierto = true; avisoConexion(T("conectado"), "on"); mandar("idioma", { idioma: idioma }); };
     ws.onmessage = function (m) {
       var d; try { d = JSON.parse(m.data); } catch (x) { return; }
+      if (d.tipo === "medios") { dibujarMedios(d.lista || []); return; }
       if (d.tipo !== "estado") return;
       e = d;
       if (desbloqueado != null && !(e.sonando || []).some(function (s) { return s.cue === desbloqueado; })) desbloqueado = null;
@@ -955,6 +1027,10 @@ fieldset:disabled{opacity:.45}
       else if (it.dataset.accion === "atajos") dialogoAtajos();
       else if (it.dataset.accion === "acerca") dialogoAcerca();
       else if (it.dataset.accion === "mapeo") dialogoMapeo();
+      else if (it.dataset.accion === "agregar") dialogoAgregar();
+      else if (it.dataset.accion === "eliminar") eliminarCue();
+      else if (it.dataset.accion === "subir") moverCue(-1);
+      else if (it.dataset.accion === "bajar") moverCue(1);
     });
   });
 
@@ -1101,7 +1177,7 @@ fieldset:disabled{opacity:.45}
   function dialogoAtajos() {
     dialogo(T("atajos"), function (d) {
       var t = el("table");
-      [[T("tecla_espacio"), "atajo_go"], ["Esc", "atajo_esc"], ["P", "atajo_p"], ["F", "atajo_f"], [T("tecla_mayus") + " + F", "atajo_mf"], ["↑  ↓", "atajo_flechas"], ["Tab", "atajo_tab"], ["H", "atajo_h"], ["Ctrl + F", "atajo_buscar"], ["Ctrl + S", "atajo_s"]]
+      [[T("tecla_espacio"), "atajo_go"], ["Esc", "atajo_esc"], ["P", "atajo_p"], ["F", "atajo_f"], [T("tecla_mayus") + " + F", "atajo_mf"], ["↑  ↓", "atajo_flechas"], ["Tab", "atajo_tab"], ["H", "atajo_h"], ["Ctrl + F", "atajo_buscar"], ["Ctrl + S", "atajo_s"], ["Ctrl + Z", "atajo_deshacer"], ["Ctrl + Y", "atajo_rehacer"], ["Ctrl + I", "atajo_agregar"], [T("tecla_supr"), "atajo_supr"], ["Alt + ↑  ↓", "atajo_mover"]]
         .forEach(function (f) { var tr = el("tr"), a = el("td"); a.appendChild(el("kbd", "", f[0])); tr.appendChild(a); tr.appendChild(el("td", "", T(f[1]))); t.appendChild(tr); });
       d.appendChild(t);
     });
@@ -1238,6 +1314,121 @@ fieldset:disabled{opacity:.45}
     }, true);
   }
 
+  // ---- Editar la lista (etapa 5A) ----
+  var avisoPropio = "", avisoPropioTimer = 0;
+  function avisoLocal(t) {
+    avisoPropio = t; clearTimeout(avisoPropioTimer);
+    avisoPropioTimer = setTimeout(function () { avisoPropio = ""; if (e) dibujar(); }, 8000);
+    if (e) dibujar();
+  }
+  function puedeEditar() { return e && e.modo !== "funcion"; }
+  // Los cues nuevos entran detrás del que está en espera (o al final).
+  function despuesDe() { return e && e.cues[e.en_espera] ? e.en_espera : null; }
+  function eliminarCue() { if (puedeEditar() && e.cues[e.en_espera]) mandar("quitar", { cue: e.en_espera }); }
+  function moverCue(d) {
+    if (!puedeEditar()) return;
+    var i = e.en_espera, h = i + d;
+    if (e.cues[i] && h >= 0 && h < e.cues.length) mandar("mover", { cue: i, hasta: h });
+  }
+
+  // Ventanita "Agregar cues": los medios de la carpeta del show y "Buscar archivos…".
+  var agregar = null; // { cont, ok, elegidos }
+  function dialogoAgregar() {
+    var titulo = T("agregar_cues").replace("…", "");
+    if (!puedeEditar()) { dialogo(titulo, function (d) { d.appendChild(el("p", "", T("agregar_funcion"))); }); return; }
+    agregar = { elegidos: {} };
+    dialogo(titulo, function (d) {
+      d.classList.add("ancho");
+      d.appendChild(el("p", "", T("agregar_intro")));
+      var cont = el("div", "medios"); cont.appendChild(el("p", "note-small", T("buscando_medios"))); d.appendChild(cont);
+      agregar.cont = cont;
+      var fila = el("div", "acciones");
+      var buscar = el("button", "btn", T("buscar_archivos")); buscar.type = "button";
+      buscar.onclick = function () { var dd = despuesDe(); cerrarDialogo(); mandar("buscar_archivos", { despues_de: dd }); };
+      var cancelar = el("button", "btn", T("cancelar")); cancelar.type = "button"; cancelar.onclick = cerrarDialogo;
+      var ok = el("button", "ok", T("agregar_elegidos")); ok.type = "button"; ok.disabled = true; agregar.ok = ok;
+      ok.onclick = function () {
+        var a = Object.keys(agregar.elegidos).filter(function (k) { return agregar.elegidos[k]; });
+        var dd = despuesDe(); cerrarDialogo();
+        if (a.length) mandar("agregar", { archivos: a, despues_de: dd });
+      };
+      fila.appendChild(buscar); fila.appendChild(el("span", "esp")); fila.appendChild(cancelar); fila.appendChild(ok);
+      d.appendChild(fila);
+      d.appendChild(el("p", "note-small", T("agregar_arrastrar")));
+    }, true);
+    alCerrarDialogo = function () { agregar = null; };
+    mandar("medios_carpeta");
+  }
+  function dibujarMedios(lista) {
+    if (!agregar) return;
+    var cont = agregar.cont; cont.textContent = "";
+    if (!lista.length) { cont.appendChild(el("p", "note-small", T("sin_medios"))); return; }
+    var usados = {};
+    e.cues.forEach(function (c) { usados[c.archivo] = true; });
+    lista.forEach(function (r) {
+      var l = el("label", "medio"), cb = el("input"); cb.type = "checkbox";
+      cb.onchange = function () {
+        agregar.elegidos[r] = cb.checked;
+        var n = Object.keys(agregar.elegidos).filter(function (k) { return agregar.elegidos[k]; }).length;
+        agregar.ok.disabled = !n;
+        agregar.ok.textContent = n ? T("agregar_n", { n: n }) : T("agregar_elegidos");
+      };
+      l.appendChild(cb);
+      l.appendChild(el("span", "ruta", r));
+      if (usados[r]) l.appendChild(el("span", "tag", T("ya_en_show")));
+      cont.appendChild(l);
+    });
+  }
+
+  // Arrastrar archivos desde el Explorador (los manda la ventana propia).
+  window.otaArrastre = function (si) { $("soltar").hidden = !si; };
+  window.otaSoltar = function (rutas) {
+    $("soltar").hidden = true;
+    if (!rutas || !rutas.length) return;
+    cerrarDialogo();
+    mandar("importar", { rutas: rutas, despues_de: despuesDe() });
+  };
+
+  // Reordenar arrastrando una fila (en Edición). Con eventos del puntero, no con
+  // el arrastre del navegador (que en la ventana propia queda para los archivos).
+  var arrastreFila = null; // { desde, y0, activo, hasta }
+  $("lista").addEventListener("pointerdown", function (ev) {
+    if (!puedeEditar() || ev.button !== 0 || busqueda) return;
+    var r = ev.target.closest(".row"); if (!r) return;
+    arrastreFila = { desde: +r.dataset.i, y0: ev.clientY, activo: false, hasta: null };
+  });
+  document.addEventListener("pointermove", function (ev) {
+    var a = arrastreFila; if (!a) return;
+    if (!a.activo && Math.abs(ev.clientY - a.y0) < 8) return;
+    a.activo = true;
+    document.body.classList.add("moviendo");
+    var filas = [].slice.call($("lista").querySelectorAll(".row"));
+    var hasta = a.desde;
+    filas.forEach(function (f) {
+      var b = f.getBoundingClientRect();
+      if (ev.clientY > b.top + b.height / 2) hasta = +f.dataset.i + (+f.dataset.i < a.desde ? 1 : 0);
+    });
+    if (ev.clientY < (filas[0] ? filas[0].getBoundingClientRect().top + filas[0].getBoundingClientRect().height / 2 : 0)) hasta = 0;
+    hasta = Math.max(0, Math.min(e.cues.length - 1, hasta));
+    a.hasta = hasta;
+    filas.forEach(function (f) {
+      var i = +f.dataset.i;
+      f.classList.toggle("caer-arriba", i === hasta && hasta < a.desde);
+      f.classList.toggle("caer-abajo", i === hasta && hasta > a.desde);
+      f.classList.toggle("arrastrada", i === a.desde);
+    });
+  });
+  document.addEventListener("pointerup", function () {
+    var a = arrastreFila; arrastreFila = null;
+    document.body.classList.remove("moviendo");
+    $("lista").querySelectorAll(".caer-arriba,.caer-abajo,.arrastrada").forEach(function (f) { f.classList.remove("caer-arriba", "caer-abajo", "arrastrada"); });
+    if (a && a.activo) {
+      if (a.hasta != null && a.hasta !== a.desde) mandar("mover", { cue: a.desde, hasta: a.hasta });
+      ignorarClic = true; setTimeout(function () { ignorarClic = false; }, 0);
+    }
+  });
+  var ignorarClic = false;
+
   // ---- Botones ----
   $("go").onclick = function () { mandar("go"); };
   $("parar").onclick = function () { mandar("parar_todo"); };
@@ -1245,7 +1436,7 @@ fieldset:disabled{opacity:.45}
   $("fundir").onclick = function () { mandar("fundir_todo"); };
   $("mEdicion").onclick = function () { mandar("modo_edicion"); };
   $("mFuncion").onclick = function () { mandar("modo_funcion"); };
-  $("aviso-cerrar").onclick = function () { mandar("cerrar_aviso"); };
+  $("aviso-cerrar").onclick = function () { avisoPropio = ""; mandar("cerrar_aviso"); if (e) dibujar(); };
   // Buscador: filtra la lista mientras se escribe; Enter deja en espera el
   // primer cue que coincide (nunca dispara) y suelta el foco para que Espacio sea GO.
   $("buscar").addEventListener("input", function () { busqueda = $("buscar").value; if (e) dibujarLista(); });
@@ -1258,7 +1449,7 @@ fieldset:disabled{opacity:.45}
   });
   $("lista").addEventListener("click", function (ev) {
     // En Función solo se elige con el ratón en la Vista Estudio (nunca dispara).
-    if (!e || (e.modo === "funcion" && estilo !== "estudio")) return;
+    if (ignorarClic || !e || (e.modo === "funcion" && estilo !== "estudio")) return;
     var r = ev.target.closest(".row"); if (r) mandar("ir_a", { cue: +r.dataset.i });
   });
   $("lista").addEventListener("keydown", function (ev) {
@@ -1274,6 +1465,15 @@ fieldset:disabled{opacity:.45}
     // Buscar un cue: Ctrl+F, o la tecla / (si no se está escribiendo).
     if ((ev.ctrlKey || ev.metaKey) && (ev.key === "f" || ev.key === "F")) { ev.preventDefault(); $("buscar").focus(); $("buscar").select(); return; }
     if (ev.key === "/" && !escribiendo) { ev.preventDefault(); $("buscar").focus(); $("buscar").select(); return; }
+    // Editar la lista (etapa 5A). Ctrl+Z dentro de un campo deshace lo escrito, no el show.
+    if ((ev.ctrlKey || ev.metaKey) && !escribiendo && !velo) {
+      var k = ev.key.toLowerCase();
+      if (k === "z" && !ev.shiftKey) { ev.preventDefault(); if (puedeEditar()) mandar("deshacer"); return; }
+      if (k === "y" || (k === "z" && ev.shiftKey)) { ev.preventDefault(); if (puedeEditar()) mandar("rehacer"); return; }
+      if (k === "i") { ev.preventDefault(); dialogoAgregar(); return; }
+    }
+    if (ev.altKey && !escribiendo && !velo && (ev.key === "ArrowUp" || ev.key === "ArrowDown")) { ev.preventDefault(); moverCue(ev.key === "ArrowUp" ? -1 : 1); return; }
+    if (ev.key === "Delete" && !escribiendo && !velo) { ev.preventDefault(); eliminarCue(); return; }
     if (escribiendo || ev.ctrlKey || ev.metaKey || ev.altKey) return;   // con foco en un campo, Tab pasa de campo
     if (ev.key === " ") { ev.preventDefault(); cerrarDialogo(); cerrarMenus(); cerrarBurbuja(); mandar("go"); return; }
     if (mapeo && teclaMapeo(ev)) { ev.preventDefault(); return; }

@@ -9,6 +9,7 @@
 //! - Límites: 16 conexiones, cabeceras de 8 KB, mensajes de 64 KB, 5 s para
 //!   mandar el pedido.
 
+pub mod importar;
 pub mod sesion;
 pub mod sonido;
 pub mod texto;
@@ -55,11 +56,17 @@ struct Contexto {
     sesion: Arc<Mutex<Sesion>>,
     clientes: Mutex<Vec<Sender<String>>>,
     conexiones: AtomicUsize,
+    /// Diálogo "Buscar archivos…" del sistema (lo pone el motor; en las pruebas no hay).
+    buscar_archivos: Mutex<Option<BuscarArchivos>>,
 }
+
+/// Abre el diálogo de Windows para elegir archivos y devuelve los elegidos (vacío = canceló).
+pub type BuscarArchivos = Arc<dyn Fn() -> Vec<std::path::PathBuf> + Send + Sync>;
 
 pub struct Servidor {
     pub puerto: u16,
     token: String,
+    ctx: Arc<Contexto>,
 }
 
 /// Token de 32 bytes al azar, en hexadecimal.
@@ -90,6 +97,7 @@ impl Servidor {
             sesion: sesion.clone(),
             clientes: Mutex::new(Vec::new()),
             conexiones: AtomicUsize::new(0),
+            buscar_archivos: Mutex::new(None),
         });
         let c = ctx.clone();
         std::thread::Builder::new().name("servidor".into()).spawn(move || {
@@ -148,16 +156,23 @@ impl Servidor {
                 }
             }
         })?;
-        Ok(Self { puerto, token })
+        Ok(Self { puerto, token, ctx })
     }
 
     /// Dirección que abre la ventana (o el navegador).
+    /// El motor pone aquí el diálogo de Windows "Buscar archivos…".
+    pub fn al_buscar_archivos(&self, f: BuscarArchivos) {
+        if let Ok(mut b) = self.ctx.buscar_archivos.lock() {
+            *b = Some(f);
+        }
+    }
+
     pub fn url(&self) -> String {
         format!("http://127.0.0.1:{}/?t={}", self.puerto, self.token)
     }
 }
 
-fn atender(stream: TcpStream, ctx: &Contexto) {
+fn atender(stream: TcpStream, ctx: &Arc<Contexto>) {
     let _ = stream.set_read_timeout(Some(ESPERA_PEDIDO));
     let _ = stream.set_nodelay(true);
     let mut vista = [0u8; 16];
@@ -334,13 +349,128 @@ fn difundir(ctx: &Contexto, texto: String) {
     }
 }
 
-fn ejecutar(ctx: &Contexto, texto: &str) {
+/// Trae archivos al show (copiando a `Medios/` lo que está afuera) y agrega
+/// sus cues después de `despues_de`. La copia se hace **sin** tener la sesión
+/// tomada: mientras se copia un vídeo grande, el GO y Parar todo siguen.
+fn traer_archivos(ctx: &Contexto, rutas: Vec<std::path::PathBuf>, despues_de: Option<usize>) {
+    if rutas.is_empty() {
+        return;
+    }
+    let carpeta = match ctx.sesion.lock() {
+        Ok(mut s) => {
+            if s.modo == sesion::Modo::Funcion {
+                s.aviso = Some(Texto::nuevo("En Función no se puede cambiar el show. Pasa a Edición con Tab.", "The show can't be changed in Live mode. Switch to Edit with Tab."));
+                let e = s.estado_json();
+                drop(s);
+                difundir(ctx, e);
+                return;
+            }
+            s.aviso = Some(Texto::nuevo(format!("Agregando {} archivo(s)…", rutas.len()), format!("Adding {} file(s)…", rutas.len())));
+            s.carpeta()
+        }
+        Err(_) => return,
+    };
+    if let Ok(s) = ctx.sesion.lock() {
+        let e = s.estado_json();
+        drop(s);
+        difundir(ctx, e);
+    }
+    let resultado = importar::planear(&carpeta, &rutas).and_then(|p| importar::copiar(&p));
+    let Ok(mut s) = ctx.sesion.lock() else { return };
+    match resultado.and_then(|rel| s.agregar_cues(&rel, despues_de)) {
+        Ok(nuevos) => {
+            s.aviso = Some(Texto::nuevo(format!("Se agregaron {} cue(s).", nuevos.len()), format!("{} cue(s) added.", nuevos.len())));
+        }
+        Err(e) => s.aviso = Some(e),
+    }
+    let e = s.estado_json();
+    drop(s);
+    difundir(ctx, e);
+}
+
+fn ejecutar(ctx: &Arc<Contexto>, texto: &str) {
     let v = serde_json::from_str::<serde_json::Value>(texto).unwrap_or_default();
     let orden = v.get("orden").and_then(|o| o.as_str()).map(str::to_string);
     let indice = || v.get("cue").and_then(|c| c.as_u64()).and_then(|c| usize::try_from(c).ok());
+    let despues_de = v.get("despues_de").and_then(|c| c.as_u64()).and_then(|c| usize::try_from(c).ok());
+    // Traer archivos de afuera (arrastrados o con el diálogo de Windows): en otro hilo.
+    match orden.as_deref() {
+        Some("importar") => {
+            let rutas: Vec<std::path::PathBuf> = v
+                .get("rutas")
+                .and_then(|r| r.as_array())
+                .map(|a| a.iter().filter_map(|x| x.as_str()).take(1000).map(std::path::PathBuf::from).collect())
+                .unwrap_or_default();
+            // En otro hilo: mientras se copia, esta ventana sigue pudiendo dar GO o Parar todo.
+            let c = ctx.clone();
+            let _ = std::thread::Builder::new().name("importar".into()).spawn(move || traer_archivos(&c, rutas, despues_de));
+            return;
+        }
+        Some("buscar_archivos") => {
+            let f = ctx.buscar_archivos.lock().ok().and_then(|b| b.clone());
+            if let Some(f) = f {
+                let c = ctx.clone();
+                let _ = std::thread::Builder::new().name("buscar-archivos".into()).spawn(move || traer_archivos(&c, f(), despues_de));
+            }
+            return;
+        }
+        Some("medios_carpeta") => {
+            let carpeta = match ctx.sesion.lock() {
+                Ok(s) => s.carpeta(),
+                Err(_) => return,
+            };
+            let lista = importar::medios_de_la_carpeta(&carpeta);
+            difundir(ctx, serde_json::json!({ "tipo": "medios", "lista": lista }).to_string());
+            return;
+        }
+        _ => {}
+    }
     let estado = {
         let Ok(mut s) = ctx.sesion.lock() else { return };
         match orden.as_deref() {
+            // Etapa 5A: editar la lista de cues.
+            Some("agregar") => {
+                let archivos: Vec<String> = v
+                    .get("archivos")
+                    .and_then(|r| r.as_array())
+                    .map(|a| a.iter().filter_map(|x| x.as_str().map(str::to_string)).take(1000).collect())
+                    .unwrap_or_default();
+                if let Err(e) = s.agregar_cues(&archivos, despues_de) {
+                    s.aviso = Some(e);
+                }
+            }
+            Some("quitar") => {
+                let nombre = indice().and_then(|i| s.show.cues.get(i)).map(|c| c.nombre.clone()).unwrap_or_default();
+                let r = match indice() {
+                    Some(i) => s.quitar_cue(i),
+                    None => Err(Texto::nuevo("Cue no válido.", "Invalid cue.")),
+                };
+                s.aviso = Some(match r {
+                    // Quitar no pide confirmación: se puede deshacer.
+                    Ok(()) => Texto::nuevo(
+                        format!("Se quitó «{nombre}» de la lista (el archivo sigue en la carpeta). Ctrl+Z lo vuelve a poner."),
+                        format!("«{nombre}» was removed from the list (the file stays in the folder). Ctrl+Z puts it back."),
+                    ),
+                    Err(e) => e,
+                });
+            }
+            Some("mover") => {
+                let a = v.get("hasta").and_then(|c| c.as_u64()).and_then(|c| usize::try_from(c).ok());
+                let r = match (indice(), a) {
+                    (Some(i), Some(h)) => s.mover_cue(i, h),
+                    _ => Err(Texto::nuevo("Cue no válido.", "Invalid cue.")),
+                };
+                if let Err(e) = r {
+                    s.aviso = Some(e);
+                }
+            }
+            Some("deshacer") => {
+                // Un aviso anterior (p. ej. «Se quitó…») ya no vale.
+                s.aviso = s.deshacer().err();
+            }
+            Some("rehacer") => {
+                s.aviso = s.rehacer().err();
+            }
             Some("modo_edicion") => s.cambiar_modo(sesion::Modo::Edicion),
             Some("modo_funcion") => s.cambiar_modo(sesion::Modo::Funcion),
             Some("ir_a") => match indice() {
@@ -419,7 +549,7 @@ fn ejecutar(ctx: &Contexto, texto: &str) {
     difundir(ctx, estado);
 }
 
-fn websocket(stream: TcpStream, ctx: &Contexto) {
+fn websocket(stream: TcpStream, ctx: &Arc<Contexto>) {
     let puerto = ctx.puerto;
     let token = ctx.token.clone();
     let revisar = move |req: &Request, resp: Response| -> Result<Response, ErrorResponse> {

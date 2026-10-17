@@ -156,8 +156,8 @@ El usuario pidió **no llenar la ventana de botones** para ajustes del tipo "mos
 
 | Menú | Contenido |
 |---|---|
-| **Archivo** | Nuevo show · Abrir… · Abrir reciente ▸ · Guardar · Guardar como… · Reunir medios… · Salir |
-| **Edición** | Deshacer · Rehacer · Copiar · Pegar · Eliminar cue · **Ajustes del show…** (rampas cortas, salidas y perfiles de teatro, protección contra doble GO) |
+| **Archivo** | Nuevo show · Abrir… · Abrir reciente ▸ · Guardar · Guardar como… · Salir (sin "Reunir medios": al agregar, lo de fuera ya se copia a `Medios/`, etapa 5A) |
+| **Edición** | Deshacer · Rehacer · **Agregar cues…** · Eliminar cue · Subir cue · Bajar cue · Copiar · Pegar · **Ajustes del show…** (rampas cortas, salidas y perfiles de teatro, protección contra doble GO) |
 | **Vista** | Personalizar… · Vistas listas ▸ · Modo noche · Modo día · Botonera ▸ (Cuadrícula / Lista) · Idioma ▸ (Español / English) · Restaurar vista |
 | **Ayuda** | Modo Ayuda (H) · Primeros pasos · **Mostrar consejos** ✓ · Atajos de teclado · Prueba de hardware… · Acerca de Otaconvert |
 
@@ -754,3 +754,54 @@ Antes de programar se verifican tres decisiones técnicas: cómo se dibuja la ve
 - Límites honestos: el borde de la forma es duro (escalones de 1 píxel); 1 píxel de las flechas supone un proyector de 1920×1080; las esquinas son del show (pasan al perfil del teatro en la etapa 5); la caja «al aire» de la Vista Estudio no muestra el encuadre ni la deformación (es una copia aproximada); falta probar con un proyector real.
 
 - **Hallazgo del entorno:** la limpieza automática de Windows vació parte de `%TEMP%\otr` (las librerías descomprimidas de cargo): falló la compilación con "file not found for module ProcessStatus". Se arregló haciendo que cargo vuelva a descomprimir desde su copia (`registry/src` renombrada). Conviene mover las herramientas de compilación fuera de `%TEMP%`.
+
+## 12. Etapa 5: editar el show, ajustes y salidas (17/10/2026)
+
+Pedido del usuario: "Sí, sigue con la etapa 5." Repartida en cuatro partes que se pueden probar por separado:
+- **5A Editar el show**: agregar cues (arrastrar o «Agregar cues…», copiando lo de fuera a `Medios/`), quitar y reordenar, número libre, inicio y fin, deshacer y rehacer.
+- **5B Ajustes del show y salidas**: rampas con consejos, protección contra doble GO, Fundir todo, volumen maestro; elegir la salida de sonido y la pantalla del proyector desde la ventana; perfiles de teatro (también las 4 esquinas por teatro).
+- **5C**: panel Sonando (parar o fundir un solo cue), medidor de nivel, luz verde (comprobación previa), botonera, «Ver antes» por Auriculares.
+- **5D**: onda y miniatura del proyector.
+- Riesgo avisado: reordenar mientras algo suena. Se evitó identificando cada cue por un **número interno** (`id`) en vez de su lugar en la lista.
+
+### Etapa 5A hecha (17/10/2026)
+- **Sesión** (`crates/servidor/src/sesion.rs`):
+  - Cada cue tiene un `id` único. Al abrir un show, los repetidos o en 0 se renumeran.
+  - La proyección recibe el `id` (así un cambio de orden no confunde lo que se precargó).
+  - `reindexar` reacomoda por `id` todo lo que estaba por lugar: preparados, errores, sonando, precargas, miniaturas y el cue en espera.
+  - `agregar_cues(archivos, después_de)`: valida cada ruta y tipo y el show entero antes de cambiar nada. Los nuevos entran detrás del cue en espera con los números siguientes al mayor. Registro AGREGAR.
+  - `quitar_cue`: no se puede si está sonando; el archivo no se borra. Registro QUITAR.
+  - `mover_cue`.
+  - `editar_cue` acepta `numero` (1 a 20 letras, p. ej. 1.5 o 2A), `inicio_ms` y `fin_ms` (null = hasta el final). Si cambia inicio, fin o bucle, se vuelve a preparar.
+  - **Deshacer / rehacer**: hasta 100 pasos, con una copia del show antes de cada cambio. Varios movimientos seguidos de las esquinas cuentan como uno.
+  - Todo esto solo en Edición. En Función se rechaza con aviso.
+  - Si cambió el orden mientras se preparaba un audio, ese resultado se descarta y se vuelve a pedir.
+- **Traer archivos** (`crates/servidor/src/importar.rs`):
+  - Rechaza rutas de red, relativas, que no existen o que no son audio, vídeo o imagen.
+  - Lo que ya está dentro de la carpeta del show se usa tal cual.
+  - Lo de fuera se copia a `Medios/`. Si ya hay uno con el mismo nombre y tamaño, se reutiliza; si es distinto, se guarda como «nombre (1).ext» y nunca se pisa.
+  - Se copia a un `.copiando` y después se renombra. La copia va en otro hilo: GO y Parar todo siguen funcionando mientras se copia.
+  - Órdenes del canal: `importar {rutas, despues_de}`, `buscar_archivos {despues_de}` (el motor abre el diálogo de Windows `GetOpenFileNameW`, varios a la vez, en `crates/motor/src/dialogo.rs`), `medios_carpeta` (responde `{tipo: "medios", lista}`), `agregar {archivos, despues_de}`, `quitar {cue}`, `mover {cue, hasta}`, `deshacer`, `rehacer`.
+  - El estado trae `puede_deshacer` y `puede_rehacer`, y por cue `fin_s` y `largo_s`.
+  - Quitar avisa «Se quitó «X»… Ctrl+Z lo vuelve a poner» (sin confirmación, porque se puede deshacer); deshacer y rehacer borran ese aviso.
+- **Arrastrar desde el Explorador** (`crates/ventana/src/main.rs`):
+  - `with_drag_drop_handler` de wry 0.57: wry apaga el arrastre propio de WebView2 y recibe las rutas.
+  - La ventana avisa a la página con `otaArrastre(true/false)` y `otaSoltar([...])`. Las rutas van como texto JSON escapado: un nombre de archivo no puede cortar el código (prueba `un_nombre_de_archivo_no_corta_el_codigo`). Máximo 1.000 archivos.
+  - Mientras se arrastra, una capa dice «Suelta para agregar al show». En Función dice que no se puede.
+- **Ventana**:
+  - **Menú Edición**: Deshacer (Ctrl+Z), Rehacer (Ctrl+Y o Ctrl+Mayús+Z), **Agregar cues…** (Ctrl+I), Eliminar cue (Supr), Subir y Bajar cue (Alt+↑/↓). En gris en Función o cuando no hay qué hacer. Copiar y Pegar siguen «Próximamente».
+  - Ctrl+Z dentro de un campo de texto deshace lo escrito, no el show.
+  - Ventanita **Agregar cues**: medios de la carpeta del show con casillas, marcando los que «ya está en el show»; «Buscar archivos…»; «Agregar N».
+  - **Reordenar arrastrando una fila** en Edición, con una línea de color donde cae. Usa eventos del puntero, no el arrastre del navegador, que queda para los archivos.
+  - Lista vacía: «Arrastra aquí…» y botón «Agregar cues…».
+  - Panel: **Número**, **Inicio y fin (segundos)** («Desde» y «Hasta»; vacío = el final; coma o punto; fuera de rango avisa y no manda nada).
+  - Consejos nuevos: `agregar`, `numero` e `inicio_fin`, en es/en, con ejemplos de escena. Atajos nuevos en Ayuda → Atajos de teclado.
+- **Pruebas**: `servidor/tests/edicion.rs` (8: agregar, quitar, mover, número, inicio y fin, deshacer y rehacer, Función bloquea, lo que suena sigue bien al reordenar) y `canal.rs` `arrastrar_archivos_de_afuera_los_copia_y_agrega` (lo que no es medio se rechaza; se copia a `Medios/Timbre (1).wav` sin pisar el que había; el original queda; sin temporales; deshacer; Función bloquea). **113 pruebas en verde.**
+- **Probado en el panel del navegador** (copia del show de ejemplo):
+  - Ctrl+I muestra los medios de la carpeta; agregar 2 los pone detrás del cue en espera.
+  - Alt+↓ dos veces; Supr con su aviso; Ctrl+Z lo devuelve.
+  - Arrastrar filas hacia arriba y hacia abajo; Ctrl+Z.
+  - Número «2B», Desde «1,5», Hasta «4»; un tiempo imposible avisa y no se manda.
+  - Soltar 2 archivos de otra carpeta: se copian a `Medios/` y quedan como cues.
+  - En Función todo el menú Edición queda en gris y Supr y Alt+↓ no cambian nada.
+- Límites: el arrastre real desde el Explorador solo se puede probar en la ventana propia, no en el panel del navegador; el cue nuevo lleva el nombre del archivo copiado (p. ej. «Timbre (1)»).

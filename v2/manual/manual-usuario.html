@@ -160,6 +160,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <a href="#primer-show">Tu primer show en 5 pasos</a>
     <div class="paso"><b>2</b>Preparar el show</div>
     <a href="#carpeta">La carpeta del show</a>
+    <a href="#lista">Armar la lista de cues</a>
     <a href="#pantalla">La pantalla</a>
     <a href="#modos">Edición y Función</a>
     <a href="#salidas">Elegir salidas</a>
@@ -252,8 +253,8 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
   <h2>Tu primer show en 5 pasos</h2>
   <ol class="pasos">
     <li><div><strong>Archivo → Nuevo show</strong> y elige la carpeta de tu obra.</div></li>
-    <li><div>Arrastra tus archivos a la lista de cues. Cada archivo se convierte en un cue.</div></li>
-    <li><div>Ordénalos como van en la obra. Si quieres, ponles el mismo número que en el libreto (1, 1.5, 2A…) y una nota para acordarte de cuándo van.</div></li>
+    <li><div>Arrastra tus archivos desde el Explorador de Windows a la ventana (o usa <strong>Edición → Agregar cues…</strong>). Cada archivo se convierte en un cue.</div></li>
+    <li><div>Ordénalos como van en la obra arrastrando cada fila. Si quieres, ponles el mismo número que en el libreto (1, 1.5, 2A…) y una nota para acordarte de cuándo van.</div></li>
     <li><div>Toca un cue y ajusta en el panel derecho: volumen, si aparece despacito (fundido), si se repite (bucle).</div></li>
     <li><div>Pulsa <kbd>Tab</kbd> para pasar a <strong>Función</strong> y toca <strong>GO</strong> (o la barra espaciadora) cada vez que quieras que salga el siguiente.</div></li>
   </ol>
@@ -270,8 +271,32 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
   </ol>
   <p>El show se guarda en un archivo <code>.otashow</code> dentro de esa carpeta. Cada vez que guardas, la versión anterior queda como copia en <code>.otaconvert/copias</code> (se guardan las últimas 20), por si necesitas volver atrás. Si se corta la luz mientras guarda, el archivo queda como estaba antes o con lo nuevo, nunca a medias. En <code>registros</code> queda anotado, con la hora, cada GO y cualquier error de la función.</p>
   <p class="muted">Por seguridad, un show solo puede usar archivos que estén dentro de su carpeta.</p>
-  <p>Si agregaste algo que estaba en otro lugar, usa <strong>Archivo → Reunir medios</strong>: copia todo a la carpeta del show. Así la carpeta queda completa y la puedes llevar a cualquier teatro.</p>
+  <p>Si agregas un archivo que está en otro lugar del equipo, Otaconvert lo <strong>copia solo</strong> a la carpeta <code>Medios</code> del show. Así la carpeta queda siempre completa y la puedes llevar a cualquier teatro. El archivo original no se toca, y nunca se pisa otro que se llame igual.</p>
   <div class="nota cuidado">Para la función, deja la carpeta del show en el disco del equipo, no en un pendrive. Los audios se cargan en la memoria antes de sonar, pero los vídeos se leen del disco mientras se ven: si el pendrive es lento o se sale, el vídeo falla. La comprobación previa te avisa.</div>
+</section>
+
+<section class="card" id="lista">
+  <h2>Armar la lista de cues <span class="estado ya">Ya funciona</span></h2>
+  <p>Todo esto se hace en <strong>Edición</strong>. En Función la lista queda fija, para que nada cambie por accidente durante la obra.</p>
+  <h3>Agregar</h3>
+  <ul>
+    <li><strong>Arrastra</strong> audios, vídeos o imágenes desde el Explorador de Windows a la ventana. Aparece un recuadro que dice «Suelta para agregar al show».</li>
+    <li>O usa <strong>Edición → Agregar cues…</strong> (<kbd>Ctrl</kbd> <kbd>I</kbd>): ves los archivos que ya están en la carpeta del show (los que ya usaste dicen «ya está en el show»), marcas los que quieres y tocas <strong>Agregar</strong>. Con <strong>Buscar archivos…</strong> eliges otros del equipo.</li>
+  </ul>
+  <p>Los cues nuevos entran <strong>justo después del cue en espera</strong>, con los números siguientes. Lo que estaba fuera de la carpeta se copia a <code>Medios</code>.</p>
+  <h3>Ordenar y quitar</h3>
+  <ul>
+    <li>Arrastra una fila hacia arriba o abajo: una línea de color muestra dónde cae. También con <kbd>Alt</kbd> + <kbd>↑</kbd> <kbd>↓</kbd>.</li>
+    <li><strong>Edición → Eliminar cue</strong> (<kbd>Supr</kbd>) lo quita de la lista. El archivo sigue en la carpeta. No pregunta nada, porque se puede deshacer.</li>
+    <li>Un cue que está sonando no se puede quitar: páralo antes.</li>
+  </ul>
+  <h3>Deshacer</h3>
+  <p><kbd>Ctrl</kbd> <kbd>Z</kbd> deshace el último cambio del show y <kbd>Ctrl</kbd> <kbd>Y</kbd> lo rehace. Se pueden deshacer los últimos 100 cambios. Si estás escribiendo en un campo, <kbd>Ctrl</kbd> <kbd>Z</kbd> deshace lo que escribiste.</p>
+  <h3>Número, inicio y fin</h3>
+  <ul>
+    <li><strong>Número</strong>: ponle el mismo que en el libreto del regidor (1, 1.5, 2A…). Ej.: agregas un sonido entre el 4 y el 5 y lo llamas 4A.</li>
+    <li><strong>Inicio y fin</strong>: desde qué segundo del archivo empieza y hasta cuál suena (puedes escribir con coma, por ejemplo 12,5). «Hasta» vacío = hasta el final. Si el cue se repite (bucle), repite solo ese tramo. Ej.: la canción entra desde el estribillo (desde 42) y termina antes de la última estrofa.</li>
+  </ul>
 </section>
 
 <section class="card" id="pantalla">
@@ -451,7 +476,10 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <tr><td><kbd>Tab</kbd></td><td>Cambiar entre Edición y Función.</td></tr>
     <tr><td><kbd>Ctrl</kbd> <kbd>S</kbd></td><td>Guardar (también se guarda solo cada 30 segundos y al cerrar).</td></tr>
     <tr><td><kbd>H</kbd></td><td>Modo Ayuda: tocar cualquier parte y ver qué hace.</td></tr>
-    <tr><td><kbd>Ctrl</kbd> <kbd>Z</kbd> / <kbd>Ctrl</kbd> <kbd>Y</kbd></td><td>Deshacer y rehacer (en Edición). <span class="estado pronto">Próximamente</span></td></tr>
+    <tr><td><kbd>Ctrl</kbd> <kbd>Z</kbd> / <kbd>Ctrl</kbd> <kbd>Y</kbd></td><td>Deshacer y rehacer (en Edición).</td></tr>
+    <tr><td><kbd>Ctrl</kbd> <kbd>I</kbd></td><td>Agregar cues (en Edición).</td></tr>
+    <tr><td><kbd>Supr</kbd></td><td>Quitar de la lista el cue en espera (en Edición; se puede deshacer).</td></tr>
+    <tr><td><kbd>Alt</kbd> + <kbd>↑</kbd> <kbd>↓</kbd></td><td>Subir o bajar el cue en espera (en Edición).</td></tr>
   </table></div>
   <p>La lista de teclas también está en <strong>Ayuda → Atajos de teclado</strong>.</p>
   <p class="muted">Si estás escribiendo en un campo de texto, <kbd>Tab</kbd> pasa al campo siguiente en vez de cambiar de modo. Las teclas se podrán cambiar desde el menú Vista.</p>

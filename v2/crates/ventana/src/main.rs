@@ -70,9 +70,11 @@ fn main() -> ExitCode {
         return ExitCode::from(DIRECCION_MALA);
     };
 
-    // Eventos propios: el nuevo título cuando la página lo cambia (nombre del show).
-    let event_loop = EventLoopBuilder::<String>::with_user_event().build();
+    // Eventos propios: el nuevo título cuando la página lo cambia (nombre del
+    // show) y los archivos que se arrastran desde el Explorador (etapa 5A).
+    let event_loop = EventLoopBuilder::<Propio>::with_user_event().build();
     let proxy = event_loop.create_proxy();
+    let proxy_soltar = event_loop.create_proxy();
     let window = match WindowBuilder::new()
         .with_title("Otaconvert")
         .with_window_icon(Icon::from_resource(1, None).ok())
@@ -105,7 +107,19 @@ fn main() -> ExitCode {
         .with_default_context_menus(false)
         .with_document_title_changed_handler(move |t| {
             let t: String = t.chars().filter(|c| !c.is_control()).take(200).collect();
-            let _ = proxy.send_event(t);
+            let _ = proxy.send_event(Propio::Titulo(t));
+        })
+        // Archivos arrastrados desde el Explorador: la página los manda al motor
+        // (que solo acepta audios, vídeos e imágenes de este equipo). `true` =
+        // WebView2 no abre el archivo por su cuenta.
+        .with_drag_drop_handler(move |ev| {
+            let _ = match ev {
+                wry::DragDropEvent::Enter { .. } => proxy_soltar.send_event(Propio::Arrastrando(true)),
+                wry::DragDropEvent::Leave => proxy_soltar.send_event(Propio::Arrastrando(false)),
+                wry::DragDropEvent::Drop { paths, .. } => proxy_soltar.send_event(Propio::Soltar(paths)),
+                _ => Ok(()),
+            };
+            true
         })
         .with_focused(true)
         .build(&window);
@@ -122,21 +136,62 @@ fn main() -> ExitCode {
         let _ = &webview;
         match event {
             Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => *control_flow = ControlFlow::ExitWithCode(0),
-            Event::UserEvent(titulo) if !titulo.is_empty() => window.set_title(&titulo),
+            Event::UserEvent(Propio::Titulo(titulo)) if !titulo.is_empty() => window.set_title(&titulo),
+            Event::UserEvent(Propio::Arrastrando(si)) => {
+                let _ = webview.evaluate_script(&format!("window.otaArrastre && window.otaArrastre({si})"));
+            }
+            Event::UserEvent(Propio::Soltar(rutas)) => {
+                let lista: Vec<String> = rutas.iter().take(1000).map(|r| texto_json(&r.to_string_lossy())).collect();
+                let _ = webview.evaluate_script(&format!("window.otaSoltar && window.otaSoltar([{}])", lista.join(",")));
+            }
             _ => {}
         }
     })
 }
 
+/// Eventos propios del bucle de la ventana.
+#[cfg(windows)]
+enum Propio {
+    Titulo(String),
+    Arrastrando(bool),
+    Soltar(Vec<std::path::PathBuf>),
+}
+
+/// Texto como cadena de JavaScript/JSON, con todo lo especial escapado
+/// (un nombre de archivo nunca puede cortar el código que se ejecuta).
+fn texto_json(s: &str) -> String {
+    let mut o = String::with_capacity(s.len() + 2);
+    o.push('"');
+    for c in s.chars() {
+        match c {
+            '"' => o.push_str("\\\""),
+            '\\' => o.push_str("\\\\"),
+            c if (c as u32) < 0x20 || c == '\u{2028}' || c == '\u{2029}' || c == '<' || c == '>' => {
+                o.push_str(&format!("\\u{:04x}", c as u32));
+            }
+            c => o.push(c),
+        }
+    }
+    o.push('"');
+    o
+}
+
 #[cfg(not(windows))]
 fn main() -> ExitCode {
+    let _ = texto_json("");
     let _ = (origen_valido(""), carpeta_datos());
     ExitCode::from(SIN_WEBVIEW2)
 }
 
 #[cfg(test)]
 mod pruebas {
-    use super::origen_valido;
+    use super::{origen_valido, texto_json};
+
+    #[test]
+    fn un_nombre_de_archivo_no_corta_el_codigo() {
+        assert_eq!(texto_json(r#"C:\Música\a"b.wav"#), r#""C:\\Música\\a\"b.wav""#);
+        assert_eq!(texto_json("x\n</script>\u{2028}"), r#""x\u000a\u003c/script\u003e\u2028""#);
+    }
 
     #[test]
     fn solo_la_direccion_del_motor() {
