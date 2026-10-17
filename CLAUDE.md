@@ -805,3 +805,4 @@ Pedido del usuario: "Sí, sigue con la etapa 5." Repartida en cuatro partes que 
   - Soltar 2 archivos de otra carpeta: se copian a `Medios/` y quedan como cues.
   - En Función todo el menú Edición queda en gris y Supr y Alt+↓ no cambian nada.
 - Límites: el arrastre real desde el Explorador solo se puede probar en la ventana propia, no en el panel del navegador; el cue nuevo lleva el nombre del archivo copiado (p. ej. «Timbre (1)»).
+- **Subido y comprobado:** commit 6281531, run 39048636745 **verde** (compilación, pruebas, ventana y vulnerabilidades). Demo nueva copiada a `CLOUDE - Herramientas Ota\Otaconvert-Demo-0.0.1` (`Otaconvert.exe` SHA-256 `e8e8d7a7…`; `--comprobar`: no falta nada). Solo se reemplazaron los archivos del programa: las carpetas `Show de ejemplo` y `datos` quedaron como el usuario las dejó.
