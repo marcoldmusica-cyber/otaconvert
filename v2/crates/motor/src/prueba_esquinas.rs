@@ -396,3 +396,178 @@ mod pruebas {
         assert!(inversa_para([(0.0, 0.0), (0.5, 0.0), (1.0, 0.0), (0.2, 0.0)]).is_none(), "forma aplastada");
     }
 }
+
+/// Punto de la pantalla (0–1) donde cae el punto (u, v) de la imagen con estas esquinas.
+fn adelante(esq: [[f64; 2]; 4], u: f64, v: f64) -> (f64, f64) {
+    let [[x0, y0], [x1, y1], [x2, y2], [x3, y3]] = esq;
+    let (dx1, dx2, dx3) = (x1 - x2, x3 - x2, x0 - x1 + x2 - x3);
+    let (dy1, dy2, dy3) = (y1 - y2, y3 - y2, y0 - y1 + y2 - y3);
+    let den = dx1 * dy2 - dx2 * dy1;
+    let (g, h) = if den.abs() < 1e-12 { (0.0, 0.0) } else { ((dx3 * dy2 - dx2 * dy3) / den, (dx1 * dy3 - dx3 * dy1) / den) };
+    let (a, b, c) = (x1 - x0 + g * x1, x3 - x0 + h * x3, x0);
+    let (d, e, f) = (y1 - y0 + g * y1, y3 - y0 + h * y3, y0);
+    let z = g * u + h * v + 1.0;
+    ((a * u + b * v + c) / z, (d * u + e * v + f) / z)
+}
+
+/// `--prueba-mapeo [--pantalla N]`: lo mismo que usa el programa, de punta a
+/// punta: el proceso de proyección (con su vigilante) recibe las órdenes de
+/// precargar con encuadre, esquinas y patrón de prueba, y se mira la pantalla.
+pub fn proceso(pantalla: Option<&str>) -> Result<bool, String> {
+    use crate::proyector_cliente::ProyectorProceso;
+    use otaconvert_servidor::{AvisoProyector, OrdenProyector, Proyector};
+    use otaconvert_show::{Encuadre, ModoEncuadre, Superficie};
+
+    let lista = crate::pantallas::listar();
+    let p = match pantalla.and_then(|s| s.parse::<usize>().ok()) {
+        Some(n) => lista.get(n.wrapping_sub(1)).cloned().ok_or("esa pantalla no existe")?,
+        None => lista.iter().find(|p| !p.principal).or(lista.first()).cloned().ok_or("no hay pantallas")?,
+    };
+    let (x, y, w, h) = (p.x, p.y, p.ancho, p.alto);
+    let en = |u: f64, v: f64| (x + (u * w as f64) as i32, y + (v * h as f64) as i32);
+    let col = |u: f64, v: f64| {
+        let (a, b) = en(u, v);
+        pixel(a, b)
+    };
+    println!("Prueba del mapeo con el proceso de proyección en {} ({w} × {h}, pantalla completa).", p.nombre);
+    let dir = std::env::temp_dir().join("otaconvert-prueba-mapeo");
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let blanco = dir.join("blanco.bmp");
+    bmp(&blanco, 1920, 1080, |_, _| (255, 255, 255))?;
+    let mitades = dir.join("mitades-4x3.bmp");
+    bmp(&mitades, 1440, 1080, |px, _| if px < 720 { (208, 72, 72) } else { (72, 104, 208) })?;
+    let (rojo, azul) = ((208, 72, 72), (72, 104, 208));
+
+    let mut pr = ProyectorProceso::abrir(x, y, w, h, false)?;
+    if !pr.esperar_hola(Duration::from_secs(10)) {
+        return Err("la proyección no arrancó".into());
+    }
+    let mut avisos_esquinas = 0;
+    let mut esperar_listo = |pr: &mut ProyectorProceso, id: u64| -> Result<(), String> {
+        let fin = Instant::now() + Duration::from_secs(10);
+        while Instant::now() < fin {
+            for a in pr.recoger() {
+                match a {
+                    AvisoProyector::Listo { id: i, .. } if i == id => return Ok(()),
+                    AvisoProyector::Error { motivo, .. } => return Err(motivo.es),
+                    AvisoProyector::Aviso { .. } => avisos_esquinas += 1,
+                    _ => {}
+                }
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        Err("no estuvo lista a tiempo".into())
+    };
+    let precargar = |id: u64, ruta: &Path, encuadre: Encuadre| OrdenProyector::Precargar {
+        id,
+        ruta: ruta.to_path_buf(),
+        bucle: false,
+        imagen: true,
+        inicio_s: 0.0,
+        fin_s: None,
+        desde_s: None,
+        encuadre,
+    };
+
+    let mut informe = Vec::new();
+    let mut fallos = 0;
+    let mut anotar = |ok: bool, t: String| {
+        informe.push(format!("{}  {t}", if ok { "BIEN    " } else { "PROBLEMA" }));
+        if !ok {
+            fallos += 1;
+        }
+    };
+    let puntos9: Vec<(f64, f64)> = [0.05, 0.5, 0.95].iter().flat_map(|&u| [0.05, 0.5, 0.95].map(move |v| (u, v))).collect();
+
+    // 1. Una imagen blanca, sin deformar.
+    pr.enviar(precargar(1, &blanco, Encuadre::default()));
+    esperar_listo(&mut pr, 1)?;
+    pr.enviar(OrdenProyector::Mostrar { id: 1 });
+    std::thread::sleep(Duration::from_millis(500));
+    let mal = puntos9.iter().filter(|&&(u, v)| !es_claro(col(u, v))).count();
+    anotar(mal == 0, format!("Imagen blanca sin deformar: puntos mal {mal} de 9"));
+
+    // 2. Las 4 esquinas, por la orden que manda la sesión.
+    let forma = [[0.12, 0.08], [0.80, 0.18], [0.92, 0.88], [0.20, 0.95]];
+    let sup = Superficie { esquinas: forma };
+    pr.enviar(OrdenProyector::Esquinas(sup.homografia_inversa().ok_or("forma")?));
+    std::thread::sleep(Duration::from_millis(500));
+    let forma_t = forma.map(|[a, b]| (a, b));
+    let (mut revisados, mut malos) = (0, 0);
+    for i in 0..11 {
+        for j in 0..11 {
+            let (u, v) = (0.03 + 0.094 * i as f64, 0.03 + 0.094 * j as f64);
+            let Some(esperado) = dentro(forma_t, u, v, 0.012) else { continue };
+            revisados += 1;
+            let c = col(u, v);
+            if (esperado && !es_claro(c)) || (!esperado && !es_negro(c)) {
+                malos += 1;
+            }
+        }
+    }
+    anotar(malos == 0, format!("Esquinas por la orden del programa: {revisados} puntos · mal {malos}"));
+
+    // 3. Patrón de prueba: cada esquina de su color, en su lugar deformado.
+    pr.enviar(OrdenProyector::Patron(true));
+    std::thread::sleep(Duration::from_millis(1500));
+    let colores = [((0.04, 0.07), (220, 50, 50)), ((0.96, 0.07), (50, 200, 80)), ((0.96, 0.93), (60, 90, 230)), ((0.04, 0.93), (230, 200, 40))];
+    let mut bien_esquinas = 0;
+    let mut detalle = Vec::new();
+    for ((u, v), c) in colores {
+        let (sx, sy) = adelante(forma, u, v);
+        let visto = col(sx, sy);
+        if parecido(visto, c) {
+            bien_esquinas += 1;
+        }
+        detalle.push(format!("{visto:?}"));
+    }
+    anotar(bien_esquinas == 4, format!("Patrón de prueba: cada esquina de su color en su lugar · {bien_esquinas} de 4 ({})", detalle.join(" ")));
+    pr.enviar(OrdenProyector::Patron(false));
+    std::thread::sleep(Duration::from_millis(500));
+    let (cu, cv) = adelante(forma, 0.5, 0.5);
+    anotar(es_claro(col(cu, cv)), format!("Quitar el patrón: vuelve la imagen · centro {:?}", col(cu, cv)));
+
+    // 4. Encuadre que llega con la precarga (sin deformar).
+    pr.enviar(OrdenProyector::Esquinas(Superficie::default().homografia_inversa().ok_or("identidad")?));
+    let casos: Vec<(&str, Encuadre)> = vec![
+        ("Ajustar (bandas a los lados)", Encuadre::default()),
+        ("Llenar (sin bandas)", Encuadre { modo: ModoEncuadre::Llenar, ..Default::default() }),
+        ("Zoom 50 % (rodeado de negro)", Encuadre { zoom: 0.5, ..Default::default() }),
+        ("Recortar la mitad izquierda (solo azul)", Encuadre { recorte_izquierda: 0.45, ..Default::default() }),
+    ];
+    for (k, (nombre, encuadre)) in casos.iter().enumerate() {
+        let id = 10 + k as u64;
+        pr.enviar(precargar(id, &mitades, *encuadre));
+        esperar_listo(&mut pr, id)?;
+        pr.enviar(OrdenProyector::Mostrar { id });
+        std::thread::sleep(Duration::from_millis(600));
+        let ok = match k {
+            0 => es_negro(col(0.03, 0.5)) && parecido(col(0.3, 0.5), rojo),
+            1 => parecido(col(0.03, 0.5), rojo) && parecido(col(0.97, 0.5), azul),
+            2 => es_negro(col(0.25, 0.5)) && parecido(col(0.45, 0.5), rojo) && parecido(col(0.55, 0.5), azul),
+            _ => parecido(col(0.5, 0.5), azul) && !parecido(col(0.5, 0.5), rojo),
+        };
+        anotar(ok, format!("Encuadre {nombre}: borde {:?} · centro {:?}", col(0.03, 0.5), col(0.5, 0.5)));
+    }
+    // 5. Lo que se carga después no hereda el encuadre del anterior (cada capa se reinicia).
+    pr.enviar(precargar(20, &mitades, Encuadre::default()));
+    esperar_listo(&mut pr, 20)?;
+    pr.enviar(OrdenProyector::Mostrar { id: 20 });
+    std::thread::sleep(Duration::from_millis(600));
+    anotar(
+        es_negro(col(0.03, 0.5)) && parecido(col(0.3, 0.5), rojo) && parecido(col(0.7, 0.5), azul),
+        format!("Un cue normal después de otros con encuadre: sale normal · borde {:?}", col(0.03, 0.5)),
+    );
+    anotar(avisos_esquinas == 0, format!("Avisos de que la tarjeta no pudo con las esquinas: {avisos_esquinas}"));
+    pr.enviar(OrdenProyector::Negro);
+    std::thread::sleep(Duration::from_millis(300));
+    drop(pr);
+
+    println!("— Informe —");
+    for l in &informe {
+        println!("{l}");
+    }
+    println!("{}", if fallos == 0 { "RESULTADO: BIEN" } else { "RESULTADO: HAY PROBLEMAS" });
+    Ok(fallos == 0)
+}

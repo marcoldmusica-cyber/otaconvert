@@ -243,6 +243,9 @@ pub fn ejecutar(pausa: bool) -> Result<bool, String> {
             None => no_medido.push(format!("{titulo} (falta el vídeo de prueba)")),
         }
     }
+    // Mapeo (etapa 4C): que esta tarjeta gráfica pueda con las 4 esquinas, el
+    // patrón de prueba y el encuadre (si no puede, la imagen sale sin deformar).
+    pasos.push(Paso::nuevo("Mapeo: 4 esquinas, patrón de prueba y encuadre", &["--prueba-mapeo"], 120));
     if n_salidas > 0 {
         pasos.push(Paso::nuevo("Vigilante: el motor vuelve tras caídas y cuelgues (6 fallos)", &["--prueba-vigilante", "6"], 120));
     }

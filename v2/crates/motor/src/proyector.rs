@@ -243,8 +243,8 @@ pub fn ejecutar(args: &[String]) -> Result<bool, String> {
         Some(s) => vec![("glsl-shaders", s.as_str())],
         None => Vec::new(),
     };
-    let mut capas: Vec<Capa> = Vec::with_capacity(CAPAS + 1);
-    for i in 0..=CAPAS {
+    let mut capas: Vec<Capa> = Vec::with_capacity(CAPAS);
+    for i in 0..CAPAS {
         let rep = Reproductor::nuevo(lib.clone(), proy.capa(i), &extra)?;
         // Para notar si la tarjeta gráfica apaga el shader.
         let _ = rep.pedir_mensajes("error");
@@ -254,7 +254,10 @@ pub fn ejecutar(args: &[String]) -> Result<bool, String> {
     if shader.is_none() {
         avisar(json!({ "a": "aviso", "codigo": "esquinas" }));
     }
-    let mut patron_cargado = false;
+    // El reproductor del patrón se crea solo cuando se pide (y se suelta al
+    // quitarlo): así no ocupa memoria durante la función.
+    let mut patron_rep: Option<Reproductor> = None;
+    let mut opts_esquinas = String::new();
 
     // Las órdenes llegan por la entrada estándar; si se cierra, el motor ya no está: salir.
     let (tx, rx) = mpsc::channel::<Value>();
@@ -316,23 +319,34 @@ pub fn ejecutar(args: &[String]) -> Result<bool, String> {
                         for c in &capas {
                             let _ = c.rep.propiedad("glsl-shader-opts", &opts);
                         }
+                        if let Some(r) = &patron_rep {
+                            let _ = r.propiedad("glsl-shader-opts", &opts);
+                        }
+                        opts_esquinas = opts;
                     }
                 }
                 "patron" => {
                     let si = o["si"].as_bool().unwrap_or(false);
-                    let c = &capas[CAPAS];
                     match (&patron, si) {
                         (Some(p), true) => {
-                            if !patron_cargado {
-                                let _ = c.rep.propiedad("image-display-duration", "inf");
-                                patron_cargado = c.rep.precargar(p, LIMITE_CARGA).is_ok();
+                            if patron_rep.is_none() {
+                                patron_rep = Reproductor::nuevo(lib.clone(), proy.capa(CAPAS), &extra).ok().and_then(|r| {
+                                    let _ = r.propiedad("image-display-duration", "inf");
+                                    if !opts_esquinas.is_empty() {
+                                        let _ = r.propiedad("glsl-shader-opts", &opts_esquinas);
+                                    }
+                                    r.precargar(p, LIMITE_CARGA).ok().map(|_| r)
+                                });
                             }
-                            if patron_cargado {
-                                let _ = c.rep.propiedad("pause", "no");
+                            if let Some(r) = &patron_rep {
+                                let _ = r.propiedad("pause", "no");
                                 proy.arriba(CAPAS);
                             }
                         }
-                        _ => proy.abajo(CAPAS),
+                        _ => {
+                            proy.abajo(CAPAS);
+                            patron_rep = None;
+                        }
                     }
                 }
                 "quitar" => {
@@ -348,6 +362,10 @@ pub fn ejecutar(args: &[String]) -> Result<bool, String> {
             }
         }
 
+        // El patrón no avisa nada que interese: sus eventos se descartan.
+        if let Some(r) = &patron_rep {
+            r.vaciar_eventos();
+        }
         // 2. Lo que cuenta mpv de cada capa.
         let ahora = Instant::now();
         for c in &mut capas {

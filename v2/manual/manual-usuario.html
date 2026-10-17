@@ -347,7 +347,25 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <li>Si el sonido no se puede leer, el vídeo se ve igual y el programa te avisa.</li>
     <li>El sonido de los vídeos MP4 y MOV (y de los audios M4A) va justo con la imagen: el programa recorta el pequeño silencio de unos 21 ms con el que empiezan esos archivos, igual que los reproductores de vídeo. Por eso un vídeo en bucle tampoco hace clic en cada vuelta.</li>
   </ul>
-  <p><span class="estado pronto">Próximamente</span>: la miniatura del proyector dentro del programa, elegir la pantalla desde los menús y las 4 esquinas. También el <strong>encuadre</strong> de cada vídeo o imagen: ajustarlo a la pantalla con bandas negras, llenarla recortando o estirarlo; acercar (zoom), moverlo y recortarle los bordes.</p>
+  <h3>Encuadre de cada vídeo o imagen <span class="estado ya">Ya funciona</span></h3>
+  <p>En <strong>Edición</strong>, elige el cue y, en el panel de la derecha, busca <strong>Encuadre</strong>:</p>
+  <ul>
+    <li><strong>Cómo entra en la pantalla:</strong> <em>Ajustar</em> (entera, con bandas negras si no tiene la forma de la pantalla), <em>Llenar</em> (tapa toda la pantalla recortando lo que sobra) o <em>Estirar</em> (la llena deformándola).</li>
+    <li><strong>Zoom:</strong> la agranda o la achica (100 % es normal).</li>
+    <li><strong>Mover:</strong> la corre a los lados o arriba y abajo.</li>
+    <li><strong>Recortar bordes:</strong> quita un porcentaje de cada borde (por ejemplo, una marca de agua abajo).</li>
+    <li><strong>Volver al encuadre normal</strong> deja todo como estaba.</li>
+  </ul>
+  <p>Se ve en el proyector con el próximo GO de ese cue. Se guarda en el show.</p>
+  <h3>Las 4 esquinas (mapeo) <span class="estado ya">Ya funciona</span></h3>
+  <p>Si el proyector no está de frente, o la imagen tiene que caer sobre un telón o una figura torcida, en <strong>Edición</strong> abre <strong>Vista → Mapeo del proyector…</strong>:</p>
+  <ol class="pasos">
+    <li><div>Activa <strong>Patrón de prueba en el proyector</strong>: aparece una cuadrícula con cada esquina de un color (roja, verde, azul y amarilla), los mismos que ves en la pantalla del programa.</div></li>
+    <li><div>Arrastra cada esquina hasta que la cuadrícula encaje en la superficie. Para afinar: elige una esquina con las teclas <kbd>1</kbd> a <kbd>4</kbd> y muévela con las flechas (1 píxel; con <kbd>Mayús</kbd>, 10).</div></li>
+    <li><div>Toca <strong>Listo</strong>. El patrón se quita solo: el público nunca lo ve. Lo que queda fuera de la forma sale negro.</div></li>
+  </ol>
+  <p>Vale para todo lo que se proyecta y se guarda en el show. <strong>Volver a la pantalla entera</strong> lo deshace. En Función está bloqueado. Si la tarjeta gráfica de un equipo no puede deformar la imagen, el programa te avisa y la imagen sale igual, sin deformar (nunca en negro). La Prueba de hardware lo comprueba en cada equipo.</p>
+  <p><span class="estado pronto">Próximamente</span>: la miniatura del proyector dentro del programa, elegir la pantalla desde los menús, guardar las esquinas por teatro y superficies curvas.</p>
   <p><span class="estado pronto">Próximamente</span> <strong>Gráficos en vivo</strong>: cues que dibuja el propio programa, sin archivo. <strong>Temporizador</strong> para los intervalos ("Volvemos en 14:59" o "hasta las 21:30"), con varios diseños (grande, anillo que se vacía, barra, reloj digital, sobre una imagen o vídeo de fondo); <strong>reloj</strong>; <strong>carteles de texto</strong> ("Apaguen sus celulares"); <strong>cronómetro</strong>; <strong>patrón de prueba</strong> para enfocar el proyector; <strong>pantalla de un color</strong>; <strong>logo</strong>; y cartel con temporizador juntos.</p>
   <p>Los vídeos y las imágenes salen por el <strong>Proyector</strong>: la pantalla o proyector que conectaste al equipo. En el programa ves una miniatura con lo mismo que está saliendo, para no tener que darte vuelta.</p>
   <ul>
@@ -590,6 +608,8 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <tr><th>Comando</th><th>Qué hace</th></tr>
     <tr><td><code>--version</code></td><td>Versión del motor.</td></tr>
     <tr><td><code>--prueba-hardware [--sin-pausa]</code></td><td>Todas las pruebas en orden (equipo, componentes, sonido por cada salida, pantallas, cambios de vídeo, reproducción 1080p y 4K, vigilante, función simulada) con informe de texto. También con doble clic en <code>Prueba de hardware.exe</code>.</td></tr>
+    <tr><td><code>--prueba-mapeo [--pantalla N]</code></td><td>Las 4 esquinas, el patrón de prueba y el encuadre con el proceso de proyección de verdad, mirando la pantalla (también en la Prueba de hardware).</td></tr>
+    <tr><td><code>--prueba-esquinas [--carpeta &lt;vídeos&gt;]</code></td><td>Experimento de la etapa 4C: shader de 4 esquinas, opciones de encuadre de mpv, un shader roto a propósito y un vídeo real deformado contando cuadros perdidos.</td></tr>
     <tr><td><code>--prueba-funcion [s] --carpeta &lt;vídeos&gt; [--pantalla N|vista] [--salida X]</code></td><td>Función simulada: un show real (carpeta con tildes y espacios, ambiente en bucle a 44,1 kHz, vídeos con sonido, imagen, tonos) con GO, pausa, fundidos y paradas al azar. Mira la proyección (~40 veces por segundo, centro y esquinas), graba lo que sale por la tarjeta (loopback de WASAPI) buscando clics, comprueba pantalla completa, ratón, foco, suspensión, memoria y registro.</td></tr>
     <tr><td><code>--info-equipo</code></td><td>Windows, procesador, memoria, tarjetas gráficas y si está enchufado.</td></tr>
     <tr><td><code>--show-ejemplo &lt;carpeta&gt;</code></td><td>Crea un show de ejemplo (6 cues y una página de botonera) para probar.</td></tr>

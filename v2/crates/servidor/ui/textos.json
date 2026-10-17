@@ -53,6 +53,34 @@
       "sonando": "Sonando",
       "sonando_tag": "sonando",
       "proyector": "Proyector",
+      "encuadre_t": "Encuadre",
+      "encuadre_modo": "Cómo entra en la pantalla",
+      "modo_ajustar": "Ajustar (entera, con bandas negras)",
+      "modo_llenar": "Llenar (recorta lo que sobra)",
+      "modo_estirar": "Estirar (deforma)",
+      "zoom": "Zoom",
+      "mover_h": "Mover a los lados",
+      "mover_v": "Mover arriba y abajo",
+      "recortar": "Recortar bordes (%)",
+      "rec_arriba": "Arriba",
+      "rec_abajo": "Abajo",
+      "rec_izq": "Izquierda",
+      "rec_der": "Derecha",
+      "encuadre_restablecer": "Volver al encuadre normal",
+      "encuadre_nota": "Se ve en el proyector con el próximo GO de este cue.",
+      "mapeo": "Mapeo del proyector…",
+      "mapeo_t": "Las 4 esquinas del proyector",
+      "mapeo_expl": "Arrastra cada esquina hasta que la imagen encaje en el telón, la pared o la figura. Lo que quede fuera de la forma sale negro.",
+      "mapeo_patron": "Patrón de prueba en el proyector",
+      "mapeo_restablecer": "Volver a la pantalla entera",
+      "mapeo_listo": "Listo",
+      "mapeo_funcion": "Las esquinas se cambian en Edición. Pasa a Edición con Tab.",
+      "mapeo_teclas": "Flechas: 1 píxel · Mayús + flechas: 10 píxeles · teclas 1 a 4: elegir esquina",
+      "mapeo_pos": "{esq}: {x} · {y}",
+      "esquina_0": "Arriba a la izquierda",
+      "esquina_1": "Arriba a la derecha",
+      "esquina_2": "Abajo a la derecha",
+      "esquina_3": "Abajo a la izquierda",
       "fin_lista": "Fin de la lista",
       "sin_espera": "No hay ningún cue en espera. Elige uno en la lista.",
       "cue_tipo": "Cue {n} · {tipo}",
@@ -252,6 +280,54 @@
         "ejemplo_activar": "Ej.: el director pide arrancar el vídeo de la tormenta justo desde el primer rayo.",
         "desactivar": "Deja \"desde el principio\" para que salga entero, como se preparó.",
         "ejemplo_desactivar": "Ej.: el vídeo de apertura, que siempre sale completo."
+      },
+      "encuadre": {
+        "titulo": "Cómo entra en la pantalla",
+        "que_hace": "Ajustar la muestra entera con bandas negras; Llenar tapa toda la pantalla recortando; Estirar la llena deformándola.",
+        "activar": "Usa Llenar si las bandas negras molestan y se puede perder un poco de los bordes.",
+        "ejemplo_activar": "Ej.: un vídeo de celular vertical como fondo de un bar: Llenar tapa toda la pared.",
+        "desactivar": "Deja Ajustar si tiene que verse entero, aunque queden bandas.",
+        "ejemplo_desactivar": "Ej.: una foto con texto o un mapa que no puede perder nada."
+      },
+      "zoom": {
+        "titulo": "Acercar o alejar (zoom)",
+        "que_hace": "Agranda o achica la imagen dentro de la pantalla. 100 % es el tamaño normal.",
+        "activar": "Súbelo para acercar un detalle o achícalo para dejar aire alrededor.",
+        "ejemplo_activar": "Ej.: acercar la cara del retrato del abuelo en la escena del recuerdo.",
+        "desactivar": "Déjalo en 100 % si el vídeo ya está preparado al tamaño justo.",
+        "ejemplo_desactivar": "Ej.: el vídeo de apertura hecho a la medida del telón."
+      },
+      "mover": {
+        "titulo": "Mover",
+        "que_hace": "Corre la imagen a los lados o arriba y abajo, sin tocar el archivo.",
+        "activar": "Muévela si lo importante queda tapado por una escenografía o fuera del telón.",
+        "ejemplo_activar": "Ej.: subir la luna para que no la tape la casa de la escena 2.",
+        "desactivar": "Déjalo en el centro si ya cae donde tiene que caer.",
+        "ejemplo_desactivar": "Ej.: un fondo de cielo que llena todo el ciclorama."
+      },
+      "recortar": {
+        "titulo": "Recortar bordes",
+        "que_hace": "Quita un porcentaje de cada borde de la imagen (lo recortado no se ve).",
+        "activar": "Recorta si el archivo trae bordes negros, una marca de agua o algo que no va.",
+        "ejemplo_activar": "Ej.: un vídeo de internet con un logo abajo: recorta el 8 % de abajo.",
+        "desactivar": "Déjalo en 0 si la imagen está limpia.",
+        "ejemplo_desactivar": "Ej.: un vídeo hecho para la obra, sin bordes ni marcas."
+      },
+      "mapeo": {
+        "titulo": "Las 4 esquinas",
+        "que_hace": "Deforma toda la proyección para que encaje en una superficie torcida o vista de costado.",
+        "activar": "Úsalo si el proyector no está de frente o la superficie no es un rectángulo derecho.",
+        "ejemplo_activar": "Ej.: el proyector va de costado en la parrilla y la imagen sale en trapecio sobre el telón.",
+        "desactivar": "Déjalo en la pantalla entera si el proyector está de frente y la imagen ya encaja.",
+        "ejemplo_desactivar": "Ej.: una pantalla de cine colgada justo delante del proyector."
+      },
+      "patron": {
+        "titulo": "Patrón de prueba",
+        "que_hace": "Pone en el proyector una cuadrícula con una esquina de cada color, para ver bien qué estás moviendo.",
+        "activar": "Actívalo mientras encajas las esquinas, con la sala vacía.",
+        "ejemplo_activar": "Ej.: en el montaje, para que la cuadrícula quede derecha sobre el telón.",
+        "desactivar": "Apágalo antes de abrir sala: el público no tiene que verlo.",
+        "ejemplo_desactivar": "Ej.: media hora antes de la función, con la sala abriendo."
       }
     },
     "ayuda": {
@@ -270,7 +346,8 @@
       "aviso": ["Avisos", "Cuando algo no salió como esperabas, el programa te lo cuenta aquí con palabras simples. Lo cierras con la cruz."],
       "buscador": ["Buscar un cue", "Escribe un número o parte del nombre y la lista muestra solo los que coinciden. Con Enter, ese cue queda listo para el próximo GO. Buscar nunca dispara nada."],
       "previa": ["Vista previa", "Te muestra el cue que elegiste, antes de mandarlo al proyector. Puedes darle play aquí para verlo entero, sin sonido y sin que lo vea el público. Recién con GO sale al proyector."],
-      "aire": ["Al aire", "Te muestra lo que está saliendo ahora por el proyector y cuánto le falta. Si dice Negro, el proyector no muestra nada."]
+      "aire": ["Al aire", "Te muestra lo que está saliendo ahora por el proyector y cuánto le falta. Si dice Negro, el proyector no muestra nada."],
+      "mapeo": ["Mapeo del proyector", "Aquí acomodas la imagen sobre el escenario: arrastras las 4 esquinas hasta que encaje en el telón o la figura. Con el patrón de prueba ves la cuadrícula en el proyector. Solo se cambia en Edición."]
     },
     "pasos": [
       ["Bienvenido a Otaconvert", "En cinco pasos te cuento cómo se usa. Puedes volver a verlo cuando quieras en Ayuda → Primeros pasos."],
@@ -335,6 +412,34 @@
       "sonando": "Playing",
       "sonando_tag": "playing",
       "proyector": "Projector",
+      "encuadre_t": "Framing",
+      "encuadre_modo": "How it fits the screen",
+      "modo_ajustar": "Fit (whole, with black bars)",
+      "modo_llenar": "Fill (crops what's left over)",
+      "modo_estirar": "Stretch (distorts)",
+      "zoom": "Zoom",
+      "mover_h": "Move sideways",
+      "mover_v": "Move up and down",
+      "recortar": "Crop edges (%)",
+      "rec_arriba": "Top",
+      "rec_abajo": "Bottom",
+      "rec_izq": "Left",
+      "rec_der": "Right",
+      "encuadre_restablecer": "Back to normal framing",
+      "encuadre_nota": "It shows on the projector with this cue's next GO.",
+      "mapeo": "Projector mapping…",
+      "mapeo_t": "The projector's 4 corners",
+      "mapeo_expl": "Drag each corner until the image fits the curtain, the wall or the shape. Whatever is outside the shape is black.",
+      "mapeo_patron": "Test pattern on the projector",
+      "mapeo_restablecer": "Back to the whole screen",
+      "mapeo_listo": "Done",
+      "mapeo_funcion": "Corners are changed in Edit mode. Switch to Edit with Tab.",
+      "mapeo_teclas": "Arrows: 1 pixel · Shift + arrows: 10 pixels · keys 1 to 4: choose a corner",
+      "mapeo_pos": "{esq}: {x} · {y}",
+      "esquina_0": "Top left",
+      "esquina_1": "Top right",
+      "esquina_2": "Bottom right",
+      "esquina_3": "Bottom left",
       "fin_lista": "End of the list",
       "sin_espera": "No cue is on standby. Pick one in the list.",
       "cue_tipo": "Cue {n} · {tipo}",
@@ -534,6 +639,54 @@
         "ejemplo_activar": "E.g.: the director wants the storm video to start right at the first lightning bolt.",
         "desactivar": "Keep \"from the beginning\" so it plays in full, as prepared.",
         "ejemplo_desactivar": "E.g.: the opening video, which always plays complete."
+      },
+      "encuadre": {
+        "titulo": "How it fits the screen",
+        "que_hace": "Fit shows it whole with black bars; Fill covers the whole screen by cropping; Stretch fills it by distorting.",
+        "activar": "Use Fill if the black bars are a problem and losing a bit of the edges is fine.",
+        "ejemplo_activar": "E.g.: a vertical phone video as a bar background: Fill covers the whole wall.",
+        "desactivar": "Keep Fit if it must be seen whole, even with bars.",
+        "ejemplo_desactivar": "E.g.: a photo with text or a map that can't lose anything."
+      },
+      "zoom": {
+        "titulo": "Zoom",
+        "que_hace": "Makes the image bigger or smaller inside the screen. 100% is the normal size.",
+        "activar": "Raise it to get closer to a detail, or lower it to leave space around.",
+        "ejemplo_activar": "E.g.: zoom into the grandfather's portrait in the memory scene.",
+        "desactivar": "Keep it at 100% if the video is already prepared at the right size.",
+        "ejemplo_desactivar": "E.g.: the opening video made to fit the curtain."
+      },
+      "mover": {
+        "titulo": "Move",
+        "que_hace": "Shifts the image sideways or up and down, without touching the file.",
+        "activar": "Move it if the important part is hidden by the set or falls off the curtain.",
+        "ejemplo_activar": "E.g.: raise the moon so the house in scene 2 doesn't cover it.",
+        "desactivar": "Keep it centered if it already lands where it should.",
+        "ejemplo_desactivar": "E.g.: a sky background that fills the whole cyclorama."
+      },
+      "recortar": {
+        "titulo": "Crop edges",
+        "que_hace": "Removes a percentage of each edge of the image (what is cropped isn't shown).",
+        "activar": "Crop if the file has black borders, a watermark or something that shouldn't show.",
+        "ejemplo_activar": "E.g.: an online video with a logo at the bottom: crop 8% off the bottom.",
+        "desactivar": "Keep it at 0 if the image is clean.",
+        "ejemplo_desactivar": "E.g.: a video made for the play, with no borders or marks."
+      },
+      "mapeo": {
+        "titulo": "The 4 corners",
+        "que_hace": "Warps the whole projection so it fits a tilted surface or one seen from the side.",
+        "activar": "Use it if the projector isn't straight on or the surface isn't a straight rectangle.",
+        "ejemplo_activar": "E.g.: the projector hangs off to the side and the image lands as a trapezoid on the curtain.",
+        "desactivar": "Keep the whole screen if the projector is straight on and the image already fits.",
+        "ejemplo_desactivar": "E.g.: a cinema screen hung right in front of the projector."
+      },
+      "patron": {
+        "titulo": "Test pattern",
+        "que_hace": "Puts a grid with one colored corner each on the projector, so you can see what you're moving.",
+        "activar": "Turn it on while you fit the corners, with the house empty.",
+        "ejemplo_activar": "E.g.: during the get-in, to get the grid straight on the curtain.",
+        "desactivar": "Turn it off before the house opens: the audience shouldn't see it.",
+        "ejemplo_desactivar": "E.g.: half an hour before the show, with the house opening."
       }
     },
     "ayuda": {
@@ -552,7 +705,8 @@
       "aviso": ["Messages", "When something didn't go as expected, the program tells you here in simple words. Close it with the cross."],
       "buscador": ["Find a cue", "Type a number or part of the name and the list shows only what matches. Press Enter and that cue is ready for the next GO. Searching never fires anything."],
       "previa": ["Preview", "It shows the cue you picked, before sending it to the projector. You can play it here to watch it all, muted and without the audience seeing it. Only GO sends it to the projector."],
-      "aire": ["Live", "It shows what's on the projector right now and how long is left. If it says Black, the projector shows nothing."]
+      "aire": ["Live", "It shows what's on the projector right now and how long is left. If it says Black, the projector shows nothing."],
+      "mapeo": ["Projector mapping", "Here you fit the image onto the stage: drag the 4 corners until it matches the curtain or the shape. With the test pattern you see the grid on the projector. It can only be changed in Edit mode."]
     },
     "pasos": [
       ["Welcome to Otaconvert", "In five steps I'll show you how it works. You can see this again anytime in Help → First steps."],

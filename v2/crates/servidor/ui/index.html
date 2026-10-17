@@ -189,6 +189,20 @@ fieldset:disabled{opacity:.45}
 .dlg td{padding:5px 4px;border-bottom:1px solid var(--border)}
 .dlg td:first-child{white-space:nowrap;width:1%}
 .dlg .ok{align-self:flex-end;background:var(--accent);color:var(--on-accent);border:0;border-radius:10px;padding:8px 18px;font-weight:600}
+.dlg.ancho{width:min(780px,100%)}
+.dlg .nav{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.mapa{position:relative;width:100%;aspect-ratio:16/9;background:#05070b;border:1px solid var(--border);border-radius:12px;overflow:hidden;touch-action:none}
+.mapa svg{position:absolute;inset:0;width:100%;height:100%}
+.mapa .marco{fill:none;stroke:var(--dim);stroke-width:1;stroke-dasharray:3 3;vector-effect:non-scaling-stroke}
+.mapa .forma{fill:rgba(111,128,255,.18);stroke:var(--accent);stroke-width:2;vector-effect:non-scaling-stroke}
+.mapa .asa{position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;border:2px solid #fff;padding:0;cursor:grab;box-shadow:0 0 0 3px rgba(0,0,0,.45)}
+.mapa .asa.sel{box-shadow:0 0 0 4px var(--accent);transform:scale(1.15)}
+.mapa .asa.c0{background:#dc3232}.mapa .asa.c1{background:#32c850}.mapa .asa.c2{background:#3c5ae6}.mapa .asa.c3{background:#e6c828}
+.encuadre{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--border);padding-top:10px;margin-top:4px}
+.encuadre .sub{font-weight:600}
+.recortes{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.recortes .mini{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+.recortes input{width:100%;min-width:0}
 .dlg .bars{height:40px;gap:5px}
 .dlg .bars i{width:7px;border-radius:4px}
 
@@ -290,6 +304,8 @@ fieldset:disabled{opacity:.45}
         <button role="menuitemradio" data-estilo="lista" data-consejo="estilo_lista" aria-checked="true"><span data-t="estilo_lista"></span><span class="q" aria-hidden="true">?</span></button>
         <button role="menuitemradio" data-estilo="estudio" data-consejo="estilo_estudio" aria-checked="false"><span data-t="estilo_estudio"></span><span class="q" aria-hidden="true">?</span></button>
         <button role="menuitemcheckbox" data-accion="previa_mov" data-consejo="previa_movimiento" aria-checked="true"><span data-t="previa_movimiento"></span><span class="q" aria-hidden="true">?</span></button>
+        <div class="sep"></div>
+        <button role="menuitem" data-accion="mapeo" data-consejo="mapeo"><span data-t="mapeo"></span><span class="q" aria-hidden="true">?</span></button>
         <div class="sep"></div>
         <div class="lbl" data-t="idioma"></div>
         <button role="menuitemradio" data-idioma="es" aria-checked="true">Español</button>
@@ -453,6 +469,7 @@ fieldset:disabled{opacity:.45}
     $("aviso").hidden = !e.aviso;
     $("aviso-texto").textContent = e.aviso || "";
     $("pausa").setAttribute("aria-pressed", String(!!e.pausado));
+    actualizarMapeo();
     var nx = e.cues[e.en_espera];
     $("goNext").textContent = nx ? nx.numero + " · " + nx.nombre : T("fin_lista");
     if (!e.con_sonido) avisoConexion(T("sin_sonido"), "warn");
@@ -543,7 +560,7 @@ fieldset:disabled{opacity:.45}
     var suena = !!sonandoPorCue()[i];
     var clave = JSON.stringify([i, c, suena, desbloqueado, idioma, consejos]);
     // No se redibuja mientras se escribe en el panel: se perdería lo escrito.
-    if (clave === ladoClave || lado.contains(document.activeElement) && document.activeElement.matches("input[type=text],textarea")) return;
+    if (clave === ladoClave || lado.contains(document.activeElement) && document.activeElement.matches("input[type=text],input[type=number],textarea")) return;
     ladoClave = clave;
     lado.textContent = "";
     var h = el("div", "panel-h");
@@ -616,8 +633,52 @@ fieldset:disabled{opacity:.45}
     } else {
       fs.appendChild(el("p", "note-small", T("proyector")));
     }
+    if (c.tipo !== "audio" && c.encuadre) fs.appendChild(seccionEncuadre(c, editar, campo));
     props.appendChild(fs);
     lado.appendChild(props);
+  }
+  // Encuadre de un vídeo o imagen (etapa 4C): cómo entra, zoom, mover y recortar.
+  function seccionEncuadre(c, editar, campo) {
+    var en = c.encuadre, sec = el("div", "encuadre");
+    sec.appendChild(el("div", "sub", T("encuadre_t")));
+    var modo = el("select");
+    [["ajustar", T("modo_ajustar")], ["llenar", T("modo_llenar")], ["estirar", T("modo_estirar")]].forEach(function (m) { var o = el("option", "", m[1]); o.value = m[0]; o.selected = en.modo === m[0]; modo.appendChild(o); });
+    modo.onchange = function () { editar({ encuadre_modo: modo.value }); };
+    sec.appendChild(campo("encuadre_modo", modo, "fModo", "encuadre"));
+    function deslizador(clave, id, consejo, min, max, paso, valor, aValor, texto) {
+      var r = el("input"); r.type = "range"; r.min = min; r.max = max; r.step = paso; r.value = valor;
+      var v = el("span", "val num", texto(+r.value));
+      r.oninput = function () { v.textContent = texto(+r.value); };
+      r.onchange = function () { var o = {}; o[clave] = aValor(+r.value); editar(o); };
+      var w = el("div", "inline"); w.appendChild(r); w.appendChild(v);
+      var f = campo(id === "fZoom" ? "zoom" : id === "fMx" ? "mover_h" : "mover_v", w, null, consejo);
+      f.querySelector("label").htmlFor = id; r.id = id;
+      return f;
+    }
+    var pct = function (x) { return Math.round(x) + " %"; };
+    sec.appendChild(deslizador("zoom", "fZoom", "zoom", 25, 400, 5, Math.round(en.zoom * 100), function (x) { return x / 100; }, pct));
+    sec.appendChild(deslizador("mover_x", "fMx", "mover", -100, 100, 1, Math.round(en.mover_x * 100), function (x) { return x / 100; }, pct));
+    sec.appendChild(deslizador("mover_y", "fMy", "mover", -100, 100, 1, Math.round(en.mover_y * 100), function (x) { return x / 100; }, pct));
+    var rec = el("div", "recortes");
+    [["recorte_arriba", "rec_arriba"], ["recorte_abajo", "rec_abajo"], ["recorte_izquierda", "rec_izq"], ["recorte_derecha", "rec_der"]].forEach(function (p) {
+      var n = el("input"); n.type = "number"; n.min = 0; n.max = 45; n.step = 1; n.value = Math.round(en[p[0]] * 100);
+      n.setAttribute("aria-label", T("recortar") + " · " + T(p[1]));
+      n.onchange = function () {
+        var x = Math.min(45, Math.max(0, Math.round(+n.value || 0))); n.value = x;
+        var o = {}; o[p[0]] = x / 100; editar(o);
+      };
+      var l = el("label", "mini"); l.appendChild(el("span", "", T(p[1]))); l.appendChild(n); rec.appendChild(l);
+    });
+    sec.appendChild(campo("recortar", rec, null, "recortar"));
+    var normal = en.modo === "ajustar" && en.zoom === 1 && en.mover_x === 0 && en.mover_y === 0 &&
+      !en.recorte_arriba && !en.recorte_abajo && !en.recorte_izquierda && !en.recorte_derecha;
+    var rest = el("button", "btn", T("encuadre_restablecer")); rest.type = "button"; rest.disabled = normal;
+    rest.onclick = function () {
+      editar({ encuadre_modo: "ajustar", zoom: 1, mover_x: 0, mover_y: 0, recorte_arriba: 0, recorte_abajo: 0, recorte_izquierda: 0, recorte_derecha: 0 });
+    };
+    sec.appendChild(rest);
+    sec.appendChild(el("p", "note-small", T("encuadre_nota")));
+    return sec;
   }
   function fmtDb(x) {
     var s = (x > 0 ? "+" : "") + (+x).toFixed(1);
@@ -893,6 +954,7 @@ fieldset:disabled{opacity:.45}
       else if (it.dataset.accion === "consejos") ponerConsejos(!consejos);
       else if (it.dataset.accion === "atajos") dialogoAtajos();
       else if (it.dataset.accion === "acerca") dialogoAcerca();
+      else if (it.dataset.accion === "mapeo") dialogoMapeo();
     });
   });
 
@@ -1019,8 +1081,11 @@ fieldset:disabled{opacity:.45}
   $("salirAyuda").onclick = function () { ponerAyuda(false); };
 
   // ---- Ventanitas ----
-  var velo = null;
-  function cerrarDialogo() { if (velo) { velo.remove(); velo = null; } }
+  var velo = null, alCerrarDialogo = null;
+  function cerrarDialogo() {
+    if (velo) { velo.remove(); velo = null; }
+    if (alCerrarDialogo) { var f = alCerrarDialogo; alCerrarDialogo = null; f(); }
+  }
   function dialogo(titulo, cuerpo, sinOk) {
     cerrarDialogo();
     velo = el("div", "velo");
@@ -1052,6 +1117,108 @@ fieldset:disabled{opacity:.45}
       d.appendChild(c);
       d.appendChild(el("p", "accent", T("nadie")));
     });
+  }
+  // ---- Mapeo del proyector (etapa 4C): las 4 esquinas ----
+  // El recuadro representa la pantalla del proyector, con un margen alrededor
+  // para poder sacar una esquina un poco afuera. Cada esquina tiene el color
+  // que muestra el patrón de prueba en el proyector.
+  var mapeo = null; // { esquinas, sel, arrastrando, ultimoEnvio, pendiente }
+  var MARGEN = 0.12;
+  function nombreEsquina(k) { return [T("esquina_0"), T("esquina_1"), T("esquina_2"), T("esquina_3")][k]; }
+  function aPantalla(f) { return MARGEN + f * (1 - 2 * MARGEN); }
+  function dePantalla(p) { return (p - MARGEN) / (1 - 2 * MARGEN); }
+  function fmtPct(f) { var s = (f * 100).toFixed(1); return (idioma === "es" ? s.replace(".", ",") : s) + " %"; }
+  function enviarEsquinas(ya) {
+    if (!mapeo) return;
+    var ahora = Date.now();
+    clearTimeout(mapeo.pendiente);
+    if (ya || ahora - mapeo.ultimoEnvio > 40) { mapeo.ultimoEnvio = ahora; mandar("esquinas", { esquinas: mapeo.esquinas }); }
+    else mapeo.pendiente = setTimeout(function () { enviarEsquinas(true); }, 45);
+  }
+  function dibujarMapeo() {
+    if (!mapeo || !mapeo.caja) return;
+    var pts = mapeo.esquinas.map(function (p) { return (aPantalla(p[0]) * 100) + "," + (aPantalla(p[1]) * 100); }).join(" ");
+    mapeo.poligono.setAttribute("points", pts);
+    mapeo.asas.forEach(function (a, k) {
+      a.style.left = (aPantalla(mapeo.esquinas[k][0]) * 100) + "%";
+      a.style.top = (aPantalla(mapeo.esquinas[k][1]) * 100) + "%";
+      a.classList.toggle("sel", k === mapeo.sel);
+    });
+    var p = mapeo.esquinas[mapeo.sel];
+    mapeo.pos.textContent = T("mapeo_pos", { esq: nombreEsquina(mapeo.sel), x: fmtPct(p[0]), y: fmtPct(p[1]) });
+  }
+  function dialogoMapeo() {
+    if (!e) return;
+    if (e.modo === "funcion") { dialogo(T("mapeo_t"), function (d) { d.appendChild(el("p", "", T("mapeo_funcion"))); }); return; }
+    cerrarDialogo();
+    mapeo = { esquinas: e.esquinas.map(function (p) { return [p[0], p[1]]; }), sel: 0, arrastrando: false, ultimoEnvio: 0, pendiente: 0 };
+    dialogo(T("mapeo_t"), function (d) {
+      d.classList.add("ancho");
+      d.appendChild(el("p", "", T("mapeo_expl")));
+      var caja = el("div", "mapa"); caja.dataset.help = "mapeo";
+      var ns = "http://www.w3.org/2000/svg";
+      var svg = document.createElementNS(ns, "svg"); svg.setAttribute("viewBox", "0 0 100 100"); svg.setAttribute("preserveAspectRatio", "none");
+      var marco = document.createElementNS(ns, "rect");
+      marco.setAttribute("x", MARGEN * 100); marco.setAttribute("y", MARGEN * 100);
+      marco.setAttribute("width", (1 - 2 * MARGEN) * 100); marco.setAttribute("height", (1 - 2 * MARGEN) * 100); marco.setAttribute("class", "marco");
+      var pol = document.createElementNS(ns, "polygon"); pol.setAttribute("class", "forma");
+      svg.appendChild(marco); svg.appendChild(pol); caja.appendChild(svg);
+      mapeo.caja = caja; mapeo.poligono = pol; mapeo.asas = [];
+      ["c0", "c1", "c2", "c3"].forEach(function (cls, k) {
+        var a = el("button", "asa " + cls); a.type = "button"; a.setAttribute("aria-label", nombreEsquina(k));
+        a.addEventListener("pointerdown", function (ev) {
+          ev.preventDefault(); mapeo.sel = k; mapeo.arrastrando = true; a.setPointerCapture(ev.pointerId); dibujarMapeo();
+        });
+        a.addEventListener("pointermove", function (ev) {
+          if (!mapeo || !mapeo.arrastrando || mapeo.sel !== k) return;
+          var r = caja.getBoundingClientRect();
+          var lim = function (v) { return Math.min(Math.max(v, dePantalla(0)), dePantalla(1)); };
+          mapeo.esquinas[k] = [lim(dePantalla((ev.clientX - r.left) / r.width)), lim(dePantalla((ev.clientY - r.top) / r.height))];
+          dibujarMapeo(); enviarEsquinas(false);
+        });
+        a.addEventListener("pointerup", function () { if (mapeo) { mapeo.arrastrando = false; enviarEsquinas(true); } });
+        caja.appendChild(a); mapeo.asas.push(a);
+      });
+      d.appendChild(caja);
+      mapeo.pos = el("p", "num"); d.appendChild(mapeo.pos);
+      d.appendChild(el("p", "note-small", T("mapeo_teclas")));
+      var tg = el("label", "toggle"), cb = el("input"); cb.type = "checkbox"; cb.checked = !!e.patron;
+      cb.onchange = function () { mandar("patron", { si: cb.checked }); };
+      tg.appendChild(cb); tg.appendChild(document.createTextNode(T("mapeo_patron"))); tg.appendChild(botonConsejo("patron"));
+      d.appendChild(tg);
+      var botones = el("div", "nav");
+      var rest = el("button", "atras", T("mapeo_restablecer"));
+      rest.onclick = function () { mapeo.esquinas = [[0, 0], [1, 0], [1, 1], [0, 1]]; dibujarMapeo(); enviarEsquinas(true); };
+      var listo = el("button", "ok", T("mapeo_listo")); listo.onclick = cerrarDialogo;
+      botones.appendChild(rest); botones.appendChild(listo); d.appendChild(botones);
+    }, true);
+    // Al cerrar (Listo, Esc o clic afuera) se quita el patrón: el público nunca lo ve.
+    alCerrarDialogo = function () { if (mapeo) { enviarEsquinas(true); mapeo = null; } mandar("patron", { si: false }); };
+    dibujarMapeo();
+  }
+  // Si el motor cambió las esquinas (otra ventana, o se rechazaron), se muestran.
+  function actualizarMapeo() {
+    if (!mapeo || !e) return;
+    // En Función las esquinas están bloqueadas: se cierra el mapeo.
+    if (e.modo === "funcion") { cerrarDialogo(); return; }
+    if (mapeo.arrastrando || !e.esquinas) return;
+    if (Date.now() - mapeo.ultimoEnvio < 400) return;
+    mapeo.esquinas = e.esquinas.map(function (p) { return [p[0], p[1]]; });
+    dibujarMapeo();
+  }
+  // Flechas: mueven la esquina elegida 1 píxel (10 con Mayús) de un proyector de 1920 × 1080.
+  function teclaMapeo(ev) {
+    if (!mapeo) return false;
+    if (ev.key >= "1" && ev.key <= "4") { mapeo.sel = +ev.key - 1; dibujarMapeo(); return true; }
+    var paso = ev.shiftKey ? 10 : 1, dx = 0, dy = 0;
+    if (ev.key === "ArrowLeft") dx = -paso / 1920; else if (ev.key === "ArrowRight") dx = paso / 1920;
+    else if (ev.key === "ArrowUp") dy = -paso / 1080; else if (ev.key === "ArrowDown") dy = paso / 1080;
+    else return false;
+    var p = mapeo.esquinas[mapeo.sel];
+    var lim = function (v) { return Math.min(Math.max(v, dePantalla(0)), dePantalla(1)); };
+    mapeo.esquinas[mapeo.sel] = [lim(p[0] + dx), lim(p[1] + dy)];
+    dibujarMapeo(); enviarEsquinas(false);
+    return true;
   }
   function primerosPasos(n) {
     var pasos = TEXTOS[idioma].pasos;
@@ -1102,13 +1269,14 @@ fieldset:disabled{opacity:.45}
   document.addEventListener("keydown", function (ev) {
     // Esc para todo SIEMPRE (pánico): nunca se retrasa por un menú, una ventanita o la ayuda.
     if (ev.key === "Escape") { ev.preventDefault(); mandar("parar_todo"); cerrarMenus(); cerrarDialogo(); cerrarBurbuja(); ponerAyuda(false); return; }
-    var escribiendo = ev.target.matches && ev.target.matches("input[type=text],textarea,select");
+    var escribiendo = ev.target.matches && ev.target.matches("input[type=text],input[type=number],textarea,select");
     if ((ev.ctrlKey || ev.metaKey) && (ev.key === "s" || ev.key === "S")) { ev.preventDefault(); mandar("guardar"); return; }
     // Buscar un cue: Ctrl+F, o la tecla / (si no se está escribiendo).
     if ((ev.ctrlKey || ev.metaKey) && (ev.key === "f" || ev.key === "F")) { ev.preventDefault(); $("buscar").focus(); $("buscar").select(); return; }
     if (ev.key === "/" && !escribiendo) { ev.preventDefault(); $("buscar").focus(); $("buscar").select(); return; }
     if (escribiendo || ev.ctrlKey || ev.metaKey || ev.altKey) return;   // con foco en un campo, Tab pasa de campo
     if (ev.key === " ") { ev.preventDefault(); cerrarDialogo(); cerrarMenus(); cerrarBurbuja(); mandar("go"); return; }
+    if (mapeo && teclaMapeo(ev)) { ev.preventDefault(); return; }
     if (velo) return;
     if (ev.key === "Tab") { ev.preventDefault(); if (e) mandar(e.modo === "funcion" ? "modo_edicion" : "modo_funcion"); }
     else if (ev.key === "h" || ev.key === "H") ponerAyuda(!ayudando);

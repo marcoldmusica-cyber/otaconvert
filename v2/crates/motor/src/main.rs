@@ -167,6 +167,8 @@ fn main() -> ExitCode {
         #[cfg(windows)]
         Some("--prueba-esquinas") => prueba_esquinas::ejecutar(carpeta.as_deref().map(std::path::Path::new), pantalla),
         #[cfg(windows)]
+        Some("--prueba-mapeo") => prueba_esquinas::proceso(pantalla),
+        #[cfg(windows)]
         Some("--prueba-funcion") => prueba_funcion::ejecutar(num(1, 300), carpeta.as_deref().map(std::path::Path::new), pantalla, salida),
         #[cfg(windows)]
         Some("--prueba-movimiento") => match archivo.as_deref() {
