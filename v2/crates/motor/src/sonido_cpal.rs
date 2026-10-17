@@ -15,6 +15,11 @@ pub struct SalidaAbierta {
     pub frecuencia: u32,
     pub nombre: String,
     pub errores: Arc<AtomicU64>,
+    /// Veces que la tarjeta pidió sonido más tarde que el margen: el búfer
+    /// pudo vaciarse y oírse un corte (lo vigila el programa y lo anota).
+    pub tardias: Arc<AtomicU64>,
+    /// Mayor tiempo entre dos pedidos de la tarjeta, en microsegundos.
+    pub intervalo_max_us: Arc<AtomicU64>,
 }
 
 /// Abre una salida (número, nombre o id; sin pedir nada, la predeterminada).
@@ -36,10 +41,27 @@ pub fn abrir_salida(pedida: Option<&str>, margen_ms: u64) -> Result<SalidaAbiert
     let (mut mezclador, control) = crear(frecuencia, canales, Ajustes::para(frecuencia));
     let errores = Arc::new(AtomicU64::new(0));
     let e2 = errores.clone();
+    let tardias = Arc::new(AtomicU64::new(0));
+    let intervalo_max_us = Arc::new(AtomicU64::new(0));
+    let (t2, i2) = (tardias.clone(), intervalo_max_us.clone());
+    let margen = std::time::Duration::from_millis(margen_ms);
+    let mut anterior: Option<std::time::Instant> = None;
     let stream = device
         .build_output_stream(
             config,
-            move |data: &mut [f32], _: &cpal::OutputCallbackInfo| mezclador.procesar(data),
+            move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+                // Solo mide el tiempo (sin pedir memoria): seguro en el hilo de audio.
+                let ahora = std::time::Instant::now();
+                if let Some(a) = anterior {
+                    let d = ahora.duration_since(a);
+                    i2.fetch_max(d.as_micros() as u64, Relaxed);
+                    if d > margen {
+                        t2.fetch_add(1, Relaxed);
+                    }
+                }
+                anterior = Some(ahora);
+                mezclador.procesar(data)
+            },
             move |_e| {
                 e2.fetch_add(1, Relaxed);
             },
@@ -47,7 +69,7 @@ pub fn abrir_salida(pedida: Option<&str>, margen_ms: u64) -> Result<SalidaAbiert
         )
         .map_err(|e| format!("{nombre}: {e}"))?;
     stream.play().map_err(|e| format!("{nombre}: {e}"))?;
-    Ok(SalidaAbierta { stream, control, frecuencia, nombre, errores })
+    Ok(SalidaAbierta { stream, control, frecuencia, nombre, errores, tardias, intervalo_max_us })
 }
 
 pub struct SonidoCpal {

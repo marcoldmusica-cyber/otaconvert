@@ -207,7 +207,7 @@ pub enum Interfaz {
 /// pantalla, o con `--pantalla vista`, una ventana chica de vista previa
 /// arriba a la derecha que no tapa los botones del programa.
 #[cfg(windows)]
-fn abrir_proyeccion(pantalla: Option<&str>) -> Result<crate::proyector_cliente::ProyectorProceso, String> {
+pub(crate) fn abrir_proyeccion(pantalla: Option<&str>) -> Result<crate::proyector_cliente::ProyectorProceso, String> {
     use crate::proyector_cliente::ProyectorProceso;
     let lista = crate::pantallas::listar();
     let elegida = match pantalla {
@@ -235,7 +235,7 @@ fn abrir_proyeccion(pantalla: Option<&str>) -> Result<crate::proyector_cliente::
 }
 
 #[cfg(not(windows))]
-fn abrir_proyeccion(_pantalla: Option<&str>) -> Result<crate::proyector_cliente::ProyectorProceso, String> {
+pub(crate) fn abrir_proyeccion(_pantalla: Option<&str>) -> Result<crate::proyector_cliente::ProyectorProceso, String> {
     Err("la proyección solo funciona en Windows".into())
 }
 
@@ -259,11 +259,33 @@ pub fn abrir(
     };
     let mut sesion = Sesion::abrir(ruta).map_err(|e| e.to_string())?;
     println!("Show: {} ({} cues) · {}", sesion.show.nombre, sesion.show.cues.len(), sesion.ruta.display());
+    // Con el show abierto, Windows no suspende el equipo ni apaga la pantalla
+    // (este hilo vive hasta que se cierra el programa).
+    if crate::despierto::mantener() {
+        sesion.anotar("ENERGIA", "El equipo no se suspenderá ni apagará la pantalla mientras el show esté abierto");
+    } else {
+        println!("Aviso: no se pudo pedir a Windows que no suspenda el equipo.");
+        sesion.anotar("AVISO", "No se pudo pedir a Windows que no suspenda el equipo");
+    }
+    // El protector de pantalla no se puede frenar así (lo dice Microsoft): se avisa.
+    if let Some((nombre, minutos)) = crate::despierto::protector_de_pantalla() {
+        let es = format!(
+            "Este equipo tiene el protector de pantalla «{nombre}» a los {minutos} min sin tocar nada: puede tapar el proyector en plena función. Desactívalo en Configuración → Personalización → Pantalla de bloqueo → Protector de pantalla."
+        );
+        let en = format!(
+            "This computer has the \"{nombre}\" screen saver after {minutes} min idle: it can cover the projector mid-show. Turn it off in Settings → Personalization → Lock screen → Screen saver.",
+            minutes = minutos
+        );
+        println!("Aviso: {es}");
+        sesion.anotar("AVISO", &es);
+        sesion.aviso = Some(otaconvert_servidor::Texto::nuevo(es, en));
+    }
     // Las salidas viven aquí, en el hilo principal, mientras dure el programa.
     let principal = crate::sonido_cpal::abrir_salida(salida, margen_ms)?;
     println!("Principal: {} · {} Hz · margen {margen_ms} ms", principal.nombre, principal.frecuencia);
     let mut salidas = Vec::new();
     let mut vigilar_errores = vec![("Principal", principal.errores.clone())];
+    let mut vigilar_tardias = vec![("Principal", principal.tardias.clone(), principal.intervalo_max_us.clone())];
     let mut control_auriculares = None;
     if let Some(a) = auriculares {
         let s = crate::sonido_cpal::abrir_salida(Some(a), margen_ms)?;
@@ -271,6 +293,7 @@ pub fn abrir(
             println!("Auriculares: {} · {} Hz", s.nombre, s.frecuencia);
             control_auriculares = Some(s.control);
             vigilar_errores.push(("Auriculares", s.errores.clone()));
+            vigilar_tardias.push(("Auriculares", s.tardias.clone(), s.intervalo_max_us.clone()));
             salidas.push(s.stream);
         } else {
             println!(
@@ -326,8 +349,25 @@ pub fn abrir(
     // Si una tarjeta da errores (por ejemplo, se desconectó), avisar fuerte:
     // nunca se cambia en silencio a otra salida.
     let mut vistos = vec![0u64; vigilar_errores.len()];
+    let mut tardias_vistas = vec![0u64; vigilar_tardias.len()];
     loop {
         std::thread::sleep(std::time::Duration::from_millis(500));
+        // La tarjeta pidió sonido más tarde que el margen: pudo oírse un corte.
+        // Se anota en el registro (para revisar después de la función) sin molestar.
+        for (k, (nombre, tardias, maximo)) in vigilar_tardias.iter().enumerate() {
+            let n = tardias.load(std::sync::atomic::Ordering::Relaxed);
+            if n > tardias_vistas[k] {
+                tardias_vistas[k] = n;
+                let ms = maximo.load(std::sync::atomic::Ordering::Relaxed) as f64 / 1000.0;
+                let texto = format!(
+                    "Posible corte de sonido en {nombre}: la tarjeta tardó más que el margen de {margen_ms} ms (mayor espera {ms:.0} ms; van {n}). Si se repite, sube el margen o revisa el equipo con la Prueba de hardware."
+                );
+                println!("{texto}");
+                if let Ok(mut s) = sesion.lock() {
+                    s.anotar("AVISO", &texto);
+                }
+            }
+        }
         for (k, (nombre, contador)) in vigilar_errores.iter().enumerate() {
             let n = contador.load(std::sync::atomic::Ordering::Relaxed);
             if n > vistos[k] {

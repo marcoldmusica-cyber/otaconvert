@@ -107,6 +107,11 @@ impl ProyectorProceso {
         false
     }
 
+    /// Número de proceso de la proyección (para medir su memoria en las pruebas).
+    pub fn pid(&self) -> Option<u32> {
+        self.proceso.as_ref().map(|p| p.hijo.id())
+    }
+
     /// Solo para pruebas: cierra el proceso a la fuerza (como si se cayera).
     pub fn matar_para_probar(&mut self) {
         if let Some(p) = self.proceso.as_mut() {

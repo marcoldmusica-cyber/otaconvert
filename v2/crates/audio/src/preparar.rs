@@ -100,6 +100,8 @@ pub struct Preparado {
     pub canales_originales: usize,
     /// Paquetes dañados que se saltaron (0 = archivo sano).
     pub paquetes_danados: usize,
+    /// Se preparó para repetirse de punta a punta (ver `preparar_con`).
+    pub bucle: bool,
 }
 
 impl Preparado {
@@ -172,6 +174,13 @@ fn decodificar(ruta: &Path) -> Result<(Vec<f32>, usize, u32, usize), ErrorPrepar
             Err(e) => return Err(ErrorPreparar::Danado(e.to_string())),
         }
     }
+    // MP4 / M4A / MOV: saltar el arranque del codificador y cortar el relleno,
+    // como FFmpeg y mpv (ver mp4.rs). Así el sonido de un vídeo va justo con la imagen.
+    if canales > 0 && frecuencia > 0 {
+        if let Some(r) = crate::mp4::recorte(ruta) {
+            muestras = crate::mp4::aplicar(r, muestras, canales, frecuencia);
+        }
+    }
     if canales == 0 || frecuencia == 0 || muestras.is_empty() {
         return Err(ErrorPreparar::SinAudio);
     }
@@ -190,8 +199,22 @@ fn a_estereo(m: &[f32], canales: usize) -> Vec<f32> {
     out
 }
 
-/// Prepara `ruta` para sonar a `frecuencia_salida` (la de la tarjeta).
+/// Prepara `ruta` para sonar a `frecuencia_salida` (la de la tarjeta), como un
+/// sonido suelto (empieza y termina en silencio).
 pub fn preparar(ruta: &Path, frecuencia_salida: u32) -> Result<Preparado, ErrorPreparar> {
+    preparar_con(ruta, frecuencia_salida, false)
+}
+
+fn mcd(a: u32, b: u32) -> u32 {
+    if b == 0 { a } else { mcd(b, a % b) }
+}
+
+/// Como [`preparar`]; con `bucle`, el audio se va a repetir de punta a punta.
+/// Al adaptar la frecuencia, el filtro mira unos milisegundos antes y después
+/// de cada punto: en un sonido suelto, antes del principio y después del final
+/// hay silencio; en un bucle, lo que hay es el otro extremo del archivo. Si no
+/// se tiene en cuenta, un bucle que empalmaba perfecto hace clic en cada vuelta.
+pub fn preparar_con(ruta: &Path, frecuencia_salida: u32, bucle: bool) -> Result<Preparado, ErrorPreparar> {
     let (mut muestras, canales_originales, frecuencia_original, paquetes_danados) = decodificar(ruta)?;
     let mut canales = canales_originales;
     if canales > 2 {
@@ -200,14 +223,40 @@ pub fn preparar(ruta: &Path, frecuencia_salida: u32) -> Result<Preparado, ErrorP
     }
     if frecuencia_original != frecuencia_salida {
         let cuadros = muestras.len() / canales;
-        let entrada = InterleavedOwned::new_from(muestras, canales, cuadros)
+        // En bucle: el final del archivo antes del principio y el principio
+        // después del final. El relleno es un múltiplo exacto del paso de la
+        // conversión, así se recorta justo la vuelta original.
+        let g = mcd(frecuencia_original, frecuencia_salida);
+        let (paso_entrada, paso_salida) = ((frecuencia_original / g) as usize, (frecuencia_salida / g) as usize);
+        let relleno = if bucle && cuadros > 0 { paso_entrada * 2048usize.div_ceil(paso_entrada) } else { 0 };
+        if relleno > 0 {
+            let mut m = Vec::with_capacity((cuadros + 2 * relleno) * canales);
+            let cuadro = |f: usize| &muestras[f * canales..(f + 1) * canales];
+            for k in 0..relleno {
+                m.extend_from_slice(cuadro((k + cuadros - relleno % cuadros) % cuadros));
+            }
+            m.extend_from_slice(&muestras);
+            for k in 0..relleno {
+                m.extend_from_slice(cuadro(k % cuadros));
+            }
+            muestras = m;
+        }
+        let total = muestras.len() / canales;
+        let entrada = InterleavedOwned::new_from(muestras, canales, total)
             .map_err(|e| ErrorPreparar::Danado(e.to_string()))?;
         let mut r = Fft::<f32>::new(frecuencia_original as usize, frecuencia_salida as usize, 1024, canales, FixedSync::Both)
             .map_err(|e| ErrorPreparar::NoSePuedeAdaptar(frecuencia_original, e.to_string()))?;
-        let salida = r.process_all(&entrada, cuadros, None).map_err(|e| ErrorPreparar::Danado(e.to_string()))?;
+        let salida = r.process_all(&entrada, total, None).map_err(|e| ErrorPreparar::Danado(e.to_string()))?;
         let n = salida.frames();
         muestras = salida.take_data();
         muestras.truncate(n * canales);
+        if relleno > 0 {
+            let desde = relleno / paso_entrada * paso_salida;
+            let largo = ((cuadros as u64 * frecuencia_salida as u64 + frecuencia_original as u64 / 2) / frecuencia_original as u64) as usize;
+            let hasta = (desde + largo).min(n);
+            muestras.truncate(hasta * canales);
+            muestras.drain(..desde.min(hasta) * canales);
+        }
     }
     let pico = muestras.iter().fold(0.0f32, |p, s| p.max(s.abs()));
     Ok(Preparado {
@@ -216,5 +265,6 @@ pub fn preparar(ruta: &Path, frecuencia_salida: u32) -> Result<Preparado, ErrorP
         frecuencia_original,
         canales_originales,
         paquetes_danados,
+        bucle,
     })
 }

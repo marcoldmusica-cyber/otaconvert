@@ -169,6 +169,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit 1 }
           & $ff -hide_banner -loglevel error -y @src4k -c:v libx265 -preset ultrafast -pix_fmt yuv420p -tag:v hvc1 -g 60 -b:v 30M -x265-params log-level=error "$p\pruebas\4k-hevc.mp4"
           if ($LASTEXITCODE -ne 0) { exit 1 }
+          # Función simulada (--prueba-funcion): color liso de punta a punta (se miran
+          # también las esquinas) y un tono suave de 440 Hz en AAC, como el sonido de un vídeo.
+          New-Item -ItemType Directory -Force "$p\pruebas\funcion" | Out-Null
+          foreach ($c in 'D04848','48B060','4868D0','D0B848') {
+            & $ff -hide_banner -loglevel error -y -f lavfi -i "color=c=0x$($c):s=1920x1080:r=60:d=6" -f lavfi -i "aevalsrc=0.12*sin(2*PI*440*t)|0.12*sin(2*PI*440*t):s=48000:d=6" -c:v libx264 -preset veryfast -pix_fmt yuv420p -b:v 4M -c:a aac -b:a 256k -shortest -movflags +faststart "$p\pruebas\funcion\$c.mp4"
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+          }
 
       - name: Armar el paquete de la Prueba de hardware
         shell: pwsh

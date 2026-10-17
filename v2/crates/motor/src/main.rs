@@ -10,6 +10,7 @@ use otaconvert_audio::prueba::Escenario;
 use otaconvert_audio::{crear, Ajustes, Comando, Control, Detector, Mezclador, Pista};
 
 mod componentes;
+mod despierto;
 mod equipo;
 mod pantallas;
 mod show_cmd;
@@ -18,6 +19,8 @@ mod proyector;
 mod proyector_cliente;
 #[cfg(windows)]
 mod prueba_proyector;
+#[cfg(windows)]
+mod prueba_funcion;
 mod ventana_ui;
 #[cfg(windows)]
 mod miniatura;
@@ -159,6 +162,8 @@ fn main() -> ExitCode {
         }
         #[cfg(windows)]
         Some("--prueba-proyector") => prueba_proyector::ejecutar(num(1, 30), pantalla),
+        #[cfg(windows)]
+        Some("--prueba-funcion") => prueba_funcion::ejecutar(num(1, 300), carpeta.as_deref().map(std::path::Path::new), pantalla, salida),
         #[cfg(windows)]
         Some("--prueba-movimiento") => match archivo.as_deref() {
             Some(a) => prueba_proyector::movimiento(std::path::Path::new(a)),

@@ -58,9 +58,9 @@ fn abrir(d: &Path, cues: Vec<Cue>, auriculares: bool) -> (Sesion, Falso) {
 
 /// Prepara todo lo que pida la sesión (lo que hace el hilo preparador).
 fn preparar_todo(s: &mut Sesion) {
-    while let Some((i, ruta, fs)) = s.siguiente_a_preparar() {
-        let r = otaconvert_audio::preparar::preparar(&ruta, fs).map_err(|e| e.to_string());
-        s.preparado(i, r);
+    while let Some(t) = s.siguiente_a_preparar() {
+        let r = t.hacer().map_err(|e| e.to_string());
+        s.preparado(t.cue, r);
     }
 }
 
@@ -323,4 +323,28 @@ fn los_avisos_salen_en_el_idioma_elegido() {
     s.cambiar_modo(otaconvert_servidor::sesion::Modo::Funcion);
     let err = s.editar_cue(0, &serde_json::json!({ "nombre": "x" }), false).unwrap_err();
     assert!(err.en.contains("Live mode") && err.es.contains("Función"));
+}
+
+#[test]
+fn un_bucle_de_punta_a_punta_se_prepara_como_bucle_y_cambiarlo_lo_vuelve_a_preparar() {
+    // Hallado en la función simulada: un ambiente en bucle a 44,1 kHz hacía
+    // clic en cada vuelta con la tarjeta a 48 kHz (ver preparar_con).
+    let d = carpeta_con_audios();
+    let ambiente = Cue { bucle: true, ..cue("1", "audio/tono.wav") };
+    let recortado = Cue { bucle: true, fin_ms: Some(500), ..cue("2", "audio/tono.flac") };
+    let (mut s, _f) = abrir(&d, vec![ambiente, recortado], false);
+    let t = s.siguiente_a_preparar().unwrap();
+    assert!(t.bucle, "en bucle de punta a punta: se prepara como bucle");
+    s.preparado(t.cue, t.hacer().map_err(|e| e.to_string()));
+    let t = s.siguiente_a_preparar().unwrap();
+    assert!(!t.bucle, "un bucle con fin propio no empalma los extremos del archivo");
+    s.preparado(t.cue, t.hacer().map_err(|e| e.to_string()));
+    assert!(s.siguiente_a_preparar().is_none(), "ya está todo");
+    // Se le quita el bucle al primero: se vuelve a preparar, ahora suelto.
+    s.editar_cue(0, &serde_json::json!({ "bucle": false }), false).unwrap();
+    let t = s.siguiente_a_preparar().expect("se vuelve a preparar");
+    assert_eq!((t.cue, t.bucle), (0, false));
+    s.preparado(t.cue, t.hacer().map_err(|e| e.to_string()));
+    assert!(s.siguiente_a_preparar().is_none());
+    let _ = std::fs::remove_dir_all(&d);
 }

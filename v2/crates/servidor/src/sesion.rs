@@ -44,6 +44,9 @@ struct Sonando {
     visual: bool,
     /// Tiene una voz en el mezclador con el `id` de arriba (un audio, o el sonido de un vídeo).
     voz: bool,
+    /// Vídeo o imagen al aire: la duración que dio la proyección al precargarlo
+    /// (para volver a darle GO mientras se ve: vuelve a empezar).
+    duracion_visual: Option<f64>,
 }
 
 /// Edición prepara el show; Función es para la función de verdad: el motor
@@ -78,6 +81,9 @@ pub struct Sesion {
     preparados: HashMap<usize, Arc<Pista>>,
     errores: HashMap<usize, Texto>,
     preparando: Option<usize>,
+    /// Cómo se preparó cada audio: en bucle de punta a punta o suelto (cambia
+    /// el principio y el final al adaptar la frecuencia; ver `preparar_con`).
+    preparado_en_bucle: HashMap<usize, bool>,
     sonando: Vec<Sonando>,
     siguiente_id: u32,
     pausa_desde: Option<Instant>,
@@ -94,6 +100,22 @@ pub struct Sesion {
     /// "Salir desde aquí" (Vista Estudio): cue en espera y segundo del archivo
     /// desde el que sale con el próximo GO. `None` = desde su inicio.
     desde_elegido: Option<(usize, f64)>,
+}
+
+/// Un audio para preparar en segundo plano (sin tener la sesión bloqueada).
+#[derive(Debug, Clone)]
+pub struct TareaPreparar {
+    pub cue: usize,
+    pub ruta: PathBuf,
+    pub frecuencia: u32,
+    /// Se repite de punta a punta del archivo.
+    pub bucle: bool,
+}
+
+impl TareaPreparar {
+    pub fn hacer(&self) -> Result<otaconvert_audio::preparar::Preparado, otaconvert_audio::preparar::ErrorPreparar> {
+        otaconvert_audio::preparar::preparar_con(&self.ruta, self.frecuencia, self.bucle)
+    }
 }
 
 /// Busca el archivo del show: la ruta misma, o el único `.otashow` de la carpeta.
@@ -144,6 +166,7 @@ impl Sesion {
             ultimo_go: None,
             sonido: None,
             preparados: HashMap::new(),
+            preparado_en_bucle: HashMap::new(),
             errores: HashMap::new(),
             preparando: None,
             sonando: Vec::new(),
@@ -281,6 +304,23 @@ impl Sesion {
             }
         } else if self.show.cues[i].tipo != TipoCue::Audio {
             let den = self.describir_en(i);
+            // El mismo vídeo o imagen que está al aire (p. ej. elegido otra vez en
+            // la Vista Estudio): no hace falta precargarlo, vuelve a empezar.
+            // Hallado en la función simulada: antes el GO esperaba una precarga
+            // que nunca llegaba ("todavía se está preparando") hasta Parar todo.
+            let al_aire = self.sonando.iter().rev().find(|s| s.visual && s.cue == i).map(|s| s.duracion_visual);
+            if let (true, Some(duracion)) = (self.proyector.is_some(), al_aire) {
+                // Vuelve a su inicio: "salir desde aquí" no se aplica a lo que ya se ve.
+                if self.desde_elegido.is_some_and(|(k, _)| k == i) {
+                    self.desde_elegido = None;
+                }
+                self.mostrar_visual(i, duracion);
+                self.ultimo_disparado = Some(i);
+                self.ultimo_go = Some(Instant::now());
+                self.en_espera = i + 1;
+                self.registro.anotar("GO", &format!("{d} (otra vez, desde su inicio)"));
+                return true;
+            }
             match (self.proyector.is_some(), self.visuales.get(&i).cloned()) {
                 (false, _) => {
                     // Sin proyección (p. ej. falta libmpv): se avanza y se avisa.
@@ -428,6 +468,7 @@ impl Sesion {
             fundiendo: false,
             visual: true,
             voz: voz.is_some(),
+            duracion_visual: duracion,
         });
     }
 
@@ -532,6 +573,7 @@ impl Sesion {
                 fundiendo: false,
                 visual: false,
                 voz: true,
+                duracion_visual: None,
             });
         }
     }
@@ -922,10 +964,16 @@ impl Sesion {
         }
     }
 
+    /// ¿El cue `i` se repite de punta a punta del archivo? Así se prepara su
+    /// sonido (un bucle que empalma sigue empalmando al adaptar la frecuencia).
+    fn en_bucle_completo(&self, i: usize) -> bool {
+        self.show.cues.get(i).is_some_and(|c| c.bucle && c.inicio_ms == 0 && c.fin_ms.is_none())
+    }
+
     /// Qué audio preparar ahora: el cue en espera y los siguientes. Además
-    /// suelta los preparados que ya no hacen falta. Devuelve (cue, ruta, frecuencia).
-    /// De paso pide la precarga de los vídeos e imágenes que vienen.
-    pub fn siguiente_a_preparar(&mut self) -> Option<(usize, PathBuf, u32)> {
+    /// suelta los preparados que ya no hacen falta (o que se prepararon con
+    /// otro bucle). De paso pide la precarga de los vídeos e imágenes que vienen.
+    pub fn siguiente_a_preparar(&mut self) -> Option<TareaPreparar> {
         self.precargar_visuales();
         let fs = self.sonido.as_ref()?.frecuencia();
         let quiero: Vec<usize> = (self.en_espera..self.show.cues.len())
@@ -933,7 +981,19 @@ impl Sesion {
             .take(PREPARAR_ADELANTE)
             .collect();
         let sonando: Vec<usize> = self.sonando.iter().map(|s| s.cue).collect();
+        // Si se cambió el bucle de un cue que no suena, se vuelve a preparar.
+        let cambiaron: Vec<usize> = self
+            .preparados
+            .keys()
+            .copied()
+            .filter(|i| !sonando.contains(i) && self.preparado_en_bucle.get(i).copied().unwrap_or(false) != self.en_bucle_completo(*i))
+            .collect();
+        for i in cambiaron {
+            self.preparados.remove(&i);
+        }
         self.preparados.retain(|i, _| quiero.contains(i) || sonando.contains(i));
+        let preparados = &self.preparados;
+        self.preparado_en_bucle.retain(|i, _| preparados.contains_key(i));
         let carpeta = self.carpeta();
         for i in quiero {
             if self.preparados.contains_key(&i) || self.errores.contains_key(&i) || self.mudos.contains(&i) || self.preparando == Some(i) {
@@ -942,7 +1002,7 @@ impl Sesion {
             match rutas::resolver(&carpeta, &self.show.cues[i].archivo) {
                 Ok(r) if r.is_file() => {
                     self.preparando = Some(i);
-                    return Some((i, r, fs));
+                    return Some(TareaPreparar { cue: i, ruta: r, frecuencia: fs, bucle: self.en_bucle_completo(i) });
                 }
                 Ok(_) => {
                     let a = &self.show.cues[i].archivo;
@@ -971,6 +1031,7 @@ impl Sesion {
                     self.registro.anotar("AVISO", &format!("{d}: el audio pasa de 0 dB (pico {:.2}); el limitador lo controla", p.pico));
                 }
                 self.preparados.insert(i, Arc::new(p.pista));
+                self.preparado_en_bucle.insert(i, p.bucle);
             }
             Err(e) => {
                 let e: Texto = e.into();
@@ -1057,7 +1118,11 @@ impl Sesion {
             .enumerate()
             .map(|(i, c)| {
                 let visual = self.visuales.get(&i);
-                let preparacion = if c.tipo != TipoCue::Audio {
+                let al_aire = self.sonando.iter().any(|s| s.visual && s.cue == i);
+                let preparacion = if c.tipo != TipoCue::Audio && al_aire && self.proyector.is_some() {
+                    // Lo que se ve está listo: otro GO lo hace empezar de nuevo.
+                    "listo"
+                } else if c.tipo != TipoCue::Audio {
                     match visual {
                         Some(Visual::Pidiendo) => "preparando",
                         // Un vídeo está listo cuando también lo está su sonido.

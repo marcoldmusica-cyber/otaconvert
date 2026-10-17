@@ -295,8 +295,8 @@ fn abrir_con_sonido(d: &Path, cues: Vec<Cue>) -> (Sesion, Falso, SonidoFalso) {
 
 /// Prepara todo lo que pide la sesión (lo que hace el hilo preparador).
 fn preparar_todo(s: &mut Sesion) {
-    while let Some((i, ruta, fs)) = s.siguiente_a_preparar() {
-        s.resultado_preparar(i, otaconvert_audio::preparar::preparar(&ruta, fs));
+    while let Some(t) = s.siguiente_a_preparar() {
+        s.resultado_preparar(t.cue, t.hacer());
     }
 }
 
@@ -306,14 +306,14 @@ fn el_video_con_sonido_suena_por_el_mezclador_y_en_bucle_vuelve_con_la_imagen() 
     let cue = Cue { bucle: true, ..visual("1", "video/con-sonido.mp4", TipoCue::Video) };
     let (mut s, f, son) = abrir_con_sonido(&d, vec![cue]);
     // Pide la imagen y empieza a preparar el sonido (todavía sin terminar).
-    let (i, ruta, fs) = s.siguiente_a_preparar().expect("el sonido del vídeo se prepara");
+    let tarea = s.siguiente_a_preparar().expect("el sonido del vídeo se prepara");
     f.avisar(AvisoProyector::Listo { id: 0, duracion: Some(0.9) });
     s.limpiar();
     // La imagen está, pero el sonido no: no dispara.
     let e: serde_json::Value = serde_json::from_str(&s.estado_json()).unwrap();
     assert_eq!(e["cues"][0]["preparacion"], "preparando");
     assert!(!s.go());
-    s.resultado_preparar(i, otaconvert_audio::preparar::preparar(&ruta, fs));
+    s.resultado_preparar(tarea.cue, tarea.hacer());
     preparar_todo(&mut s);
     let e: serde_json::Value = serde_json::from_str(&s.estado_json()).unwrap();
     assert_eq!(e["cues"][0]["preparacion"], "listo");
@@ -434,4 +434,36 @@ fn cambiar_de_cue_olvida_el_punto_elegido() {
         Some(OrdenProyector::Precargar { desde_s, .. }) => assert_eq!(*desde_s, None, "vuelve desde su inicio"),
         x => panic!("{x:?}"),
     }
+}
+
+#[test]
+fn otro_go_al_video_que_esta_al_aire_lo_vuelve_a_empezar() {
+    // Hallado en la función simulada: elegir otra vez el vídeo que se ve (fácil
+    // en la Vista Estudio) y darle GO dejaba el GO esperando "Preparando…"
+    // para siempre (lo que se ve no se vuelve a precargar).
+    let d = carpeta_con_videos();
+    let cue = Cue { bucle: true, ..visual("1", "video/con-sonido.mp4", TipoCue::Video) };
+    let (mut s, f, son) = abrir_con_sonido(&d, vec![cue]);
+    preparar_todo(&mut s);
+    f.avisar(AvisoProyector::Listo { id: 0, duracion: Some(0.9) });
+    s.limpiar();
+    assert!(s.go());
+    let primera = son.iniciados()[0].0;
+    f.tomar();
+    s.ir_a(0);
+    s.limpiar();
+    let e: serde_json::Value = serde_json::from_str(&s.estado_json()).unwrap();
+    assert_eq!(e["cues"][0]["preparacion"], "listo", "lo que se ve está listo para otro GO");
+    assert!(precargas(&f.tomar()).is_empty(), "no se vuelve a precargar lo que se ve");
+    std::thread::sleep(std::time::Duration::from_millis(350));
+    assert!(s.go(), "el GO no se queda esperando");
+    assert_eq!(f.tomar(), vec![OrdenProyector::Mostrar { id: 0 }], "la proyección lo vuelve a empezar");
+    // Su sonido vuelve a empezar: el anterior se para y arranca uno nuevo, en bucle.
+    assert_eq!(son.parados(), vec![(primera, 0)]);
+    match son.iniciados().as_slice() {
+        [_, (otra, Some(43_200), true)] => assert_ne!(*otra, primera),
+        x => panic!("{x:?}"),
+    }
+    let e: serde_json::Value = serde_json::from_str(&s.estado_json()).unwrap();
+    assert_eq!(e["sonando"].as_array().unwrap().len(), 1, "sigue uno solo al aire");
 }

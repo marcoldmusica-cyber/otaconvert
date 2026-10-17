@@ -15,6 +15,7 @@ mod detector;
 pub mod limitador;
 mod mezclador;
 mod pista;
+mod mp4;
 pub mod preparar;
 pub mod prueba;
 mod rampa;

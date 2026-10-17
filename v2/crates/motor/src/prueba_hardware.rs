@@ -179,8 +179,9 @@ pub fn ejecutar(pausa: bool) -> Result<bool, String> {
     inf.linea("Desarrollado por @marcold.ok (Instagram): envíame este informe, sugerencias o errores.");
     inf.linea("");
     println!("Esta prueba revisa la tarjeta de sonido, las pantallas y el vídeo de este equipo.");
-    println!("  - Tarda unos 5 minutos.");
+    println!("  - Tarda unos 7 minutos.");
     println!("  - Sonarán tonos suaves y la pantalla del proyector (o esta, si no hay otra) se llenará de colores.");
+    println!("  - El ratón se moverá solo un momento sobre la proyección (para comprobar que no se ve).");
     println!("  - No toques nada hasta que termine. Al final se guarda un informe para enviar.");
     println!();
     for s in (1..=5).rev() {
@@ -245,6 +246,21 @@ pub fn ejecutar(pausa: bool) -> Result<bool, String> {
     if n_salidas > 0 {
         pasos.push(Paso::nuevo("Vigilante: el motor vuelve tras caídas y cuelgues (6 fallos)", &["--prueba-vigilante", "6"], 120));
     }
+    // La función simulada: el show completo como en una función (proyector a
+    // pantalla completa, vídeos con sonido, imagen, ambiente en bucle, GO,
+    // pausa, fundidos), grabando lo que sale por la tarjeta para buscar clics.
+    match (existe("funcion"), n_salidas > 0) {
+        (Some(d), true) => {
+            let d = d.to_string_lossy().into_owned();
+            pasos.push(Paso::nuevo(
+                "Función simulada de 2 minutos (imagen sin negros y sonido sin clics, grabando lo que sale)",
+                &["--prueba-funcion", "120", "--carpeta", &d],
+                300,
+            ));
+        }
+        (None, _) => no_medido.push("Función simulada (faltan los vídeos de prueba con sonido)".into()),
+        (_, false) => {}
+    }
 
     let mut resumen: Vec<(Veredicto, String)> = Vec::new();
     for (i, paso) in pasos.iter().enumerate() {
@@ -259,7 +275,7 @@ pub fn ejecutar(pausa: bool) -> Result<bool, String> {
     for t in [
         "Latencia real de la salida (hace falta grabar lo que sale por la tarjeta)",
         "Cambio entre 44,1 y 48 kHz y deriva del reloj",
-        "Cortes dentro del propio driver de la tarjeta",
+        "Cortes dentro del propio driver de la tarjeta o en el cable (la grabación de la función simulada se toma antes del driver)",
     ] {
         no_medido.push(t.into());
     }

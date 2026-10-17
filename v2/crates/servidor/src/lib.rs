@@ -25,7 +25,7 @@ use tungstenite::handshake::server::{ErrorResponse, Request, Response};
 use tungstenite::protocol::WebSocketConfig;
 use tungstenite::{Error as ErrorWs, Message};
 
-pub use sesion::Sesion;
+pub use sesion::{Sesion, TareaPreparar};
 pub use sonido::{Destino, Sonido};
 pub use texto::{Idioma, Texto};
 pub use proyector::{AvisoProyector, OrdenProyector, Proyector};
@@ -118,10 +118,10 @@ impl Servidor {
         std::thread::Builder::new().name("preparador".into()).spawn(move || loop {
             let tarea = c3.sesion.lock().ok().and_then(|mut s| s.siguiente_a_preparar());
             match tarea {
-                Some((i, ruta, fs)) => {
-                    let r = otaconvert_audio::preparar::preparar(&ruta, fs);
+                Some(t) => {
+                    let r = t.hacer();
                     let estado = c3.sesion.lock().ok().map(|mut s| {
-                        s.resultado_preparar(i, r);
+                        s.resultado_preparar(t.cue, r);
                         s.estado_json()
                     });
                     if let Some(e) = estado {

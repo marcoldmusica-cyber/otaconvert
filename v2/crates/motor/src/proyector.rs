@@ -269,7 +269,10 @@ fn precargar(proy: &Proyeccion, capas: &mut [Capa], o: &Value) {
 fn mostrar(proy: &Proyeccion, capas: &mut [Capa], id: u64) {
     // El mismo cue que ya se ve: vuelve a empezar.
     if let Some(c) = capas.iter_mut().find(|c| matches!(c.estado, Estado::Mostrando { id: x, .. } if x == id)) {
-        let _ = c.rep.comando(&["seek", "0", "absolute"]);
+        // A su inicio (el `start` con que se precargó), no al segundo 0 del
+        // archivo: así la imagen va con el sonido, que vuelve al inicio del cue.
+        let inicio = c.rep.leer("start").and_then(|s| s.trim().parse::<f64>().ok()).filter(|s| s.is_finite() && *s >= 0.0).unwrap_or(0.0);
+        let _ = c.rep.comando(&["seek", &format!("{inicio:.3}"), "absolute+exact"]);
         let _ = c.rep.propiedad("brightness", "0");
         let _ = c.rep.propiedad("pause", "no");
         avisar(json!({ "a": "mostrando", "id": id }));

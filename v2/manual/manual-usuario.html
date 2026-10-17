@@ -345,6 +345,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <li>Si viene otro vídeo, el sonido del anterior se apaga solo.</li>
     <li>Si el vídeo no tiene sonido, el programa lo dice ("Este vídeo no tiene sonido") y no es un error.</li>
     <li>Si el sonido no se puede leer, el vídeo se ve igual y el programa te avisa.</li>
+    <li>El sonido de los vídeos MP4 y MOV (y de los audios M4A) va justo con la imagen: el programa recorta el pequeño silencio de unos 21 ms con el que empiezan esos archivos, igual que los reproductores de vídeo. Por eso un vídeo en bucle tampoco hace clic en cada vuelta.</li>
   </ul>
   <p><span class="estado pronto">Próximamente</span>: la miniatura del proyector dentro del programa, elegir la pantalla desde los menús y las 4 esquinas.</p>
   <p>Los vídeos y las imágenes salen por el <strong>Proyector</strong>: la pantalla o proyector que conectaste al equipo. En el programa ves una miniatura con lo mismo que está saliendo, para no tener que darte vuelta.</p>
@@ -458,6 +459,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <li><div>Al final queda un archivo <code>Informe-hardware-….txt</code> en esa carpeta (o en Documentos). Envíalo tal cual.</div></li>
   </ol>
   <p>El informe dice, para cada prueba, <strong>BIEN</strong> o <strong>PROBLEMA</strong>, y al final si el equipo está listo. No instala nada ni cambia nada del equipo.</p>
+  <p><span class="estado ya">Ya funciona</span> <strong>Función simulada</strong> (al final de la prueba, 2 minutos): el programa hace una función de mentira con vídeos con sonido, una imagen, un ambiente en bucle y tonos, y da GO, pausa, funde y para solo, al azar. Mientras tanto mira la pantalla del proyector unas 40 veces por segundo (busca negros o colores que no tocan) y <strong>graba lo que sale por la tarjeta de sonido</strong> para buscar clics y cortes. También revisa que la proyección tape toda la pantalla (también la barra de tareas), que no se vea el ratón, que un clic sobre la proyección no le quite el teclado al programa, y que Windows no vaya a suspender el equipo. El ratón se mueve solo un momento: es parte de la prueba.</p>
   <p class="muted">Probada el 15/10/2026 en un equipo con Windows 10, procesador i5 y tarjeta GTX 1050 Ti: 13 pruebas, todas BIEN, en unos 3 minutos.</p>
   <h3>Lista para el día de la función</h3>
   <ol class="pasos">
@@ -467,7 +469,11 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <li><div>Enchufa la computadora a la corriente.</div></li>
     <li><div>Espera la luz verde y prueba el primer cue a bajo volumen.</div></li>
   </ol>
-  <p>En Función, el programa evita que la computadora se suspenda o que aparezca el salvapantallas.</p>
+  <p><span class="estado ya">Ya funciona</span> Mientras el show está abierto, el programa no deja que la computadora se suspenda ni que se apague la pantalla (por ejemplo, en una escena larga con el proyector en negro). Dos cosas no las puede frenar, y por eso te las dice:</p>
+  <ul>
+    <li><strong>El protector de pantalla</strong> (salvapantallas): si el equipo tiene uno puesto, el programa te avisa al abrir el show. Quítalo en <strong>Configuración → Personalización → Pantalla de bloqueo → Protector de pantalla → (Ninguno)</strong>.</li>
+    <li><strong>Cerrar la tapa del portátil o apretar el botón de apagado</strong>: eso lo decide Windows siempre. Deja la tapa abierta durante la función.</li>
+  </ul>
 </section>
 
 <section class="card" id="problemas">
@@ -477,9 +483,13 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
   <details open><summary>Se escucha un clic al empezar un sonido</summary>
     <p>Pasa si el sonido empieza a la mitad del archivo. Activa la <a href="#rampas">rampa al iniciar</a> (5 ms) o ponle un fundido de entrada a ese cue.</p></details>
   <details open><summary>El sonido se corta o tartamudea</summary>
-    <p>Cierra otros programas. Si sigue, haz la Prueba de hardware: te dice si conviene darle más margen al audio en ese equipo.</p></details>
+    <p>Cierra otros programas. Si sigue, haz la Prueba de hardware: te dice si conviene darle más margen al audio en ese equipo. Si la tarjeta de sonido llegó tarde aunque sea una vez, el programa lo anota en el registro de la función ("Posible corte de sonido"), con la hora, para revisarlo después.</p></details>
+  <details open><summary>Un ambiente en bucle hace clic en cada vuelta</summary>
+    <p><span class="estado ya">Arreglado</span> Si el archivo empalma bien (por ejemplo, un ambiente hecho para repetirse), el programa lo prepara para que siga empalmando aunque la tarjeta trabaje a otra frecuencia (un archivo de 44,1 kHz con la tarjeta a 48 kHz, lo más común). Si igual hace clic, es el archivo: ponle un fundido de entrada y de salida cortos o pide a quien lo editó un bucle sin costura.</p></details>
   <details open><summary>El vídeo sale en la pantalla equivocada</summary>
     <p>Windows a veces reordena las pantallas. Revisa que esté en modo Extender. El programa vuelve a ubicar el Proyector solo; si no, elige la pantalla correcta en los ajustes del teatro.</p></details>
+  <details open><summary>Quiero repetir el vídeo que está saliendo</summary>
+    <p><span class="estado ya">Ya funciona</span> Elige ese mismo cue (con un clic en la Vista Estudio, o con <kbd>↑</kbd>) y da GO: vuelve a empezar desde su inicio, imagen y sonido juntos, sin pasar por negro.</p></details>
   <details open><summary>Toqué GO de más</summary>
     <p>Pulsa <kbd>Esc</kbd> (Parar todo) o para solo ese cue desde el panel Sonando. Con <kbd>↑</kbd> <kbd>↓</kbd> vuelves a elegir el cue que sigue.</p></details>
   <details open><summary>El programa se cerró</summary>
@@ -578,7 +588,8 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
   <div class="tabla"><table>
     <tr><th>Comando</th><th>Qué hace</th></tr>
     <tr><td><code>--version</code></td><td>Versión del motor.</td></tr>
-    <tr><td><code>--prueba-hardware [--sin-pausa]</code></td><td>Todas las pruebas en orden (equipo, componentes, sonido por cada salida, pantallas, cambios de vídeo, reproducción 1080p y 4K, vigilante) con informe de texto. También con doble clic en <code>Prueba de hardware.exe</code>.</td></tr>
+    <tr><td><code>--prueba-hardware [--sin-pausa]</code></td><td>Todas las pruebas en orden (equipo, componentes, sonido por cada salida, pantallas, cambios de vídeo, reproducción 1080p y 4K, vigilante, función simulada) con informe de texto. También con doble clic en <code>Prueba de hardware.exe</code>.</td></tr>
+    <tr><td><code>--prueba-funcion [s] --carpeta &lt;vídeos&gt; [--pantalla N|vista] [--salida X]</code></td><td>Función simulada: un show real (carpeta con tildes y espacios, ambiente en bucle a 44,1 kHz, vídeos con sonido, imagen, tonos) con GO, pausa, fundidos y paradas al azar. Mira la proyección (~40 veces por segundo, centro y esquinas), graba lo que sale por la tarjeta (loopback de WASAPI) buscando clics, comprueba pantalla completa, ratón, foco, suspensión, memoria y registro.</td></tr>
     <tr><td><code>--info-equipo</code></td><td>Windows, procesador, memoria, tarjetas gráficas y si está enchufado.</td></tr>
     <tr><td><code>--show-ejemplo &lt;carpeta&gt;</code></td><td>Crea un show de ejemplo (6 cues y una página de botonera) para probar.</td></tr>
     <tr><td><code>--abrir-show &lt;show&gt; [--salida X] [--auriculares Y] [--margen ms] [--navegador | --sin-navegador]</code></td><td>Abre el show con sonido en la <strong>ventana propia de Otaconvert</strong> (WebView2, en un proceso aparte): GO, Pausa (P), Fundir todo (F), Mayús+F, Parar todo (Esc). Si la ventana se cae, vuelve a abrirse sola sin cortar el sonido (medido: 130 ms); si WebView2 falta o se cae más de 3 veces en un minuto, se abre la misma interfaz en el navegador con un aviso. Cerrar la ventana termina el programa y guarda lo que haya cambiado. <code>--navegador</code> la abre en el navegador; <code>--sin-navegador</code> no abre nada (pruebas). Si una tarjeta da errores, avisa fuerte.</td></tr>
