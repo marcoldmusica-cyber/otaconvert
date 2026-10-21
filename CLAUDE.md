@@ -963,3 +963,19 @@ Pedido del usuario: "Sí, sigue con la etapa 5." Repartida en cuatro partes que 
   - Con el editor le puse la tecla 1 y la tecla 1 lo toca; Esc lo para.
   - Arreglos de diseño hechos al verlo: la casilla del bucle quedaba mal puesta y no se veía qué página estaba elegida.
 - **Pendiente:** la comprobación previa todavía no revisa los sonidos de la botonera (picos, archivos que faltan); el panel no se puede mover (llega con Vista → Personalizar, Fase 2).
+
+### Onda del audio (etapa 5D, 21/10/2026, trabajando solo)
+- **Motor:**
+  - `Sesion::pista_para_onda(i)` da el audio ya preparado del cue.
+  - `sesion::picos_de_onda(pista, columnas)` da el pico de cada parte (0–1000, todos los canales).
+  - La orden `onda {cue}` la calcula en otro hilo, sin tener la sesión tomada (no frena el GO), y responde a las ventanas `{tipo: "onda", cue, archivo, total_s, picos}` con 800 columnas.
+  - Va por el canal WebSocket: no hizo falta abrir la CSP de la página a otras peticiones.
+- **Ventana:**
+  - En el panel de un cue de audio (Edición), la **Onda** reemplaza la nota «Próximamente».
+  - Dibuja en color la parte que suena (entre Desde y Hasta) y en gris el resto, con dos líneas en los puntos.
+  - Un archivo suave se agranda hasta 8 veces para que se vea su forma.
+  - **Clic** = Desde, **Mayús + clic** = Hasta. No marca si el cue está bloqueado porque suena. Se puede deshacer.
+  - Mientras el audio no está preparado dice «La onda aparece cuando el audio está preparado». Se guarda por archivo, así no se vuelve a pedir.
+  - Consejo `onda` es/en.
+- **Prueba:** `la_onda_son_los_picos_del_audio` (sin preparar no hay; el tono de prueba da picos de 450 a 550 sobre 1000).
+- **Probado en el programa:** la música de sala se dibujó. Clic al 25 % → Desde 1,99 s; Mayús + clic al 75 % → Hasta 5,99 s; la duración pasó a 0:04.
