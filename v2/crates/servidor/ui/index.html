@@ -137,6 +137,32 @@ kbd{font:12px var(--mono);background:var(--card2);border:1px solid var(--border)
 
 /* Cuerpo */
 .body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:12px}
+.col-izq{display:flex;flex-direction:column;gap:12px;min-height:0}
+.col-izq>.panel:first-child{flex:1}
+.botonera{flex:none;max-height:40%}
+.bt-cuerpo{overflow:auto;padding:10px 12px 12px}
+.paginas{display:flex;gap:4px;flex-wrap:wrap}
+.paginas button{background:none;border:1px solid var(--border);border-radius:8px;padding:2px 9px;font-size:12px;color:var(--muted)}
+.paginas button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.bt-cuadricula{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+.bt{position:relative;display:flex;flex-direction:column;justify-content:space-between;gap:4px;min-height:74px;padding:8px 10px;border-radius:12px;border:1px solid var(--border);background:var(--card2);text-align:left;color:var(--text);cursor:pointer;overflow:hidden}
+.bt::before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:var(--bt-color,var(--accent))}
+.bt .bt-n{font-weight:600;line-height:1.2;word-break:break-word}
+.bt .bt-pie{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.bt.sonando{background:color-mix(in srgb,var(--bt-color,var(--accent)) 28%,var(--card2));border-color:var(--bt-color,var(--accent))}
+.bt.error .bt-pie{color:var(--err)}
+.bt-lista{display:flex;flex-direction:column;gap:6px}
+.bt-lista .bt{min-height:0;flex-direction:row;align-items:center;padding:7px 12px 7px 16px}
+.bt-vacia{color:var(--muted);font-size:13px;margin:0}
+.bt-editor{display:flex;flex-direction:column;gap:10px;max-height:min(62vh,600px);overflow:auto;padding-right:4px}
+.bt-ed-fila{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 10px;padding:10px;border:1px solid var(--border);border-radius:12px;background:var(--card)}
+.bt-ed-fila label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+.bt-ed-fila label.ancho2{grid-column:span 2}
+.bt-ed-fila .bt-ed-acc{grid-column:1/-1;display:flex;gap:6px;justify-content:flex-end}
+.bt-ed-fila input[type=color]{height:30px;padding:0 2px;width:100%}
+.bt-ed-paginas{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.bt-ed-paginas .btn[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.bt-ed-fila label.toggle{flex-direction:row;align-items:center;gap:8px;grid-column:span 2;color:var(--text);font-size:13px}
 .panel{background:var(--card);border:1px solid var(--border);border-radius:18px;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 .panel-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);color:var(--muted);font-size:13px}
 .panel-h strong{color:var(--text);font-weight:600;font-size:14px}
@@ -363,6 +389,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
         <button role="menuitem" disabled><span data-t="copiar"></span> <span class="pronto" data-t="proximamente"></span></button>
         <button role="menuitem" disabled><span data-t="pegar"></span> <span class="pronto" data-t="proximamente"></span></button>
         <div class="sep"></div>
+        <button role="menuitem" data-accion="ed_botonera" data-edita="si" data-consejo="botonera"><span data-t="botonera_menu"></span><span class="q" aria-hidden="true">?</span></button>
         <button role="menuitem" data-accion="ajustes" data-consejo="ajustes_show"><span data-t="ajustes_show"></span><span class="q" aria-hidden="true">?</span></button>
       </div>
     </div>
@@ -380,6 +407,11 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
         <button role="menuitemradio" data-estilo="lista" data-consejo="estilo_lista" aria-checked="true"><span data-t="estilo_lista"></span><span class="q" aria-hidden="true">?</span></button>
         <button role="menuitemradio" data-estilo="estudio" data-consejo="estilo_estudio" aria-checked="false"><span data-t="estilo_estudio"></span><span class="q" aria-hidden="true">?</span></button>
         <button role="menuitemcheckbox" data-accion="previa_mov" data-consejo="previa_movimiento" aria-checked="true"><span data-t="previa_movimiento"></span><span class="q" aria-hidden="true">?</span></button>
+        <div class="sep"></div>
+        <div class="lbl" data-t="botonera"></div>
+        <button role="menuitemradio" data-botonera="oculta" data-consejo="botonera_vista" aria-checked="true"><span data-t="bt_oculta"></span><span class="q" aria-hidden="true">?</span></button>
+        <button role="menuitemradio" data-botonera="cuadricula" aria-checked="false"><span data-t="bt_cuadricula"></span></button>
+        <button role="menuitemradio" data-botonera="lista" aria-checked="false"><span data-t="bt_lista"></span></button>
         <div class="sep"></div>
         <button role="menuitem" data-accion="mapeo" data-consejo="mapeo"><span data-t="mapeo"></span><span class="q" aria-hidden="true">?</span></button>
         <div class="sep"></div>
@@ -433,11 +465,18 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
   <div class="aviso" id="aviso" role="status" data-help="aviso" hidden><p id="aviso-texto"></p><button id="aviso-cerrar">✕</button></div>
 
   <main class="body">
+    <div class="col-izq">
     <section class="panel" data-help="lista">
       <div class="panel-h"><strong data-t="cues"></strong><span id="info" class="num"></span></div>
       <div class="buscador" data-help="buscador"><input type="text" id="buscar" autocomplete="off" spellcheck="false"></div>
       <div class="list" id="lista"></div>
     </section>
+    <!-- Botonera de sonidos (sección 5b): oculta por defecto; Vista → Botonera. -->
+    <section class="panel botonera" id="botonera" data-help="botonera" hidden>
+      <div class="panel-h"><strong data-t="botonera"></strong><span class="paginas" id="bt-paginas"></span></div>
+      <div class="bt-cuerpo" id="bt-cuerpo"></div>
+    </section>
+    </div>
     <section class="panel" id="lado" data-help="lado_edicion"></section>
   </main>
 
@@ -555,6 +594,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     $("soltar-texto").textContent = funcion ? T("soltar_funcion") : T("soltar_s");
     actualizarAjustes();
     pintarLuz();
+    dibujarBotonera();
     actualizarMapeo();
     var nx = e.cues[e.en_espera];
     $("goNext").textContent = nx ? nx.numero + " · " + nx.nombre : T("fin_lista");
@@ -1066,7 +1106,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     ws.onopen = function () { abierto = true; avisoConexion(T("conectado"), "on"); mandar("idioma", { idioma: idioma }); };
     ws.onmessage = function (m) {
       var d; try { d = JSON.parse(m.data); } catch (x) { return; }
-      if (d.tipo === "medios") { dibujarMedios(d.lista || []); return; }
+      if (d.tipo === "medios") { dibujarMedios(d.lista || []); if (btEd) { btEd.medios = d.lista || []; pintarEditor(); } return; }
       if (d.tipo === "equipo") { if (ajustesDlg) { ajustesDlg.lista = d; pintarSalidas(); } return; }
       if (d.tipo !== "estado") return;
       e = d;
@@ -1109,6 +1149,8 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
       else if (it.dataset.accion === "mapeo") dialogoMapeo();
       else if (it.dataset.accion === "agregar") dialogoAgregar();
       else if (it.dataset.accion === "ajustes") dialogoAjustes();
+      else if (it.dataset.accion === "ed_botonera") dialogoBotonera();
+      else if (it.dataset.botonera) ponerBotonera(it.dataset.botonera);
       else if (it.dataset.accion === "eliminar") eliminarCue();
       else if (it.dataset.accion === "subir") moverCue(-1);
       else if (it.dataset.accion === "bajar") moverCue(1);
@@ -1686,6 +1728,200 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
   }
   $("luz").onclick = function () { if (e) dialogoLuz(); };
 
+  // ---- Botonera de sonidos (sección 5b) ----
+  // Vista → Botonera: oculta (por defecto), cuadrícula o lista. Preferencia de esta ventana.
+  var vistaBotonera = ["cuadricula", "lista"].indexOf(leer("ota-botonera", "oculta")) >= 0 ? leer("ota-botonera", "oculta") : "oculta";
+  var paginaBt = 0;
+  function ponerBotonera(v) {
+    vistaBotonera = v; escribir("ota-botonera", v);
+    document.querySelectorAll("[data-botonera]").forEach(function (b) { b.setAttribute("aria-checked", String(b.dataset.botonera === v)); });
+    $("botonera").hidden = v === "oculta";
+    if (e) dibujarBotonera();
+  }
+  function dibujarBotonera() {
+    if (vistaBotonera === "oculta") return;
+    var pags = e.botonera || [];
+    paginaBt = Math.min(paginaBt, Math.max(0, pags.length - 1));
+    var ps = $("bt-paginas"); ps.textContent = "";
+    if (pags.length > 1) pags.forEach(function (p, k) {
+      var b = el("button", "", p.nombre || T("bt_pagina_n", { n: k + 1 })); b.type = "button"; b.dataset.btPagina = k;
+      b.setAttribute("aria-pressed", String(k === paginaBt)); ps.appendChild(b);
+    });
+    var cu = $("bt-cuerpo"); cu.textContent = "";
+    var pag = pags[paginaBt];
+    if (!pag || !pag.botones.length) { cu.appendChild(el("p", "bt-vacia", e.modo === "funcion" ? T("bt_vacia_funcion") : T("bt_vacia"))); return; }
+    var cont = el("div", vistaBotonera === "lista" ? "bt-lista" : "bt-cuadricula");
+    pag.botones.forEach(function (bt, k) {
+      var b = el("button", "bt" + (bt.sonando ? " sonando" : "") + (bt.preparacion === "error" ? " error" : ""));
+      b.type = "button"; b.dataset.pagina = paginaBt; b.dataset.boton = k;
+      b.style.setProperty("--bt-color", bt.color);
+      b.appendChild(el("span", "bt-n", bt.nombre));
+      var pie = el("span", "bt-pie");
+      pie.appendChild(el("span", "", bt.preparacion === "error" ? T("no_reproducible") : bt.preparacion === "preparando" ? T("preparando") : bt.bucle ? T("bucle") : ""));
+      if (bt.tecla) pie.appendChild(el("kbd", "", bt.tecla));
+      b.appendChild(pie);
+      if (bt.error) b.title = bt.error;
+      cont.appendChild(b);
+    });
+    cu.appendChild(cont);
+  }
+  // Se atienden al apretar (el panel se redibuja varias veces por segundo).
+  document.addEventListener("pointerdown", function (ev) {
+    var t = ev.target.closest && ev.target.closest("[data-bt-pagina], #bt-cuerpo .bt");
+    if (!t || ayudando || ev.button !== 0) return;
+    ev.preventDefault();
+    if (t.dataset.btPagina != null) { paginaBt = +t.dataset.btPagina; dibujarBotonera(); return; }
+    mandar("boton", { pagina: +t.dataset.pagina, boton: +t.dataset.boton });
+  });
+  // ¿La tecla es la de algún botón? (P, F y H nunca: las usa el programa)
+  function teclaDeBoton(k) {
+    if (!e || !e.botonera) return false;
+    var K = String(k).toUpperCase();
+    return e.botonera.some(function (p) { return p.botones.some(function (b) { return b.tecla && b.tecla.toUpperCase() === K; }); });
+  }
+
+  // Edición → Botonera…: se arma una copia y se manda entera al guardar.
+  var btEd = null; // { paginas, pagina, medios }
+  var TECLAS_RESERVADAS = ["P", "F", "H"];
+  function teclaOk(t) {
+    t = String(t || "").toUpperCase();
+    if (!t) return true;
+    if (TECLAS_RESERVADAS.indexOf(t) >= 0) return false;
+    return /^[A-Z0-9]$/.test(t) || /^F([1-9]|1[0-2])$/.test(t);
+  }
+  function dialogoBotonera() {
+    var titulo = T("botonera_menu").replace("…", "");
+    if (!puedeEditar()) { dialogo(titulo, function (d) { d.appendChild(el("p", "", T("bt_ed_funcion"))); }); return; }
+    cerrarDialogo();
+    var copia = (e.botonera || []).map(function (p) {
+      return { nombre: p.nombre, botones: p.botones.map(function (b) {
+        return { nombre: b.nombre, color: b.color, archivo: b.archivo, volumen_db: b.volumen_db, fundido_entrada_ms: b.fundido_entrada_ms,
+          fundido_salida_ms: b.fundido_salida_ms, bucle: b.bucle, salida: b.salida, tecla: b.tecla, al_repetir: b.al_repetir };
+      }) };
+    });
+    if (!copia.length) copia.push({ nombre: T("bt_pagina_n", { n: 1 }), botones: [] });
+    btEd = { paginas: copia, pagina: Math.min(paginaBt, copia.length - 1), medios: null };
+    dialogo(titulo, function (d) {
+      d.classList.add("ancho");
+      btEd.cuerpo = el("div", "bt-editor"); d.appendChild(btEd.cuerpo);
+      var acc = el("div", "acciones");
+      var mas = el("button", "btn", T("bt_agregar")); mas.type = "button";
+      mas.onclick = function () {
+        var audios = (btEd.medios || []).filter(esAudio);
+        btEd.paginas[btEd.pagina].botones.push({ nombre: T("bt_nuevo"), color: "#6F80FF", archivo: audios[0] || "", volumen_db: 0, fundido_entrada_ms: 0,
+          fundido_salida_ms: 0, bucle: false, salida: "Principal", tecla: null, al_repetir: "parar" });
+        pintarEditor();
+      };
+      var cancelar = el("button", "btn", T("cancelar")); cancelar.type = "button"; cancelar.onclick = cerrarDialogo;
+      var ok = el("button", "ok", T("bt_guardar")); ok.type = "button";
+      ok.onclick = function () {
+        var error = revisarBotonera(btEd.paginas);
+        if (error) { avisoLocal(error); return; }
+        mandar("botonera", { paginas: btEd.paginas });
+        cerrarDialogo();
+      };
+      acc.appendChild(mas); acc.appendChild(el("span", "esp")); acc.appendChild(cancelar); acc.appendChild(ok);
+      d.appendChild(acc);
+    }, true);
+    alCerrarDialogo = function () { btEd = null; };
+    pintarEditor();
+    mandar("medios_carpeta");
+  }
+  function esAudio(r) { return /\.(wav|mp3|flac|ogg|oga|m4a|aac|aif|aiff|aifc|caf|mka)$/i.test(r); }
+  // Lo mismo que revisa el motor, para avisar antes de mandar.
+  function revisarBotonera(paginas) {
+    var teclas = {};
+    for (var p = 0; p < paginas.length; p++) for (var k = 0; k < paginas[p].botones.length; k++) {
+      var b = paginas[p].botones[k];
+      if (!String(b.nombre).trim()) return T("bt_err_nombre");
+      if (!b.archivo) return T("bt_err_sonido", { n: b.nombre });
+      if (b.tecla) {
+        if (!teclaOk(b.tecla)) return T("bt_err_tecla", { n: b.nombre, t: b.tecla });
+        var K = b.tecla.toUpperCase();
+        if (teclas[K]) return T("bt_err_repetida", { t: b.tecla });
+        teclas[K] = true;
+      }
+    }
+    return "";
+  }
+  function pintarEditor() {
+    if (!btEd) return;
+    var cu = btEd.cuerpo, arriba = cu.scrollTop; cu.textContent = "";
+    // Páginas: elegir, agregar, renombrar, quitar.
+    var fp = el("div", "bt-ed-paginas");
+    btEd.paginas.forEach(function (p, k) {
+      var b = el("button", "btn chico", p.nombre || T("bt_pagina_n", { n: k + 1 })); b.type = "button";
+      b.setAttribute("aria-pressed", String(k === btEd.pagina));
+      b.onclick = function () { btEd.pagina = k; pintarEditor(); };
+      fp.appendChild(b);
+    });
+    var np = el("button", "btn chico", T("bt_pagina_mas")); np.type = "button";
+    np.onclick = function () { btEd.paginas.push({ nombre: T("bt_pagina_n", { n: btEd.paginas.length + 1 }), botones: [] }); btEd.pagina = btEd.paginas.length - 1; pintarEditor(); };
+    fp.appendChild(np);
+    cu.appendChild(fp);
+    var pag = btEd.paginas[btEd.pagina];
+    var fn = el("div", "bt-ed-paginas");
+    var ln = el("label", "", T("bt_nombre_pagina")); var inp = el("input"); inp.type = "text"; inp.maxLength = 60; inp.value = pag.nombre;
+    inp.onchange = function () { pag.nombre = inp.value.trim(); pintarEditor(); };
+    fn.appendChild(ln); fn.appendChild(inp);
+    if (btEd.paginas.length > 1) {
+      var qp = el("button", "btn chico parar-uno", T("bt_quitar_pagina")); qp.type = "button";
+      qp.onclick = function () { btEd.paginas.splice(btEd.pagina, 1); btEd.pagina = Math.max(0, btEd.pagina - 1); pintarEditor(); };
+      fn.appendChild(qp);
+    }
+    cu.appendChild(fn);
+    if (!pag.botones.length) cu.appendChild(el("p", "bt-vacia", T("bt_ed_vacia")));
+    var audios = (btEd.medios || []).filter(esAudio);
+    pag.botones.forEach(function (b, k) {
+      var f = el("div", "bt-ed-fila");
+      function campo(clave, control, consejo, ancho) {
+        var l = el("label", ancho ? "ancho2" : ""), t = el("span", "", T(clave));
+        if (consejo) t.appendChild(botonConsejo(consejo));
+        l.appendChild(t); l.appendChild(control); f.appendChild(l);
+      }
+      var nom = el("input"); nom.type = "text"; nom.maxLength = 60; nom.value = b.nombre; nom.onchange = function () { b.nombre = nom.value; };
+      campo("nombre", nom, null, true);
+      var son = el("select");
+      var lista = audios.slice(); if (b.archivo && lista.indexOf(b.archivo) < 0) lista.unshift(b.archivo);
+      if (!lista.length) { var o0 = el("option", "", T("bt_sin_audios")); o0.value = ""; son.appendChild(o0); }
+      lista.forEach(function (r) { var o = el("option", "", r); o.value = r; o.selected = r === b.archivo; son.appendChild(o); });
+      son.onchange = function () { b.archivo = son.value; };
+      campo("bt_sonido", son, null, true);
+      var col = el("input"); col.type = "color"; col.value = b.color; col.onchange = function () { b.color = col.value.toUpperCase(); };
+      campo("bt_color", col, "boton_color");
+      var tec = el("input"); tec.type = "text"; tec.maxLength = 3; tec.value = b.tecla || ""; tec.placeholder = "—";
+      tec.onchange = function () { var v = tec.value.trim().toUpperCase(); b.tecla = v || null; tec.value = v; if (!teclaOk(v)) avisoLocal(T("bt_err_tecla", { n: b.nombre, t: v })); };
+      campo("bt_tecla", tec, "boton_tecla");
+      var vol = el("input"); vol.type = "number"; vol.min = -60; vol.max = 12; vol.step = 0.5; vol.value = b.volumen_db;
+      vol.onchange = function () { var v = Number(String(vol.value).replace(",", ".")); if (isFinite(v) && v >= -60 && v <= 12) b.volumen_db = v; else vol.value = b.volumen_db; };
+      campo("bt_volumen_db", vol, "volumen");
+      var sal = el("select");
+      ["Principal", "Auriculares"].forEach(function (o) { var op = el("option", "", salidaTexto(o)); op.value = o; op.selected = o === b.salida; sal.appendChild(op); });
+      sal.onchange = function () { b.salida = sal.value; };
+      campo("salida", sal, "salida");
+      campo("fundido_inicial", selFundido(b.fundido_entrada_ms, function (ms) { b.fundido_entrada_ms = ms; }), "fundido_entrada");
+      campo("fundido_final", selFundido(b.fundido_salida_ms, function (ms) { b.fundido_salida_ms = ms; }), "fundido_salida");
+      var rep = el("select");
+      [["parar", "bt_rep_parar"], ["reiniciar", "bt_rep_reiniciar"], ["superponer", "bt_rep_superponer"]].forEach(function (o) { var op = el("option", "", T(o[1])); op.value = o[0]; op.selected = o[0] === b.al_repetir; rep.appendChild(op); });
+      rep.onchange = function () { b.al_repetir = rep.value; };
+      campo("bt_al_repetir", rep, "boton_repetir", true);
+      var tg = el("label", "toggle"), cb = el("input"); cb.type = "checkbox"; cb.checked = b.bucle; cb.onchange = function () { b.bucle = cb.checked; };
+      tg.appendChild(cb); tg.appendChild(document.createTextNode(T("repetir_bucle"))); tg.appendChild(botonConsejo("bucle"));
+      f.appendChild(tg);
+      var acc = el("div", "bt-ed-acc");
+      [["↑", -1], ["↓", 1]].forEach(function (m) {
+        var x = el("button", "btn chico", m[0]); x.type = "button"; x.disabled = k + m[1] < 0 || k + m[1] >= pag.botones.length;
+        x.onclick = function () { var t = pag.botones.splice(k, 1)[0]; pag.botones.splice(k + m[1], 0, t); pintarEditor(); };
+        acc.appendChild(x);
+      });
+      var q = el("button", "btn chico parar-uno", T("bt_quitar")); q.type = "button"; q.onclick = function () { pag.botones.splice(k, 1); pintarEditor(); };
+      acc.appendChild(q);
+      f.appendChild(acc);
+      cu.appendChild(f);
+    });
+    cu.scrollTop = arriba;
+  }
+
   // ---- Botones ----
   $("go").onclick = function () { mandar("go"); };
   $("parar").onclick = function () { mandar("parar_todo"); };
@@ -1735,6 +1971,8 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     if (ev.key === " ") { ev.preventDefault(); cerrarDialogo(); cerrarMenus(); cerrarBurbuja(); mandar("go"); return; }
     if (mapeo && teclaMapeo(ev)) { ev.preventDefault(); return; }
     if (velo) return;
+    // Tecla de un botón de la botonera (también en Función).
+    if (teclaDeBoton(ev.key)) { ev.preventDefault(); mandar("boton_tecla", { tecla: ev.key.length === 1 ? ev.key.toUpperCase() : ev.key }); return; }
     if (ev.key === "Tab") { ev.preventDefault(); if (e) mandar(e.modo === "funcion" ? "modo_edicion" : "modo_funcion"); }
     else if (ev.key === "h" || ev.key === "H") ponerAyuda(!ayudando);
     else if (ev.key === "p" || ev.key === "P") mandar("pausa");
@@ -1754,6 +1992,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
   ponerTema(tema);
   ponerEstilo(estilo);
   ponerPreviaMov(previaMov);
+  ponerBotonera(vistaBotonera);
   ponerConsejos(consejos);
   aplicarTextos();
   reloj(); setInterval(reloj, 1000);
