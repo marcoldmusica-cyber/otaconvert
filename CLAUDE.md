@@ -1091,3 +1091,17 @@ Pedido del usuario: "Sí, sigue con la etapa 5." Repartida en cuatro partes que 
   - Firma (SignPath).
   - Release pública (con permiso).
   - Que «Archivo → Abrir…» funcione dentro del programa (hoy se abre arrastrando o con doble clic en el `.otashow`).
+- **Primera compilación del instalador:**
+  - El run 39629173876 falló solo en el instalador: los mensajes por idioma de Inno se escriben `spanish.Nombre`, con punto, y estaban con dos puntos.
+  - **Arreglado: run 39630811545 verde.**
+- **Lo que armó:**
+  - `Otaconvert-V2-Instalador-0.0.1.exe`: **278 MB** (SHA-256 `648bfa7e…`); 204 MB son del instalador de WebView2, con la firma de Microsoft comprobada.
+  - Portable `Otaconvert-V2-0.0.1`: **378 MB** con los vídeos de prueba. `Otaconvert V2.exe` (`e530825c…`), `otaconvert-motor.exe` (`6f3851e0…`). `--comprobar`: no falta nada. Datos de versión: ProductName «Otaconvert», FileDescription «Otaconvert V2».
+- **Copiados a la PC del usuario**, sin instalar ni tocar la demo vieja que tenía abierta:
+  - la portable en `CLOUDE - Herramientas Ota\Otaconvert-V2-0.0.1`;
+  - el instalador en `CLOUDE - Herramientas Ota\Otaconvert-V2-Instalador-0.0.1.exe`.
+- **Archivo → Abrir… (Ctrl+O)**, en el commit 1c06c10:
+  - El diálogo de Windows elige un `.otashow`. Solo se puede en Edición y con nada sonando.
+  - El motor comprueba que el show se pueda abrir, guarda el actual, abre el otro con un motor nuevo (la misma salida de mensajes) y termina.
+  - Consejo `abrir_show`; atajo en Ayuda.
+  - **Sin probar en vivo:** el usuario tenía la demo abierta y se paró la prueba con teclas automáticas para no tocar sus ventanas.
