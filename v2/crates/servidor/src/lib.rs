@@ -576,6 +576,20 @@ fn ejecutar(ctx: &Arc<Contexto>, texto: &str) {
             });
             return;
         }
+        // Onda de un cue de audio (etapa 5D), calculada fuera de la sesión.
+        Some("onda") => {
+            let Some(i) = v.get("cue").and_then(|c| c.as_u64()).and_then(|c| usize::try_from(c).ok()) else { return };
+            let datos = ctx.sesion.lock().ok().and_then(|s| s.pista_para_onda(i));
+            if let Some((pista, archivo)) = datos {
+                let c = ctx.clone();
+                let _ = std::thread::Builder::new().name("onda".into()).spawn(move || {
+                    let picos = sesion::picos_de_onda(&pista, 800);
+                    let total_s = pista.cuadros() as f64 / pista.frecuencia() as f64;
+                    difundir(&c, serde_json::json!({ "tipo": "onda", "cue": i, "archivo": archivo, "total_s": total_s, "picos": picos }).to_string());
+                });
+            }
+            return;
+        }
         Some("medios_carpeta") => {
             let carpeta = match ctx.sesion.lock() {
                 Ok(s) => s.carpeta(),

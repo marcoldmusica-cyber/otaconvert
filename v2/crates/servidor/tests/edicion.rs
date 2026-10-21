@@ -417,3 +417,19 @@ fn parar_o_fundir_un_solo_cue_desde_sonando() {
     s.fundir_uno(9999);
     assert!(son.recibido.lock().unwrap().is_empty());
 }
+
+/// Etapa 5D: la onda son los picos del audio preparado, de 0 a 1000.
+#[test]
+fn la_onda_son_los_picos_del_audio() {
+    let d = carpeta();
+    let (mut s, _p, _son) = abrir(&d);
+    assert!(s.pista_para_onda(0).is_none(), "sin preparar, no hay onda");
+    preparar_todo(&mut s);
+    let (pista, archivo) = s.pista_para_onda(0).unwrap();
+    assert_eq!(archivo, "medios/a.wav");
+    let picos = otaconvert_servidor::sesion::picos_de_onda(&pista, 100);
+    assert_eq!(picos.len(), 100);
+    // El tono de prueba tiene pico 0,5 en todo el archivo.
+    assert!(picos.iter().all(|&p| (450..=550).contains(&p)), "{picos:?}");
+    assert!(otaconvert_servidor::sesion::picos_de_onda(&pista, 0).is_empty());
+}

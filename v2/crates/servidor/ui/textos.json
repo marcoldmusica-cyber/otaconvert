@@ -21,6 +21,10 @@
       "personalizar": "Personalizar…",
       "modo_noche": "Modo noche",
       "modo_fresno": "Madera de fresno",
+      "onda": "Onda",
+      "onda_ayuda": "Clic: el cue empieza ahí (Desde). Mayús + clic: termina ahí (Hasta). Se puede deshacer.",
+      "onda_calculando": "Dibujando la onda…",
+      "onda_preparando": "La onda aparece cuando el audio está preparado.",
       "fundir_uno": "Fundir",
       "parar_uno": "Parar",
       "modo_dia": "Modo día (al aire libre)",
@@ -275,6 +279,14 @@
       "consejo_boton": "Consejo"
     },
     "consejos": {
+      "onda": {
+        "titulo": "Onda del audio",
+        "que_hace": "Muestra cómo suena el archivo: lo alto es fuerte, lo bajo es silencio. La parte que suena va en color.",
+        "activar": "Haz clic donde quieres que empiece el cue, y Mayús + clic donde quieres que termine.",
+        "ejemplo_activar": "Ej.: la canción tiene 4 s de silencio al principio: clic donde empieza la música.",
+        "desactivar": "Si el archivo ya está recortado, no hace falta tocarla.",
+        "ejemplo_desactivar": "Ej.: un efecto preparado a la medida en el editor de audio."
+      },
       "botonera": {
         "titulo": "Botonera de sonidos",
         "que_hace": "Botones que hacen sonar algo encima de lo que suena, sin mover el cue en espera.",
@@ -632,6 +644,10 @@
       "personalizar": "Customize…",
       "modo_noche": "Night mode",
       "modo_fresno": "Ash wood",
+      "onda": "Waveform",
+      "onda_ayuda": "Click: the cue starts there (From). Shift + click: it ends there (To). It can be undone.",
+      "onda_calculando": "Drawing the waveform…",
+      "onda_preparando": "The waveform appears when the audio is prepared.",
       "fundir_uno": "Fade",
       "parar_uno": "Stop",
       "modo_dia": "Day mode (outdoors)",
@@ -886,6 +902,14 @@
       "consejo_boton": "Tip"
     },
     "consejos": {
+      "onda": {
+        "titulo": "Audio waveform",
+        "que_hace": "Shows how the file sounds: tall is loud, flat is silence. The part that plays is in colour.",
+        "activar": "Click where you want the cue to start, and Shift + click where you want it to end.",
+        "ejemplo_activar": "E.g.: the song has 4 s of silence at the start: click where the music begins.",
+        "desactivar": "If the file is already trimmed, there is no need to touch it.",
+        "ejemplo_desactivar": "E.g.: an effect already cut to size in the audio editor."
+      },
       "botonera": {
         "titulo": "Sound board",
         "que_hace": "Buttons that play something on top of whatever is playing, without moving the cue on standby.",

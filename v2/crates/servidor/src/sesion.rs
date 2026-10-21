@@ -1872,3 +1872,31 @@ impl Sesion {
         .to_string()
     }
 }
+
+impl Sesion {
+    /// Onda (etapa 5D): el audio ya preparado del cue `i` (o el sonido de un
+    /// vídeo) y su archivo. Se calcula fuera de la sesión: ver `picos_de_onda`.
+    pub fn pista_para_onda(&self, i: usize) -> Option<(Arc<Pista>, String)> {
+        let c = self.show.cues.get(i)?;
+        Some((self.preparados.get(&i)?.clone(), c.archivo.clone()))
+    }
+}
+
+/// Los picos de la onda en `columnas` partes (0 a 1000, el más alto de cada
+/// parte, de todos los canales), para dibujarla en la ventana.
+pub fn picos_de_onda(p: &Pista, columnas: usize) -> Vec<u16> {
+    let canales = (p.canales() as usize).max(1);
+    let m = p.muestras();
+    let cuadros = m.len() / canales;
+    if cuadros == 0 || columnas == 0 {
+        return Vec::new();
+    }
+    (0..columnas)
+        .map(|k| {
+            let a = k * cuadros / columnas;
+            let b = ((k + 1) * cuadros / columnas).max(a + 1).min(cuadros);
+            let pico = m[a * canales..b * canales].iter().fold(0f32, |x, v| x.max(v.abs()));
+            (pico.min(1.0) * 1000.0).round() as u16
+        })
+        .collect()
+}

@@ -161,6 +161,9 @@ kbd{font:12px var(--mono);background:var(--card2);border:1px solid var(--border)
 .bt-ed-fila .bt-ed-acc{grid-column:1/-1;display:flex;gap:6px;justify-content:flex-end}
 .bt-ed-fila input[type=color]{height:30px;padding:0 2px;width:100%}
 .bt-ed-paginas{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.onda-caja{display:flex;flex-direction:column;gap:4px;margin-top:4px}
+.onda-titulo{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+canvas.onda{width:100%;height:90px;border-radius:10px;background:var(--bg);border:1px solid var(--border);cursor:crosshair}
 .bt-ed-paginas .btn[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 .bt-ed-fila label.toggle{flex-direction:row;align-items:center;gap:8px;grid-column:span 2;color:var(--text);font-size:13px}
 .panel{background:var(--card);border:1px solid var(--border);border-radius:18px;min-height:0;display:flex;flex-direction:column;overflow:hidden}
@@ -774,7 +777,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
       tg.appendChild(cb); tg.appendChild(document.createTextNode(T("repetir_bucle"))); tg.appendChild(botonConsejo("bucle"));
       fs.appendChild(tg);
       if (c.duracion_s != null) fs.appendChild(el("p", "note-small", T("duracion", { d: mmss(c.duracion_s) }) + (c.bucle ? T("por_vuelta") : "")));
-      if (c.tipo === "audio") fs.appendChild(el("p", "note-small", T("onda_pronto")));
+      if (c.tipo === "audio") fs.appendChild(seccionOnda(i, c, editar, bloqueado));
     } else if (c.tipo === "video") {
       // Vídeo mudo: solo el bucle y la duración.
       var tgv = el("label", "toggle"), cbv = el("input"); cbv.type = "checkbox"; cbv.checked = c.bucle;
@@ -1107,6 +1110,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     ws.onmessage = function (m) {
       var d; try { d = JSON.parse(m.data); } catch (x) { return; }
       if (d.tipo === "medios") { dibujarMedios(d.lista || []); if (btEd) { btEd.medios = d.lista || []; pintarEditor(); } return; }
+      if (d.tipo === "onda") { recibirOnda(d); return; }
       if (d.tipo === "equipo") { if (ajustesDlg) { ajustesDlg.lista = d; pintarSalidas(); } return; }
       if (d.tipo !== "estado") return;
       e = d;
@@ -1920,6 +1924,60 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
       cu.appendChild(f);
     });
     cu.scrollTop = arriba;
+  }
+
+  // ---- Onda del audio (etapa 5D) ----
+  // Los picos los calcula el motor (orden "onda"); aquí se guardan por archivo.
+  var ondas = {}, ondaPedida = {};
+  function seccionOnda(i, c, editar, bloqueado) {
+    var w = el("div", "onda-caja");
+    var t = el("div", "onda-titulo"); t.appendChild(el("span", "", T("onda"))); t.appendChild(botonConsejo("onda"));
+    w.appendChild(t);
+    var cv = el("canvas", "onda"); cv.width = 800; cv.height = 90; cv.dataset.cue = i;
+    w.appendChild(cv);
+    w.appendChild(el("p", "note-small", T("onda_ayuda")));
+    var o = ondas[c.archivo];
+    if (!o && c.preparacion === "listo" && !ondaPedida[c.archivo]) { ondaPedida[c.archivo] = true; mandar("onda", { cue: i }); }
+    cv.onclick = function (ev) {
+      var on = ondas[c.archivo]; if (!on || bloqueado) return;
+      var r = cv.getBoundingClientRect();
+      var s = Math.max(0, Math.min(on.total_s, (ev.clientX - r.left) / r.width * on.total_s));
+      var ms = Math.round(s * 1000);
+      if (ev.shiftKey) { if (ms > c.inicio_s * 1000) editar({ fin_ms: ms }); }
+      else if (c.fin_s == null || ms < c.fin_s * 1000) editar({ inicio_ms: ms });
+    };
+    pintarOnda(cv, c);
+    return w;
+  }
+  function pintarOnda(cv, c) {
+    var ctx = cv.getContext("2d"), W = cv.width, H = cv.height, o = ondas[c.archivo];
+    var css = getComputedStyle(document.documentElement);
+    ctx.clearRect(0, 0, W, H);
+    if (!o) {
+      ctx.fillStyle = css.getPropertyValue("--dim");
+      ctx.font = "13px " + css.getPropertyValue("--font");
+      ctx.fillText(c.preparacion === "listo" ? T("onda_calculando") : T("onda_preparando"), 10, H / 2 + 4);
+      return;
+    }
+    var n = o.picos.length, ini = (c.inicio_s || 0) / o.total_s, fin = (c.fin_s != null ? c.fin_s : o.total_s) / o.total_s;
+    var acento = css.getPropertyValue("--accent"), apagado = css.getPropertyValue("--dim");
+    // Un archivo suave se agranda (hasta 8 veces) para que se vea su forma.
+    var max = Math.max.apply(null, o.picos.concat([1])), escala = Math.min(8, 1000 / max);
+    for (var k = 0; k < n; k++) {
+      var x = k / n, h = Math.max(1, Math.min(1000, o.picos[k] * escala) / 1000 * (H - 6));
+      ctx.fillStyle = x >= ini && x <= fin ? acento : apagado;
+      ctx.fillRect(Math.floor(x * W), (H - h) / 2, Math.max(1, Math.ceil(W / n) - 0), h);
+    }
+    ctx.fillStyle = css.getPropertyValue("--text");
+    [ini, fin].forEach(function (p) { ctx.fillRect(Math.round(p * W) - 1, 0, 2, H); });
+  }
+  function recibirOnda(d) {
+    ondas[d.archivo] = { picos: d.picos, total_s: d.total_s };
+    delete ondaPedida[d.archivo];
+    document.querySelectorAll("canvas.onda").forEach(function (cv) {
+      var c = e && e.cues[+cv.dataset.cue];
+      if (c && c.archivo === d.archivo) pintarOnda(cv, c);
+    });
   }
 
   // ---- Botones ----
