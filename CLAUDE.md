@@ -1000,3 +1000,34 @@ Pedido del usuario: "Sí, sigue con la etapa 5." Repartida en cuatro partes que 
   - con NVIDIA como Auriculares: «■ Parar la escucha», «0 sonando» en la sala y, al volver a tocar, se para;
   - registro: ESCUCHA «Cue 1 … por Auriculares» y «fin».
 - **Subido y comprobado (22/10/2026):** todo lo de la etapa 5B, 5C, 5D, la botonera y el tema fresno (16 commits hasta 2bb864c). Run 39623475936 **verde** (compilación, pruebas, ventana y vulnerabilidades). Demo nueva en `CLOUDE - Herramientas Ota\Otaconvert-Demo-0.0.1` (`Otaconvert.exe` SHA-256 `04f4c05b…`; `--comprobar`: no falta nada). Solo se reemplazaron los archivos del programa: `Show de ejemplo` y `datos` quedaron como estaban.
+
+### Medidor de nivel (etapa 5C, 22/10/2026)
+- **Riesgo avisado y aprobado («Procede con el 1»):** toca el motor de audio. Para hacerlo seguro:
+  - solo se **mide**;
+  - va en la **misma pasada** que ya hacía el mezclador sobre la salida (el último seguro de 0 dB);
+  - sin pedir memoria ni esperar a nadie;
+  - se lee desde otro hilo.
+- **Motor de audio** (`mezclador.rs`):
+  - `Estadisticas.pico: [AtomicU32; 2]`: el pico del lado izquierdo y del derecho, en bits de `f32`. Para números positivos el orden de los bits es el del valor, así que sirve `fetch_max`.
+  - Se mide **después del limitador**, o sea lo que sale de verdad. En mono, los dos lados son iguales.
+  - El último seguro sigue cubriendo **todas** las muestras, también un cuadro incompleto.
+  - `tomar_picos()` devuelve el pico desde la última lectura y vuelve a 0.
+  - Prueba `el_medidor_ve_el_pico_de_lo_que_sale` (tono a 0,5 → 0,5; leer lo vuelve a 0; volumen a la mitad → 0,25; mono).
+  - **`sin_memoria` y el estrés siguen en verde.**
+- **Sesión y motor:**
+  - `Sonido::niveles()` tiene un valor por defecto vacío, así los sonidos falsos de las pruebas no cambian.
+  - `SonidoCpal` da el pico de Principal y de Auriculares, y si el limitador actuó (cuadros limitados nuevos).
+  - `Sesion::tomar_niveles()` lo pasa a dB (−90 = silencio).
+  - Un hilo «niveles» manda `{tipo: "niveles", principal: {db: [i, d], limitando}, auriculares}` **10 veces por segundo**, aparte del estado. Si todo está en silencio y ya se avisó, no manda nada.
+- **Ventana:**
+  - En la cabecera, **Sala** (y **Auris** si hay auriculares): dos barras finas, izquierda arriba y derecha abajo, de −60 a 0 dB.
+  - Verde hasta −18, amarillo hasta −6 y rojo arriba.
+  - Caída suave de 30 dB por segundo y una marca que recuerda el pico 1,5 s.
+  - **LIM** se prende en rojo cuando el limitador está bajando el volumen.
+  - Si no llegan datos (silencio), las barras caen solas.
+  - Consejo `medidor` y ayuda `medidor` (es/en).
+- **Probado en el programa:**
+  - Con la música de sala a volumen maestro −60 dB (no sonó nada), llegaron unas 10 mediciones por segundo con −81,6 dB, lo esperable para una música suave −60 dB.
+  - Se corrigió el redondeo (salía −81,5999…).
+  - **No visto con sonido audible**: las barras con nivel alto y LIM quedan por ver con sonido real.
+- **129 pruebas en verde.**
