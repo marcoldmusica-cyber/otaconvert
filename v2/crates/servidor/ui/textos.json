@@ -21,6 +21,9 @@
       "personalizar": "Personalizar…",
       "modo_noche": "Modo noche",
       "modo_fresno": "Madera de fresno",
+      "med_sala": "Sala",
+      "med_auris": "Auris",
+      "medidor_lim": "El limitador está bajando el volumen para que no pase de 0 dB.",
       "escucha": "🎧 Escuchar por auriculares",
       "escucha_parar": "■ Parar la escucha",
       "onda": "Onda",
@@ -281,6 +284,14 @@
       "consejo_boton": "Consejo"
     },
     "consejos": {
+      "medidor": {
+        "titulo": "Medidor de nivel",
+        "que_hace": "Muestra cuánto suena lo que sale por la sala (y por auriculares), izquierda arriba y derecha abajo.",
+        "activar": "Míralo en el ensayo: lo normal es verde o amarillo; si llega a rojo y se prende LIM, baja ese cue.",
+        "ejemplo_activar": "Ej.: la música final prende LIM todo el tiempo: bájale 3 dB en su volumen.",
+        "desactivar": "Si no se mueve con algo sonando, revisa la salida de sonido en Ajustes del show.",
+        "ejemplo_desactivar": "Ej.: la barra queda quieta: el sonido sale por otra tarjeta."
+      },
       "escucha": {
         "titulo": "Escuchar por auriculares",
         "que_hace": "El cue suena solo en tus auriculares: la sala no oye nada y la lista no se mueve.",
@@ -608,6 +619,7 @@
       "modos": ["Edición y Función", "Hay dos maneras de usar el programa. Edición es para preparar el show, como armar los juguetes antes de jugar. Función es para el show de verdad: no se puede cambiar nada, así no te equivocas. La tecla Tab cambia de una a otra y el sonido no se corta."],
       "conexion": ["Conexión", "El punto verde quiere decir que la pantalla está conectada con el sonido. Si se pone rojo, el programa intenta volver a conectarse solo."],
       "luz": ["Luz verde", "Es como revisar la mochila antes de salir: tocas aquí y el programa mira que cada sonido, vídeo e imagen esté y funcione, y que la computadora esté lista. Verde es todo bien, amarillo es para mirar algo, rojo es que algo no va a andar."],
+      "medidor": ["Medidor de nivel", "Son como termómetros del sonido: cuanto más se llena la barra, más fuerte suena. Verde está bien, rojo es demasiado fuerte. Si se prende LIM, el programa está bajando el volumen solo para cuidar los parlantes."],
       "botonera": ["Botonera", "Es como un teclado de efectos: cada botón hace sonar algo cuando lo tocas, aunque ya esté sonando otra cosa. No cambia el cue que sigue. Esc y Fundir todo también la apagan."],
       "reloj": ["Reloj", "La hora de ahora, para saber cuándo empieza la función."],
       "lista": ["La lista de cues", "Un cue es cada cosa que pasa en el show: una música, un ruido, un vídeo o una foto. Aquí están todos, en orden, como una receta paso a paso. El que tiene el borde de color es el que sale cuando toques GO. Lo que está en verde está sonando ahora."],
@@ -654,6 +666,9 @@
       "personalizar": "Customize…",
       "modo_noche": "Night mode",
       "modo_fresno": "Ash wood",
+      "med_sala": "House",
+      "med_auris": "Phones",
+      "medidor_lim": "The limiter is lowering the volume so it doesn't go above 0 dB.",
       "escucha": "🎧 Listen on headphones",
       "escucha_parar": "■ Stop listening",
       "onda": "Waveform",
@@ -914,6 +929,14 @@
       "consejo_boton": "Tip"
     },
     "consejos": {
+      "medidor": {
+        "titulo": "Level meter",
+        "que_hace": "Shows how loud the house output (and headphones) is: left on top, right below.",
+        "activar": "Watch it in rehearsal: green or yellow is normal; if it reaches red and LIM lights up, lower that cue.",
+        "ejemplo_activar": "E.g.: the final song keeps LIM on: lower its volume by 3 dB.",
+        "desactivar": "If it doesn't move while something plays, check the sound output in Show settings.",
+        "ejemplo_desactivar": "E.g.: the bar stays still: sound is going to another card."
+      },
       "escucha": {
         "titulo": "Listen on headphones",
         "que_hace": "The cue plays only in your headphones: the house hears nothing and the list doesn't move.",
@@ -1241,6 +1264,7 @@
       "modos": ["Edit and Live", "There are two ways to use the program. Edit is for preparing the show, like setting up your toys before playing. Live is for the real performance: nothing can be changed, so you can't make mistakes. The Tab key switches between them and the sound doesn't stop."],
       "conexion": ["Connection", "The green dot means the screen is connected to the sound. If it turns red, the program tries to reconnect by itself."],
       "luz": ["Green light", "It is like checking your backpack before leaving: tap here and the program checks that every sound, video and image is there and works, and that the computer is ready. Green is all good, yellow means look at something, red means something will not work."],
+      "medidor": ["Level meter", "They are like sound thermometers: the fuller the bar, the louder it is. Green is fine, red is too loud. If LIM lights up, the program is turning the volume down by itself to protect the speakers."],
       "botonera": ["Sound board", "It is like an effects keyboard: each button plays something when you press it, even if something else is already playing. It doesn't change the next cue. Esc and Fade all also turn it off."],
       "reloj": ["Clock", "The current time, so you know when the show starts."],
       "lista": ["The cue list", "A cue is each thing that happens in the show: some music, a noise, a video or a picture. They're all here, in order, like a step-by-step recipe. The one with the colored border goes when you press GO. Whatever is green is playing now."],

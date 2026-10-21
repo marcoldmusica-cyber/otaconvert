@@ -117,6 +117,17 @@ pub struct Estadisticas {
     pub basura_llena: AtomicU64,
     /// Cuadros en los que el limitador tuvo que bajar el volumen.
     pub cuadros_limitados: AtomicU64,
+    /// Medidor de nivel: el pico de lo que salió (canal izquierdo y derecho),
+    /// desde la última lectura, como bits de un `f32` (0 a 1). Para números
+    /// positivos el orden de los bits es el de los valores: sirve `fetch_max`.
+    pub pico: [AtomicU32; 2],
+}
+
+impl Estadisticas {
+    /// El pico de cada canal desde la última vez (y vuelve a empezar).
+    pub fn tomar_picos(&self) -> [f32; 2] {
+        [f32::from_bits(self.pico[0].swap(0, Relaxed)), f32::from_bits(self.pico[1].swap(0, Relaxed))]
+    }
 }
 
 /// Lado del hilo de control: envía comandos y libera los audios que ya no suenan.
@@ -259,12 +270,19 @@ impl Mezclador {
             }
         }
         // Último seguro: nada sale por encima de 0 dBFS (con el limitador no debería pasar).
+        // En la misma pasada, el pico de cada lado para el medidor (sin pedir memoria).
         let mut recortes = 0;
-        for s in salida.iter_mut() {
+        let mut pico = [0f32; 2];
+        for (k, s) in salida.iter_mut().enumerate() {
             if s.abs() > 1.0 {
                 recortes += 1;
                 *s = s.clamp(-1.0, 1.0);
             }
+            let lado = (k % canales).min(1);
+            pico[lado] = pico[lado].max(s.abs());
+        }
+        if canales == 1 {
+            pico[1] = pico[0];
         }
 
         let e = &self.estadisticas;
@@ -276,6 +294,12 @@ impl Mezclador {
         }
         if no_numeros > 0 {
             e.no_numeros.fetch_add(no_numeros, Relaxed);
+        }
+        for (k, p) in pico.iter().enumerate() {
+            // Un NaN ya se contó arriba; aquí solo valores de 0 a 1.
+            if p.is_finite() {
+                e.pico[k].fetch_max(p.to_bits(), Relaxed);
+            }
         }
     }
 
@@ -518,6 +542,32 @@ mod pruebas {
         let mut v = vec![0.0; cuadros * m.canales()];
         m.procesar(&mut v);
         v
+    }
+
+    /// Medidor de nivel: el pico de lo que sale, por lado, desde la última lectura.
+    #[test]
+    fn el_medidor_ve_el_pico_de_lo_que_sale() {
+        let (mut m, mut c) = crear(FS, 2, Ajustes::para(FS));
+        assert_eq!(c.estadisticas.tomar_picos(), [0.0, 0.0], "en silencio, 0");
+        c.enviar(Comando::Iniciar { id: 1, pista: tono(), volumen: 1.0, desde: 0, bucle: true, fundido: 0 }).unwrap();
+        render(&mut m, 4800);
+        let [i, d] = c.estadisticas.tomar_picos();
+        assert!((i - 0.5).abs() < 0.01 && (d - 0.5).abs() < 0.01, "el tono tiene pico 0,5: {i} {d}");
+        assert_eq!(c.estadisticas.tomar_picos(), [0.0, 0.0], "leer lo vuelve a 0");
+        // Con el volumen a la mitad, el pico también.
+        c.enviar(Comando::Volumen { id: 1, volumen: 0.5, cuadros: 0 }).unwrap();
+        render(&mut m, 4800);
+        render(&mut m, 4800);
+        c.estadisticas.tomar_picos();
+        render(&mut m, 4800);
+        let [i, _] = c.estadisticas.tomar_picos();
+        assert!((i - 0.25).abs() < 0.01, "{i}");
+        // En mono, los dos lados muestran lo mismo.
+        let (mut m1, mut c1) = crear(FS, 1, Ajustes::para(FS));
+        c1.enviar(Comando::Iniciar { id: 1, pista: Arc::new(Pista::tono(440.0, 0.5, FS as usize, 1, FS)), volumen: 1.0, desde: 0, bucle: true, fundido: 0 }).unwrap();
+        render(&mut m1, 4800);
+        let [i, d] = c1.estadisticas.tomar_picos();
+        assert!(i > 0.49 && i == d, "{i} {d}");
     }
 
     #[test]

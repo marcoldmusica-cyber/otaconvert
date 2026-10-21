@@ -112,6 +112,14 @@ kbd{font:12px var(--mono);background:var(--card2);border:1px solid var(--border)
 .chip.on .dot{background:var(--ok)}
 .chip.warn .dot{background:var(--warn)}
 .chip.luz{cursor:pointer;font:inherit;font-size:12px}
+.medidor{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted)}
+.medidor .med-grupo{display:flex;align-items:center;gap:5px}
+.medidor .med-barras{display:flex;flex-direction:column;gap:2px;width:84px}
+.medidor .med-barra{position:relative;height:4px;border-radius:2px;background:var(--border);overflow:hidden}
+.medidor .med-barra i{position:absolute;inset:0 auto 0 0;width:0;background:linear-gradient(90deg,var(--ok) 0 70%,var(--warn) 70% 90%,var(--err) 90%);background-size:84px 100%}
+.medidor .med-barra b{position:absolute;top:0;bottom:0;width:2px;background:var(--text);left:0;opacity:.8}
+.medidor .lim{font-weight:700;letter-spacing:.02em;color:var(--dim);border:1px solid var(--border);border-radius:5px;padding:0 4px}
+.medidor .lim.on{color:var(--on-accent);background:var(--err);border-color:var(--err)}
 .chip.luz .dot{background:var(--dim)}
 .chip.luz.bien .dot{background:var(--ok)}
 .chip.luz.aviso .dot{background:var(--warn)}
@@ -463,6 +471,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
       </div>
       <kbd>Tab</kbd>
     </div>
+    <div class="medidor" id="medidor" data-help="medidor" data-consejo="medidor"></div>
     <button class="chip luz" id="luz" type="button" data-help="luz" data-consejo="luz_verde"><span class="dot"></span><span id="luz-texto"></span></button>
     <div class="chip" id="conexion" data-help="conexion"><span class="dot"></span><span id="conexion-texto"></span></div>
     <div class="clock num" id="reloj" data-help="reloj">00:00:00</div>
@@ -1123,6 +1132,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     ws.onmessage = function (m) {
       var d; try { d = JSON.parse(m.data); } catch (x) { return; }
       if (d.tipo === "medios") { dibujarMedios(d.lista || []); if (btEd) { btEd.medios = d.lista || []; pintarEditor(); } return; }
+      if (d.tipo === "niveles") { recibirNiveles(d); return; }
       if (d.tipo === "onda") { recibirOnda(d); return; }
       if (d.tipo === "equipo") { if (ajustesDlg) { ajustesDlg.lista = d; pintarSalidas(); } return; }
       if (d.tipo !== "estado") return;
@@ -2007,6 +2017,50 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     ev.preventDefault();
     mandar("ver_antes", { cue: +b.dataset.escucha });
   });
+
+  // ---- Medidor de nivel (lo que sale de verdad, después del limitador) ----
+  // El motor manda el pico de cada 100 ms en dB; aquí se dibuja con caída suave
+  // y una marca que recuerda el pico 1,5 s.
+  var medidor = {};
+  function barraMedidor() { var b = el("div", "med-barra"); b.appendChild(el("i")); b.appendChild(el("b")); return b; }
+  function grupoMedidor(clave, nombre) {
+    var g = el("div", "med-grupo"); g.dataset.salida = clave;
+    g.appendChild(el("span", "", nombre));
+    var bs = el("div", "med-barras"), izq = barraMedidor(), der = barraMedidor();
+    bs.appendChild(izq); bs.appendChild(der); g.appendChild(bs);
+    var lim = el("span", "lim", "LIM"); lim.title = T("medidor_lim"); g.appendChild(lim);
+    medidor[clave] = { g: g, barras: [izq, der], lim: lim, nivel: [-90, -90], pico: [-90, -90], hasta: [0, 0], limHasta: 0 };
+    $("medidor").appendChild(g);
+  }
+  function pct(db) { return Math.max(0, Math.min(100, (db + 60) / 60 * 100)); }
+  var ultimosNiveles = 0;
+  // Sin datos nuevos (todo en silencio): las barras caen solas.
+  setInterval(function () {
+    if (Date.now() - ultimosNiveles < 250) return;
+    var d = {};
+    Object.keys(medidor).forEach(function (k) { d[k] = { db: [-90, -90], limitando: false }; });
+    if (Object.keys(d).length) recibirNiveles(d, true);
+  }, 100);
+  function recibirNiveles(d, solo) {
+    if (!solo) ultimosNiveles = Date.now();
+    var ahora = Date.now();
+    [["principal", T("med_sala")], ["auriculares", T("med_auris")]].forEach(function (x) {
+      var dato = d[x[0]];
+      if (!dato) { if (medidor[x[0]]) { medidor[x[0]].g.remove(); delete medidor[x[0]]; } return; }
+      if (!medidor[x[0]]) grupoMedidor(x[0], x[1]);
+      var m = medidor[x[0]];
+      for (var k = 0; k < 2; k++) {
+        var db = dato.db[k];
+        m.nivel[k] = Math.max(db, m.nivel[k] - 3);   // cae 30 dB por segundo
+        if (db >= m.pico[k] || ahora > m.hasta[k]) { m.pico[k] = db; m.hasta[k] = ahora + 1500; }
+        m.barras[k].firstChild.style.width = pct(m.nivel[k]) + "%";
+        m.barras[k].lastChild.style.left = "calc(" + pct(m.pico[k]) + "% - 2px)";
+        m.barras[k].lastChild.style.display = m.pico[k] > -60 ? "" : "none";
+      }
+      if (dato.limitando) m.limHasta = ahora + 1000;
+      m.lim.classList.toggle("on", ahora < m.limHasta);
+    });
+  }
 
   // ---- Botones ----
   $("go").onclick = function () { mandar("go"); };

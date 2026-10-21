@@ -79,6 +79,8 @@ pub struct SonidoCpal {
     pub principal: Control,
     pub frecuencia: u32,
     pub auriculares: Option<Control>,
+    /// Cuadros limitados ya vistos (Principal, Auriculares), para el medidor.
+    pub limitados_vistos: [u64; 2],
 }
 
 impl Sonido for SonidoCpal {
@@ -100,5 +102,16 @@ impl Sonido for SonidoCpal {
         if let Some(a) = self.auriculares.as_mut() {
             a.recoger_basura();
         }
+    }
+    fn niveles(&mut self) -> Vec<(Destino, [f32; 2], bool)> {
+        let mut v = Vec::new();
+        for (k, (d, c)) in [(Destino::Principal, Some(&self.principal)), (Destino::Auriculares, self.auriculares.as_ref())].into_iter().enumerate() {
+            let Some(c) = c else { continue };
+            let lim = c.estadisticas.cuadros_limitados.load(Relaxed);
+            let limitando = lim > self.limitados_vistos[k];
+            self.limitados_vistos[k] = lim;
+            v.push((d, c.estadisticas.tomar_picos(), limitando));
+        }
+        v
     }
 }

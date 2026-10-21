@@ -189,6 +189,22 @@ impl Servidor {
                 },
             }
         })?;
+        // Medidor de nivel: 10 veces por segundo, aparte del estado (solo los
+        // números; si todo está en silencio y ya se avisó, no se manda nada).
+        let c5 = ctx.clone();
+        std::thread::Builder::new().name("niveles".into()).spawn(move || {
+            let mut en_silencio = false;
+            loop {
+                std::thread::sleep(Duration::from_millis(100));
+                let Some(v) = c5.sesion.lock().ok().and_then(|mut s| s.tomar_niveles()) else { continue };
+                let silencio = [&v["principal"], &v["auriculares"]].iter().all(|x| x.is_null() || x["db"].as_array().is_some_and(|a| a.iter().all(|d| d.as_f64() == Some(-90.0))));
+                if silencio && en_silencio {
+                    continue;
+                }
+                en_silencio = silencio;
+                difundir(&c5, v.to_string());
+            }
+        })?;
         let c4 = ctx.clone();
         std::thread::Builder::new().name("refresco".into()).spawn(move || {
             let mut ultimo = String::new();

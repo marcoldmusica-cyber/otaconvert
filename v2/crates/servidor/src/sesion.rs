@@ -1962,3 +1962,18 @@ impl Sesion {
         Ok(())
     }
 }
+
+impl Sesion {
+    /// Medidor de nivel: lo que midió cada salida desde la última vez, en dB
+    /// (−90 = silencio), para la ventana. `None` si no hay sonido.
+    pub fn tomar_niveles(&mut self) -> Option<serde_json::Value> {
+        let s = self.sonido.as_mut()?;
+        let db = |x: f32| if x <= 0.000_031_6 { -90.0 } else { (20.0 * (x as f64).log10()).max(-90.0) };
+        let mut v = json!({ "tipo": "niveles", "principal": null, "auriculares": null });
+        for (d, [i, r], lim) in s.niveles() {
+            let k = if d == Destino::Auriculares { "auriculares" } else { "principal" };
+            v[k] = json!({ "db": [(db(i) * 10.0).round() / 10.0, (db(r) * 10.0).round() / 10.0], "limitando": lim });
+        }
+        Some(v)
+    }
+}

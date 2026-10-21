@@ -465,7 +465,7 @@ pub fn ejecutar(segundos: u64, carpeta: Option<&Path>, pantalla: Option<&str>, s
         .map_err(|e| format!("no se pudo grabar la salida: {e}"))?;
     grabacion.play().map_err(|e| e.to_string())?;
     let (tardias, intervalo_max_us) = (principal.tardias.clone(), principal.intervalo_max_us.clone());
-    sesion.conectar_sonido(Box::new(crate::sonido_cpal::SonidoCpal { principal: principal.control, frecuencia: fs, auriculares: None }));
+    sesion.conectar_sonido(Box::new(crate::sonido_cpal::SonidoCpal { principal: principal.control, frecuencia: fs, auriculares: None, limitados_vistos: [0; 2] }));
 
     let proyector = crate::show_cmd::abrir_proyeccion(Some(&pantalla_usada))?;
     let pid_proyector = proyector.pid();

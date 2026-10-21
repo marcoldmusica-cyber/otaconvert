@@ -18,4 +18,9 @@ pub trait Sonido: Send {
     fn enviar(&mut self, destino: Destino, comando: Comando) -> Result<(), String>;
     /// Libera los audios que ya no suenan (fuera del hilo de audio).
     fn recoger_basura(&mut self);
+    /// Medidor de nivel: el pico (0 a 1) de cada lado de cada salida desde la
+    /// última vez, y si el limitador tuvo que actuar. Un sonido falso no mide nada.
+    fn niveles(&mut self) -> Vec<(Destino, [f32; 2], bool)> {
+        Vec::new()
+    }
 }

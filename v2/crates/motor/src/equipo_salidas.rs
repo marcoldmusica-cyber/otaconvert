@@ -135,7 +135,7 @@ pub fn abrir_sonido(principal: Option<&str>, auriculares: Option<&str>, margen_m
             Err(e) => aviso = Some(format!("No se pudo abrir Auriculares: {e}. Queda sin usar.")),
         }
     }
-    let sonido = crate::sonido_cpal::SonidoCpal { principal: p.control, frecuencia, auriculares: control_aur };
+    let sonido = crate::sonido_cpal::SonidoCpal { principal: p.control, frecuencia, auriculares: control_aur, limitados_vistos: [0; 2] };
     let principal = Abierta { stream: p.stream, id: p.id, nombre: p.nombre, errores: p.errores, tardias: p.tardias, intervalo_max_us: p.intervalo_max_us };
     Ok((JuegoSonido { principal, auriculares: aur, sonido, frecuencia }, aviso))
 }
