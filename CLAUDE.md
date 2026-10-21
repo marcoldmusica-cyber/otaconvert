@@ -133,7 +133,7 @@ Panel con sonidos sueltos que se disparan a mano **superpuestos** a lo que esté
 - **Edición y Función:** en las dos se disparan; en Función no se editan.
 - **Parar todo** (Esc) y **Fundir todo** (F) también los paran o funden (pánico). **Mayús+F** (fundir el último cue) no los toca: un botón se funde tocándolo otra vez si tiene fundido de salida. A confirmar con el usuario.
 - **Motor:** los sonidos de la botonera quedan **siempre en memoria** desde que se abre el show (no solo al quedar en espera), para que suenen al instante; el mezclador ya mezcla voces superpuestas (hasta 64) con las mismas rampas configurables. Cuentan para la comprobación previa (memoria, picos > 0 dB).
-- **Fase 1** (el motor ya lo soporta; es un panel más). Pendiente: agregarla al boceto.
+- **Fase 1. Hecha el 21/10/2026** (ver sección 12, «Botonera de sonidos»). Pendiente: agregarla al boceto.
 - Ayuda para principiantes: "La botonera es como un teclado de efectos: cada botón hace sonar algo cuando lo tocas, aunque ya esté sonando otra cosa".
 
 ## 5c. Gráficos en vivo: temporizadores y complementos (pedido por el usuario el 16/10/2026)
@@ -157,8 +157,8 @@ El usuario pidió **no llenar la ventana de botones** para ajustes del tipo "mos
 | Menú | Contenido |
 |---|---|
 | **Archivo** | Nuevo show · Abrir… · Abrir reciente ▸ · Guardar · Guardar como… · Salir (sin "Reunir medios": al agregar, lo de fuera ya se copia a `Medios/`, etapa 5A) |
-| **Edición** | Deshacer · Rehacer · **Agregar cues…** · Eliminar cue · Subir cue · Bajar cue · Copiar · Pegar · **Ajustes del show…** (rampas cortas, salidas y perfiles de teatro, protección contra doble GO) |
-| **Vista** | Personalizar… · Vistas listas ▸ · Modo noche · Modo día · Madera de fresno · Botonera ▸ (Cuadrícula / Lista) · Idioma ▸ (Español / English) · Restaurar vista |
+| **Edición** | Deshacer · Rehacer · **Agregar cues…** · Eliminar cue · Subir cue · Bajar cue · Copiar · Pegar · **Botonera…** · **Ajustes del show…** (rampas cortas, salidas y perfiles de teatro, protección contra doble GO) |
+| **Vista** | Personalizar… · Vistas listas ▸ · Modo noche · Modo día · Madera de fresno · Botonera ▸ (Oculta / Cuadrícula / Lista) · Idioma ▸ (Español / English) · Restaurar vista |
 | **Ayuda** | Modo Ayuda (H) · Primeros pasos · **Mostrar consejos** ✓ · Atajos de teclado · Prueba de hardware… · Acerca de Otaconvert |
 
 - Cada opción aparece **una sola vez** (nada repetido en dos menús ni como botón suelto).
@@ -917,3 +917,49 @@ Pedido del usuario: "Sí, sigue con la etapa 5." Repartida en cuatro partes que 
   - Al ponerle un fundido inicial, la luz volvió a «Sin comprobar»; al comprobar de nuevo quedó solo «cambios sin guardar».
   - Tras Ctrl+S: **verde, «Todo listo»**.
 - **Pendiente:** revisar que el proyector esté en modo Extender y con la resolución correcta; avisar de las actualizaciones de Windows (sección 7).
+
+### Botonera de sonidos (21/10/2026, trabajando solo)
+- **No cambia el formato del show:** usa `Show.botonera` (`PaginaBotonera` / `BotonSonido`), que el archivo ya tenía desde la etapa 1.
+- **Sesión** (`crates/servidor/src/botonera.rs`, módulo hijo de `sesion.rs`):
+  - **Siempre en memoria:** cada sonido de la botonera se prepara después de los cues en espera, en el mismo hilo preparador (`siguiente_boton_a_preparar` / `resultado_boton`). La clave es archivo + bucle (el empalme del bucle se prepara distinto). Al cambiar de tarjeta se vuelven a preparar, y se sueltan los que ningún botón usa.
+  - **`tocar_boton(página, botón)`**, en Edición y en Función: suena encima de lo que haya, no mueve el cue en espera y no cuenta como GO (no activa la protección contra doble GO). Si se toca mientras suena, según `al_repetir`:
+    - **parar** (por defecto): lo baja con su fundido final;
+    - **reiniciar**: lo para con la rampa y lo arranca de nuevo;
+    - **superponer**: suena otra copia.
+  - Auriculares sin auriculares elegidos → suena por Principal.
+  - Registro BOTON.
+  - **`tecla_boton`**: una letra salvo P, F y H (las usa el programa), un número o F1–F12. No distingue mayúsculas.
+  - **Parar todo** la para; **Fundir todo** la funde; **Mayús+F no la toca** (decisión de la sección 5b); **Pausa** la pausa y corre su fin.
+  - **`editar_botonera(páginas)`**, solo en Edición. Valida todo antes de cambiar nada:
+    - hasta 20 páginas de 64 botones;
+    - nombre de 1 a 60 letras;
+    - color `#RRGGBB`;
+    - el sonido tiene que ser un audio dentro de la carpeta;
+    - volumen de −60 a +12 dB y fundidos de hasta 10 min;
+    - salida Principal o Auriculares;
+    - teclas válidas y sin repetir.
+    Se puede deshacer; registro BOTONERA. Lo que sonaba sigue sonando, pero ya no se puede tocar de nuevo para pararlo (los botones pudieron cambiar de lugar): Parar todo lo para.
+  - Estado: `botonera` con preparación, error y si suena cada botón.
+- **Canal:** órdenes `boton {pagina, boton}`, `boton_tecla {tecla}` y `botonera {paginas}`.
+- **Ventana:**
+  - Panel **Botonera** debajo de la lista de cues, oculto por defecto. Se muestra con **Vista → Botonera ▸ Oculta / Cuadrícula / Lista** (preferencia de la ventana).
+  - Pestañas de página. Cada botón muestra su franja de color, nombre, tecla y estado (Preparando… / No se puede reproducir), y se ilumina mientras suena.
+  - Se toca al apretar (`pointerdown`), porque el panel se redibuja varias veces por segundo. En el Modo Ayuda no suena.
+  - Las teclas de los botones funcionan también en Función, nunca con una ventanita abierta ni escribiendo.
+  - **Edición → Botonera…** (en Función explica que se arma en Edición):
+    - Páginas: agregar, renombrar, quitar.
+    - Botones: nombre, sonido (los audios de la carpeta del show), color, tecla, volumen, salida, fundido inicial y final, «Si se toca mientras suena», bucle, subir, bajar y quitar.
+    - «Agregar botón», «Cancelar» y «Guardar». Antes de mandar revisa lo mismo que el motor y avisa.
+  - Consejos nuevos: `botonera`, `botonera_vista`, `boton_color`, `boton_tecla`, `boton_repetir` (los demás reusan los del cue). Ayuda `botonera`. Todo en es/en.
+- **Pruebas** (`tests/botonera.rs`, 4):
+  - tocar otra vez: parar con fundido de 500 ms = 24 000 cuadros, superponer 2 copias, y reiniciar por su tecla en Función;
+  - no mueve el cue en espera y el GO sigue andando; Parar todo la para; un archivo que falta avisa;
+  - Fundir todo la funde y Mayús+F no;
+  - editar: 9 pedidos malos no cambian nada, en Función se rechaza, F2 funciona, deshacer;
+  - teclas válidas.
+  - **124 pruebas en verde.**
+- **Probado en el programa** (volumen maestro −60 dB, no sonó nada):
+  - Aplausos se ilumina al tocarlo y se apaga al tocarlo otra vez.
+  - Con el editor le puse la tecla 1 y la tecla 1 lo toca; Esc lo para.
+  - Arreglos de diseño hechos al verlo: la casilla del bucle quedaba mal puesta y no se veía qué página estaba elegida.
+- **Pendiente:** la comprobación previa todavía no revisa los sonidos de la botonera (picos, archivos que faltan); el panel no se puede mover (llega con Vista → Personalizar, Fase 2).
