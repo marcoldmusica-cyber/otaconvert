@@ -347,15 +347,20 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
 </section>
 
 <section class="card" id="salidas">
-  <h2>Elegir dónde sale el sonido y la imagen <span class="estado pronto">Próximamente</span></h2>
-  <p>Siempre puedes elegir <strong>por qué tarjeta de sonido</strong> sale el audio y <strong>en qué pantalla o proyector</strong> sale el vídeo. Se hace en <strong>Edición → Ajustes del show → Salidas</strong>.</p>
-  <h3>Sonido</h3>
-  <p>El show usa salidas con nombre, como <em>Principal</em> (lo que escucha el público) y <em>Auriculares</em> (para preescuchar). A cada una le eliges una tarjeta de sonido de la lista. Si no eliges nada, <em>Principal</em> usa la salida que Windows tenga por defecto.</p>
-  <h3>Imagen</h3>
-  <p>El <em>Proyector</em> se asigna a una de tus pantallas. La lista muestra el nombre del proyector o monitor, la tarjeta gráfica que lo maneja, su resolución y su frecuencia, para que no haya dudas.</p>
-  <h3>En cada teatro</h3>
-  <p>Lo que eliges se guarda en el <strong>perfil del teatro</strong>. Al llevar el show a otro teatro, el programa te propone las salidas de ese lugar, tú confirmas y queda recordado para la próxima vez.</p>
-  <div class="nota cuidado">Si la tarjeta o la pantalla elegida no está conectada, el programa <strong>te avisa</strong> y no da la luz verde. Nunca manda el sonido a los parlantes de la computadora ni el vídeo a otra pantalla sin decírtelo.</div>
+  <h2>Elegir dónde sale el sonido y la imagen <span class="estado ya">Ya funciona</span></h2>
+  <p>Siempre puedes elegir <strong>por qué tarjeta de sonido</strong> sale el audio y <strong>en qué pantalla o proyector</strong> salen los vídeos e imágenes. Se hace en <strong>Edición → Ajustes del show</strong>, en la parte <strong>«Salidas de este equipo»</strong>.</p>
+  <ul>
+    <li><strong>Sonido Principal (la sala):</strong> la tarjeta que va a la mesa de sonido del teatro. La lista marca cuál es la predeterminada de Windows.</li>
+    <li><strong>Sonido Auriculares (escucha previa):</strong> una segunda tarjeta solo para ti, o «Sin usar». Tiene que trabajar a la misma frecuencia que la Principal (por ejemplo, las dos a 48 kHz).</li>
+    <li><strong>Pantalla del proyector:</strong> el proyector o monitor donde salen los vídeos a pantalla completa (con Windows en modo <strong>Extender</strong>: Windows + P), o «Vista previa en una ventana» si todavía no hay proyector.</li>
+  </ul>
+  <p>Si conectaste algo después de abrir la ventanita, toca <strong>Volver a buscar</strong>.</p>
+  <h3>Cuándo se puede cambiar</h3>
+  <p>Solo en <strong>Edición</strong> y con <strong>nada sonando ni a la vista</strong>. Si algo suena, el programa te pide parar todo primero (Esc). Así un cambio de tarjeta nunca corta la función. La tarjeta nueva se abre antes de soltar la vieja: si no funciona, sigue la que estaba y te avisa.</p>
+  <h3>Se recuerda en este equipo</h3>
+  <p>Lo que eliges queda guardado <strong>en esta computadora</strong>, no en el show, porque cada teatro tiene su tarjeta y su proyector. La próxima vez que abras cualquier show en este equipo, sale por lo mismo.</p>
+  <div class="nota cuidado">Si la tarjeta o la pantalla guardada no está conectada, el programa <strong>te avisa fuerte</strong> al abrir (en la ventana y en el registro) y, mientras tanto, usa la predeterminada de Windows. Nunca cambia de salida sin decírtelo. Conecta la tarjeta y vuelve a abrir, o elige otra.</div>
+  <p class="muted"><span class="estado pronto">Próximamente</span> Perfiles de teatro: guardar también la forma de las 4 esquinas del proyector por cada teatro.</p>
 </section>
 
 <section class="card" id="video">
@@ -417,6 +422,14 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <tr><td>Final del archivo</td><td class="num">10 ms</td><td>Si el archivo termina de golpe. Ej.: un ruido de motor recortado a mano.</td><td>Si ya termina en silencio. Ej.: una canción con su final completo.</td></tr>
   </table></div>
   <div class="nota cuidado">Si un sonido empieza de golpe desde la mitad del archivo, puede oírse un clic. Para eso está la rampa al iniciar.</div>
+  <h3>Los demás ajustes del show <span class="estado ya">Ya funciona</span></h3>
+  <p>En la misma ventanita, <strong>Edición → Ajustes del show</strong>, también están:</p>
+  <ul>
+    <li><strong>Protección contra doble GO</strong> (300 ms): un segundo GO antes de ese tiempo se ignora. Súbela si a alguien se le escapan GO repetidos; bájala si hay cues que van uno detrás de otro muy rápido.</li>
+    <li><strong>Duración de Fundir todo</strong> (3 s): cuánto tarda en apagarse todo con F y con Mayús+F, sonido e imagen.</li>
+    <li><strong>Volumen maestro</strong> (0 dB): sube o baja todo el show a la vez. Ej.: en una sala chica, −6 dB.</li>
+  </ul>
+  <p>Cada cambio se aplica al instante, sin cortar lo que suena, se guarda con el show y se puede deshacer con <kbd>Ctrl</kbd> <kbd>Z</kbd>. <strong>Volver a los valores recomendados</strong> deja todo como venía.</p>
 </section>
 
 <section class="card" id="vista">
@@ -426,6 +439,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <li><span class="estado ya">Ya funciona</span> <strong>Modo noche:</strong> todo oscuro y rojizo, para no encandilar en la cabina.</li>
     <li><span class="estado ya">Ya funciona</span> <strong>Modo día:</strong> fondo blanco y máximo contraste, para funciones al aire libre.</li>
     <li><span class="estado ya">Ya funciona</span> <strong>Alto contraste:</strong> negro puro y letras blancas, para ver mejor.</li>
+    <li><span class="estado ya">Ya funciona</span> <strong>Madera de fresno:</strong> un aspecto cálido de madera clara, con texto color nogal. Es solo estético: todo funciona igual. Ideal para ensayos y para preparar el show con luz; en la cabina a oscuras conviene el Modo noche.</li>
     <li><span class="estado ya">Ya funciona</span> <strong>Restaurar vista</strong> vuelve todo a como venía.</li>
     <li><span class="estado pronto">Próximamente</span> <strong>Vistas listas:</strong> Minimalista y Pantalla táctil (botones grandes).</li>
     <li><span class="estado ya">Ya funciona</span> <strong>Idioma:</strong> Español o English. Todo el programa, la ayuda, los consejos y los avisos cambian juntos.</li>

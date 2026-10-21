@@ -158,7 +158,7 @@ El usuario pidió **no llenar la ventana de botones** para ajustes del tipo "mos
 |---|---|
 | **Archivo** | Nuevo show · Abrir… · Abrir reciente ▸ · Guardar · Guardar como… · Salir (sin "Reunir medios": al agregar, lo de fuera ya se copia a `Medios/`, etapa 5A) |
 | **Edición** | Deshacer · Rehacer · **Agregar cues…** · Eliminar cue · Subir cue · Bajar cue · Copiar · Pegar · **Ajustes del show…** (rampas cortas, salidas y perfiles de teatro, protección contra doble GO) |
-| **Vista** | Personalizar… · Vistas listas ▸ · Modo noche · Modo día · Botonera ▸ (Cuadrícula / Lista) · Idioma ▸ (Español / English) · Restaurar vista |
+| **Vista** | Personalizar… · Vistas listas ▸ · Modo noche · Modo día · Madera de fresno · Botonera ▸ (Cuadrícula / Lista) · Idioma ▸ (Español / English) · Restaurar vista |
 | **Ayuda** | Modo Ayuda (H) · Primeros pasos · **Mostrar consejos** ✓ · Atajos de teclado · Prueba de hardware… · Acerca de Otaconvert |
 
 - Cada opción aparece **una sola vez** (nada repetido en dos menús ni como botón suelto).
@@ -169,7 +169,7 @@ El usuario pidió **no llenar la ventana de botones** para ajustes del tipo "mos
 
 - **Vista → Personalizar:** arrastrar paneles y botones con vista previa en vivo y pulsar **Listo**. Nada de ventanas con cien casillas.
 - Personalizable: pestañas y paneles visibles (lista, detalle, onda, medidores, reloj, notas) y su posición; botones de Función (orden, tamaño, color, etiqueta); columnas; teclas rápidas; tamaño de letra; densidad (compacta, normal, táctil); brillo; acento; atajos (avisa si se repiten).
-- Vistas: Estándar, Minimalista, Pantalla táctil, Alto contraste, **Modo noche** (tenue y rojizo) y **Modo día** (fondo blanco y contraste máximo para funciones al aire libre, pedido el 15/10/2026). Noche y día se pueden cambiar también en Función.
+- Vistas: Estándar, Minimalista, Pantalla táctil, Alto contraste, **Modo noche** (tenue y rojizo) y **Modo día** (fondo blanco y contraste máximo para funciones al aire libre, pedido el 15/10/2026) y **Madera de fresno** (tema opcional cálido de madera clara, pedido y aprobado el 21/10/2026; ver sección 12). Noche y día se pueden cambiar también en Función.
 - Perfiles por operador, exportables, viajan con el show.
 - Estética protegida: paletas diseñadas + acento libre con contraste automático; cuadrícula imantada; **Restaurar vista** siempre a mano.
 - En Función el diseño queda bloqueado (solo brillo, Modo noche y Modo día).
@@ -806,3 +806,71 @@ Pedido del usuario: "Sí, sigue con la etapa 5." Repartida en cuatro partes que 
   - En Función todo el menú Edición queda en gris y Supr y Alt+↓ no cambian nada.
 - Límites: el arrastre real desde el Explorador solo se puede probar en la ventana propia, no en el panel del navegador; el cue nuevo lleva el nombre del archivo copiado (p. ej. «Timbre (1)»).
 - **Subido y comprobado:** commit 6281531, run 39048636745 **verde** (compilación, pruebas, ventana y vulnerabilidades). Demo nueva copiada a `CLOUDE - Herramientas Ota\Otaconvert-Demo-0.0.1` (`Otaconvert.exe` SHA-256 `e8e8d7a7…`; `--comprobar`: no falta nada). Solo se reemplazaron los archivos del programa: las carpetas `Show de ejemplo` y `datos` quedaron como el usuario las dejó.
+
+### Etapa 5B, parte 1: Ajustes del show (21/10/2026)
+- **Sesión:** `Sesion::cambiar_ajustes(cambios)` (orden del canal `ajustes {cambios}`):
+  - Claves: `rampa_inicio`…`rampa_fin` (0–1000 ms), `doble_go_ms` (0–5000), `fundir_todo_ms` (0–60 000) y `volumen_maestro_db` (−60 a +12).
+  - Valida todo antes de cambiar nada y rechaza claves desconocidas.
+  - Solo en Edición.
+  - Se aplica **en vivo** al mezclador sin cortar lo que suena (`CambiarAjustes`; el maestro cambia con una rampa de 50 ms).
+  - Se puede **deshacer**: los cambios seguidos cuentan como uno, y deshacer vuelve a mandar los ajustes al mezclador.
+  - Se anota AJUSTES en el registro.
+  - El estado trae `ajustes`.
+- **Archivo del show:** valida además doble GO ≤ 5 s y Fundir todo ≤ 60 s.
+- **Ventana: Edición → Ajustes del show…**
+  - Las 7 rampas en ms, cada una con su consejo.
+  - Protección contra doble GO, Duración de Fundir todo (en s) y Volumen maestro (deslizador).
+  - «Volver a los valores recomendados» y «Listo».
+  - En Función explica que se cambia en Edición, y si se pasa a Función con la ventanita abierta, se cierra.
+- **Consejos de las rampas: una sola copia.** Los textos están en `crates/audio/src/consejos.rs`; el servidor los agrega a los de la ventana al servirla (`textos()`, claves `rampa_inicio`…`rampa_fin`), así nunca se desfasan.
+- **Consejos nuevos (es/en):** `ajustes_show`, `doble_go`, `fundir_todo_dur` y `volumen_maestro`.
+- **Pruebas:**
+  - `ajustes_del_show_en_vivo_validados_y_con_deshacer`: 5 ms = 240 cuadros a 48 kHz; el maestro a −6 dB ≈ 0,501 con rampa; Fundir todo usa la duración nueva.
+  - 7 pedidos malos no cambian nada; en Función se rechaza.
+  - Deshacer y rehacer funcionan, y se guardan con el show.
+- **Probado en el panel del navegador:** la ventanita, los valores, un valor fuera de rango (avisa y no manda nada), el consejo de la rampa de inicio, «Volver a los valores recomendados» y el registro AJUSTES con el maestro a −6 dB.
+
+### Etapa 5B, parte 2: elegir salida de sonido y pantalla desde la ventana (21/10/2026)
+- **Plan aprobado por el usuario:**
+  - Solo en Edición y con nada sonando ni a la vista.
+  - Lo nuevo se abre **antes** de soltar lo viejo; si falla, queda lo que estaba y se avisa.
+  - Se recuerda **en este equipo**, no en el show.
+  - Si falta, se avisa fuerte; nunca se cambia en silencio.
+- **Motor** (`crates/motor/src/equipo_salidas.rs`):
+  - `lista_json()`: tarjetas (id estable de cpal, nombre, predeterminada, Hz, canales) y pantallas (dispositivo, nombre, tamaño, Hz, principal, GPU).
+  - `Guardado` en `equipo.json` dentro de la carpeta de datos (`%LOCALAPPDATA%\Otaconvert` o `datos\` en la portable). Guarda Principal y Auriculares (id + nombre) y la pantalla (dispositivo + nombre, o «vista»). Se escribe a un temporal y se renombra; un archivo dañado = las predeterminadas.
+  - `buscar_pantalla`: busca por dispositivo y nombre; si Windows reordenó las pantallas, por el nombre del proyector si es único.
+  - `abrir_sonido`: abre Principal y Auriculares juntas. Si Auriculares no está o trabaja a otra frecuencia, queda sin usar y se avisa.
+- **Al abrir el show:** se usa lo pedido por línea de comandos o, si no, lo recordado.
+  - Si la tarjeta recordada no está: suena por la predeterminada con el aviso «¡Atención! La tarjeta elegida para Principal («…») no está…» (consola, ventana y registro).
+  - Si la pantalla recordada no está: aviso y la proyección va donde la encuentre.
+  - `sumar_aviso` junta los avisos del arranque para que ninguno tape a otro.
+- **Cambio en vivo** (`show_cmd::cambiar_salida`, en el hilo principal, donde viven las tarjetas):
+  - La ventana manda `elegir_salida {que: principal|auriculares|pantalla, id}`. El canal lo atiende en otro hilo sin tener la sesión tomada y espera la respuesta hasta 30 s.
+  - Se comprueba `Sesion::se_pueden_cambiar_salidas` antes y otra vez después de abrir lo nuevo.
+  - Sonido: se abren de nuevo Principal y Auriculares con lo pedido; `conectar_sonido` (si cambió la frecuencia, los audios se vuelven a preparar solos y se avisa); recién entonces se sueltan las tarjetas viejas.
+  - Pantalla: se abre la proyección nueva y se reemplaza la vieja (`conectar_proyector`).
+  - Registro: SALIDA.
+  - Estado: `equipo` (lo elegido ahora) y `salidas_respondidas` (contador para que la ventana sepa que su pedido terminó). Orden `equipo_lista` → `{tipo: "equipo", salidas, pantallas}`.
+- **Ventana:** en Ajustes del show, sección **«Salidas de este equipo»**:
+  - Sonido Principal (la sala), Sonido Auriculares (escucha previa, con «Sin usar») y Pantalla del proyector (o «Vista previa en una ventana»).
+  - Marca la predeterminada de Windows y la frecuencia, «(no está conectada)», «Cambiando…» y «Volver a buscar».
+  - Consejos `salida_principal`, `salida_auriculares` y `salida_pantalla`.
+- **Probado en la PC del usuario** (sin dar GO, nada sonó):
+  - Principal USB → NVIDIA, Auriculares → USB, Auriculares → Sin usar, Principal → USB: cada cambio respondió en menos de 0,25 s, con el registro SALIDA.
+  - `equipo.json` guardado.
+  - Tarjeta y pantalla guardadas que no existen: los dos avisos, y suena por la predeterminada.
+  - Con una imagen a la vista, el cambio se rechaza con «primero para todo (Esc)» y la salida no cambia.
+- **Errores hallados y corregidos al probar:**
+  1. La lista se redibujaba antes de leer lo elegido y mandaba la tarjeta de antes.
+  2. «Cambiando…» quedaba trabado si no cambiaba nada visible (de ahí el contador).
+  3. Abrir Ajustes con otra ventanita pendiente de cerrarse fallaba (ahora se cierra la anterior antes de preparar la nueva, también en Agregar cues).
+- **Prueba nueva:** `las_salidas_solo_se_cambian_en_edicion_y_sin_nada_sonando`.
+- **Sin probar:** cambiar la proyección a una pantalla completa real (el usuario tiene un solo monitor: taparía su pantalla). Queda para el teatro.
+- **Pendiente de la 5B:** perfiles de teatro con las 4 esquinas por teatro. Toca el formato del show: **avisar antes** (regla de cambios riesgosos).
+
+### Tema «Madera de fresno» (21/10/2026)
+- **Pedido del usuario:** un modo de estética opcional que luzca como madera de fresno, acogedor y profesional, sin cambiar nada de lo existente. **Aprobado al ver las capturas** («Perfecto el tema»).
+- **Dónde:** Vista → **Madera de fresno** (`data-tema="fresno"`), junto a Modo noche, Modo día y Alto contraste. Se guarda como preferencia de la ventana.
+- **Colores:** fresno claro (`--bg #CDB491`) con veta suave hecha con degradados CSS (sin imágenes). Paneles como madera cepillada (`--card #F1E6D3` con veta leve, brillo arriba y sombra suave). Texto color nogal (`#2E2216`). Acento verde pino (`#2F6A55`) para GO y lo elegido. Parar todo sigue rojo.
+- **Consejo `modo_fresno`:** para ensayos y preparación con luz; en cabina a oscuras, mejor Modo noche (el fondo claro encandila).
