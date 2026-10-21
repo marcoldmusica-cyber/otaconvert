@@ -330,7 +330,7 @@ fn http(mut stream: TcpStream, ctx: &Contexto) {
         return;
     }
     if !token_de(consulta).is_some_and(|t| iguales(t, &ctx.token)) {
-        responder(&stream, "403 Forbidden", "", "<p>Abre Otaconvert desde el propio programa.</p>");
+        responder(&stream, "403 Forbidden", "", "<p>Abre Otaconvert V2 desde el propio programa.</p>");
         return;
     }
     match ruta {

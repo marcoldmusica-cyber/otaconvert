@@ -171,9 +171,9 @@ pub fn imprimir() -> bool {
     println!();
     for c in &faltan {
         let que_hacer = match c.arreglo {
-            Arreglo::Reinstalar => "viene con Otaconvert: vuelve a instalarlo o descarga de nuevo la portable",
+            Arreglo::Reinstalar => "viene con Otaconvert V2: vuelve a instalarlo o descarga de nuevo la portable",
             Arreglo::InstaladorIncluido => "botón \"Instalar lo que falta\" (instalador incluido, sin internet ni administrador)",
-            Arreglo::Explicar => "no se puede instalar desde Otaconvert; ver la explicación",
+            Arreglo::Explicar => "no se puede instalar desde Otaconvert V2; ver la explicación",
         };
         println!("Falta {}: {que_hacer}.", c.nombre);
     }

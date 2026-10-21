@@ -1,4 +1,4 @@
-OTACONVERT · DEMO PORTABLE (versión de prueba, sin terminar)
+OTACONVERT V2 · VERSIÓN PORTABLE (en desarrollo)
 =============================================================
 
 Es una versión para probar el programa en un teatro: no hay que instalar nada
@@ -10,26 +10,30 @@ y funciona sin internet. Para borrarla, se borra la carpeta.
 - Copia la carpeta al disco del equipo (no la uses desde el pendrive: los
   vídeos se leen del disco mientras se ven).
 - Si vas a usar un proyector: conéctalo y pon Windows en "Extender"
-  (tecla Windows + P → Extender) ANTES de abrir Otaconvert.
-- El sonido sale por la salida predeterminada de Windows: elígela antes en el
-  icono del altavoz de la barra de tareas.
+  (tecla Windows + P → Extender) ANTES de abrir Otaconvert V2.
+- La salida de sonido y la pantalla del proyector se eligen dentro del
+  programa: Edición → Ajustes del show → Salidas de este equipo. Lo elegido
+  se recuerda en este equipo.
 
 
 2. ABRIR EL PROGRAMA
 --------------------
-- Doble clic en "Otaconvert.exe".
+- Doble clic en "Otaconvert V2.exe".
 - Si aparece "Windows protegió su PC": toca "Más información" y después
   "Ejecutar de todas formas". (Pasa porque todavía no tiene firma digital.)
-- Se abre una ventana negra con mensajes: es el motor. NO la cierres.
-- Enseguida se abre la ventana de Otaconvert con el "Show de ejemplo".
+- Se abre la ventana de Otaconvert V2 con el "Show de ejemplo" (ya no aparece
+  la ventana negra del motor: sus mensajes quedan en datos\registro-motor.txt).
+- Si al equipo le falta "Microsoft Edge WebView2", el programa ofrece
+  instalarlo (viene incluido en la carpeta "componentes": no hace falta
+  internet ni administrador). Si dices que no, se abre en el navegador.
 - La imagen sale por el proyector a pantalla completa. Si el equipo tiene una
   sola pantalla, sale en una ventanita arriba a la derecha.
-- Para terminar: cierra la ventana de Otaconvert.
+- Para terminar: cierra la ventana de Otaconvert V2.
 
 
 3. PROBAR CON TUS PROPIOS VÍDEOS, AUDIOS E IMÁGENES
 ---------------------------------------------------
-- Pon tus archivos en una carpeta y ARRASTRA LA CARPETA sobre "Otaconvert.exe".
+- Pon tus archivos en una carpeta y ARRASTRA LA CARPETA sobre "Otaconvert V2.exe".
 - Se arma solo un show con un cue por archivo, en orden alfabético.
   Para elegir el orden, ponle un número delante a cada archivo:
   "01 Entrada.mp4", "02 Lluvia.wav", "03 Mapa.png"…

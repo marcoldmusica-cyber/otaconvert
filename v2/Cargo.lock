@@ -1713,6 +1713,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "otaconvert-lanzador"
+version = "0.0.1"
+dependencies = [
+ "windows-sys 0.61.2",
+ "winresource",
+]
+
+[[package]]
 name = "otaconvert-motor"
 version = "0.0.1"
 dependencies = [

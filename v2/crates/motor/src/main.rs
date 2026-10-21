@@ -115,8 +115,8 @@ fn main() -> ExitCode {
                 interactivo = true;
             }
             None => {
-                println!("Otaconvert {VERSION}");
-                println!("Para abrir un show, arrastra su carpeta (o una carpeta con audios, vídeos e imágenes) sobre Otaconvert.exe.");
+                println!("Otaconvert V2 {VERSION}");
+                println!("Para abrir un show, arrastra su carpeta (o una carpeta con audios, vídeos e imágenes) sobre Otaconvert V2.exe.");
                 esperar_enter();
                 return ExitCode::SUCCESS;
             }

@@ -75,8 +75,8 @@ impl Ventana {
         match codigo {
             Some(0) => Estado::Cerrada,
             Some(SIN_WEBVIEW2) => Estado::UsarNavegador(Texto::nuevo(
-                "No se pudo abrir la ventana de Otaconvert (falta WebView2 o no funciona). Se abrió el navegador en su lugar.",
-                "The Otaconvert window could not open (WebView2 is missing or not working). The browser was opened instead.",
+                "No se pudo abrir la ventana de Otaconvert V2 (falta WebView2 o no funciona). Se abrió el navegador en su lugar.",
+                "The Otaconvert V2 window could not open (WebView2 is missing or not working). The browser was opened instead.",
             )),
             _ => {
                 let ahora = Instant::now();
@@ -84,8 +84,8 @@ impl Ventana {
                 self.caidas.push(ahora);
                 if self.caidas.len() > MAX_CAIDAS {
                     return Estado::UsarNavegador(Texto::nuevo(
-                        "La ventana de Otaconvert se cerró sola varias veces. Se abrió el navegador en su lugar; el sonido no se interrumpió.",
-                        "The Otaconvert window closed by itself several times. The browser was opened instead; the sound was not interrupted.",
+                        "La ventana de Otaconvert V2 se cerró sola varias veces. Se abrió el navegador en su lugar; el sonido no se interrumpió.",
+                        "The Otaconvert V2 window closed by itself several times. The browser was opened instead; the sound was not interrupted.",
                     ));
                 }
                 match lanzar(&self.url) {

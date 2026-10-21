@@ -202,12 +202,12 @@ fn crear(r: Rect, n_capas: usize, modo: Modo) -> Result<(isize, Vec<isize>, isiz
         RegisterClassExW(&wc);
         let (titulo, estilo_ex, estilo) = match modo {
             Modo::Completa => (
-                ancho("Otaconvert · Proyector"),
+                ancho("Otaconvert V2 · Proyector"),
                 WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE,
                 WS_POPUP | WS_CLIPCHILDREN,
             ),
             Modo::VistaPrevia => (
-                ancho("Otaconvert · Proyector (vista previa)"),
+                ancho("Otaconvert V2 · Proyector (vista previa)"),
                 WS_EX_NOACTIVATE,
                 WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_CLIPCHILDREN,
             ),

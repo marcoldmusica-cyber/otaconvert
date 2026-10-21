@@ -174,7 +174,7 @@ pub fn ejecutar(pausa: bool) -> Result<bool, String> {
     let equipo = crate::equipo::leer();
     let mut inf = crear_informe(&equipo.nombre);
 
-    inf.linea("Otaconvert · Prueba de hardware");
+    inf.linea("Otaconvert V2 · Prueba de hardware");
     inf.linea(&format!("Versión {} · {}", crate::VERSION, fecha().replace('_', " ")));
     inf.linea("Desarrollado por @marcold.ok (Instagram): envíame este informe, sugerencias o errores.");
     inf.linea("");

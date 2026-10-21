@@ -76,7 +76,7 @@ fn main() -> ExitCode {
     let proxy = event_loop.create_proxy();
     let proxy_soltar = event_loop.create_proxy();
     let window = match WindowBuilder::new()
-        .with_title("Otaconvert")
+        .with_title("Otaconvert V2")
         .with_window_icon(Icon::from_resource(1, None).ok())
         .with_inner_size(LogicalSize::new(1280.0, 760.0))
         .with_min_inner_size(LogicalSize::new(720.0, 480.0))

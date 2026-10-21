@@ -40,7 +40,7 @@
       "primeros_pasos": "Primeros pasos",
       "mostrar_consejos": "Mostrar consejos",
       "atajos": "Atajos de teclado",
-      "acerca": "Acerca de Otaconvert",
+      "acerca": "Acerca de Otaconvert V2",
       "pestana_show": "Show",
       "pestana_convertir": "Convertir",
       "modo_grupo": "Modo",
@@ -636,7 +636,7 @@
       "mapeo": ["Mapeo del proyector", "Aquí acomodas la imagen sobre el escenario: arrastras las 4 esquinas hasta que encaje en el telón o la figura. Con el patrón de prueba ves la cuadrícula en el proyector. Solo se cambia en Edición."]
     },
     "pasos": [
-      ["Bienvenido a Otaconvert", "En cinco pasos te cuento cómo se usa. Puedes volver a verlo cuando quieras en Ayuda → Primeros pasos."],
+      ["Bienvenido a Otaconvert V2", "En cinco pasos te cuento cómo se usa. Puedes volver a verlo cuando quieras en Ayuda → Primeros pasos."],
       ["1. La lista de cues", "A la izquierda está tu show, en orden. Cada fila es un cue: una música, un ruido, un vídeo o una imagen. El que tiene el borde de color es el que sale con el próximo GO."],
       ["2. Preparar en Edición", "Toca un cue y a la derecha cambias su nombre, una nota, el volumen y los fundidos. Todo se guarda solo."],
       ["3. La función en Función", "Con Tab pasas a Función: a la derecha ves en grande lo que suena y lo que viene, y no se puede cambiar nada por error."],
@@ -685,7 +685,7 @@
       "primeros_pasos": "First steps",
       "mostrar_consejos": "Show tips",
       "atajos": "Keyboard shortcuts",
-      "acerca": "About Otaconvert",
+      "acerca": "About Otaconvert V2",
       "pestana_show": "Show",
       "pestana_convertir": "Convert",
       "modo_grupo": "Mode",
@@ -1281,7 +1281,7 @@
       "mapeo": ["Projector mapping", "Here you fit the image onto the stage: drag the 4 corners until it matches the curtain or the shape. With the test pattern you see the grid on the projector. It can only be changed in Edit mode."]
     },
     "pasos": [
-      ["Welcome to Otaconvert", "In five steps I'll show you how it works. You can see this again anytime in Help → First steps."],
+      ["Welcome to Otaconvert V2", "In five steps I'll show you how it works. You can see this again anytime in Help → First steps."],
       ["1. The cue list", "On the left is your show, in order. Each row is a cue: some music, a noise, a video or an image. The one with the colored border goes with the next GO."],
       ["2. Prepare in Edit", "Tap a cue and on the right you change its name, a note, the volume and the fades. Everything saves by itself."],
       ["3. The performance in Live", "With Tab you switch to Live: on the right you see big what's playing and what's next, and nothing can be changed by mistake."],

@@ -393,7 +393,7 @@ pub fn abrir(
         Interfaz::Ventana => match crate::ventana_ui::Ventana::abrir(&srv.url()) {
             Ok(v) => {
                 ventana = Some(v);
-                println!("Se abrió la ventana de Otaconvert. Al cerrarla, el programa termina.");
+                println!("Se abrió la ventana de Otaconvert V2. Al cerrarla, el programa termina.");
             }
             Err(e) => usar_navegador(&sesion, &srv.url(), &e),
         },

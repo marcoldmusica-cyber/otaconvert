@@ -17,7 +17,7 @@ fn main() {
         r.set_ar_path(&a);
     }
     r.set("ProductName", "Otaconvert")
-        .set("FileDescription", "Otaconvert - ventana")
+        .set("FileDescription", "Otaconvert V2 - ventana")
         .set("CompanyName", "Otaconvert (proyecto libre)")
         .set("LegalCopyright", "Software libre GPLv3")
         .set("OriginalFilename", "otaconvert-ventana.exe")

@@ -51,7 +51,7 @@ jobs:
           $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
           $dumpbin = Get-ChildItem "$vs\VC\Tools\MSVC" -Recurse -Filter dumpbin.exe |
             Where-Object FullName -like '*Hostx64\x64*' | Select-Object -First 1
-          foreach ($exe in "target\release\otaconvert-motor.exe", "target\release\otaconvert-ventana.exe") {
+          foreach ($exe in "target\release\otaconvert-motor.exe", "target\release\otaconvert-ventana.exe", "target\release\otaconvert-lanzador.exe") {
           $deps = & $dumpbin.FullName /nologo /dependents $exe
           $deps
           if ($deps -match 'VCRUNTIME|MSVCP|api-ms-win-crt') {
@@ -88,7 +88,7 @@ jobs:
         shell: pwsh
         run: |
           $esperada = (Select-String -Path Cargo.toml -Pattern '^version = "(.+)"').Matches[0].Groups[1].Value
-          foreach ($exe in "target\release\otaconvert-motor.exe", "target\release\otaconvert-ventana.exe") {
+          foreach ($exe in "target\release\otaconvert-motor.exe", "target\release\otaconvert-ventana.exe", "target\release\otaconvert-lanzador.exe") {
             $v = (Get-Item $exe).VersionInfo
             $v | Select-Object ProductName, FileDescription, ProductVersion, FileVersion | Format-List
             if ($v.ProductName -ne 'Otaconvert' -or $v.ProductVersion -ne $esperada) {
@@ -137,6 +137,25 @@ jobs:
           Copy-Item (Get-ChildItem vk -Recurse -Filter vulkan-1.dll | Where-Object FullName -like '*\x64\*').FullName target\release\
           Copy-Item (Get-ChildItem vk -Recurse -Filter VulkanRT-License.txt).FullName target\release\VulkanRT-Licencia.txt
           Copy-Item ..\LICENSE-EXCEPTION-WEBVIEW2.txt target\release\
+
+      # Instalador independiente de WebView2 (decisión del usuario: va en el
+      # instalador y en la portable; se instala sin internet y por usuario si
+      # falta). Enlace oficial de Microsoft; se exige su firma digital válida.
+      - name: Descargar el instalador de WebView2 (firma de Microsoft)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force componentes | Out-Null
+          $f = "componentes\MicrosoftEdgeWebView2RuntimeInstallerX64.exe"
+          Invoke-WebRequest "https://go.microsoft.com/fwlink/?linkid=2124701" -OutFile $f
+          $s = Get-AuthenticodeSignature $f
+          $s | Format-List Status, StatusMessage
+          $s.SignerCertificate | Format-List Subject, Issuer, NotAfter
+          if ($s.Status -ne 'Valid' -or $s.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') {
+            Write-Error "El instalador de WebView2 no tiene una firma válida de Microsoft"
+            exit 1
+          }
+          "Tamaño: {0:N1} MB" -f ((Get-Item $f).Length / 1MB)
+          Get-FileHash $f -Algorithm SHA256 | Format-List
 
       # El equipo de GitHub no tiene tarjeta gráfica: la prueba de vídeo puede
       # no funcionar aquí. Se ejecuta para ver hasta dónde llega; la que manda
@@ -205,10 +224,13 @@ jobs:
         shell: pwsh
         run: |
           $ver = (Select-String -Path Cargo.toml -Pattern '^version = "(.+)"').Matches[0].Groups[1].Value
-          $d = "demo\Otaconvert-Demo-$ver"
+          $d = "demo\Otaconvert-V2-$ver"
           New-Item -ItemType Directory -Force $d | Out-Null
-          Copy-Item target\release\otaconvert-motor.exe "$d\Otaconvert.exe"
+          # Otaconvert.exe = el lanzador (sin consola); el motor va con su nombre.
+          Copy-Item target\release\otaconvert-lanzador.exe "$d\Otaconvert V2.exe"
+          Copy-Item target\release\otaconvert-motor.exe "$d\otaconvert-motor.exe"
           Copy-Item target\release\otaconvert-motor.exe "$d\Prueba de hardware.exe"
+          Copy-Item -Recurse componentes "$d\componentes"
           Copy-Item target\release\otaconvert-ventana.exe, target\release\libmpv-2.dll, target\release\vulkan-1.dll, target\release\VulkanRT-Licencia.txt, target\release\LICENSE-EXCEPTION-WEBVIEW2.txt $d
           Copy-Item ..\LICENSE "$d\LICENSE.txt"
           Copy-Item manual\manual-usuario.pdf "$d\Manual de usuario.pdf"
@@ -216,7 +238,7 @@ jobs:
           Set-Content -Encoding utf8 "$d\portable.txt" "Versión portable: los ajustes se guardan en la carpeta datos, junto al programa."
           Copy-Item -Recurse paquete\Otaconvert-Prueba-de-hardware\pruebas "$d\pruebas"
           $s = "$d\Show de ejemplo"
-          & "$d\Otaconvert.exe" --show-ejemplo $s
+          & "$d\otaconvert-motor.exe" --show-ejemplo $s
           if ($LASTEXITCODE -ne 0) { exit 1 }
           New-Item -ItemType Directory -Force "$s\audio", "$s\video", "$s\imagen" | Out-Null
           $ff = "ff\ffmpeg.exe"
@@ -230,9 +252,25 @@ jobs:
           & $ff @q -f lavfi -i "testsrc2=s=1920x1080:r=30:d=12" -f lavfi -i "aevalsrc=0.1*sin(2*PI*440*t):s=48000:d=12" -c:v libx264 -preset veryfast -pix_fmt yuv420p -c:a aac -b:a 128k -ac 2 -shortest "$s\video\luna.mp4"
           & $ff @q -f lavfi -i "smptehdbars=s=1920x1080" -frames:v 1 "$s\imagen\mapa.png"
           if ($LASTEXITCODE -ne 0) { exit 1 }
-          & "$d\Otaconvert.exe" --version
+          & "$d\otaconvert-motor.exe" --version
           Get-ChildItem -Recurse $d -File | Select-Object @{n='Archivo';e={$_.FullName.Substring((Resolve-Path $d).Path.Length)}}, Length | Format-Table -AutoSize | Out-String -Width 200
           "Tamaño total: {0:N1} MB" -f ((Get-ChildItem -Recurse $d -File | Measure-Object Length -Sum).Sum / 1MB)
+
+      # Instalador (Inno Setup 6, como la V1): por usuario, sin administrador,
+      # a partir de la misma carpeta que la portable (sin portable.txt).
+      - name: Armar el instalador
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress | Out-Null
+          $iscc = Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup 6", "$env:ProgramFiles\Inno Setup 6" -Filter ISCC.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $iscc) { Write-Error "No se encontró Inno Setup"; exit 1 }
+          $ver = (Select-String -Path Cargo.toml -Pattern '^version = "(.+)"').Matches[0].Groups[1].Value
+          $origen = (Resolve-Path "demo\Otaconvert-V2-$ver").Path
+          & $iscc.FullName /Qp "/DAppVersion=$ver" "/DOrigen=$origen" instalador\otaconvert-v2.iss
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          $inst = Get-ChildItem instalador\salida\*.exe
+          "Instalador: {0} ({1:N1} MB)" -f $inst.Name, ($inst.Length / 1MB)
+          Get-FileHash $inst.FullName -Algorithm SHA256 | Format-List
 
       - name: Huella SHA-256 (para comprobar descargas)
         shell: pwsh
@@ -256,8 +294,13 @@ jobs:
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
-          name: Otaconvert-Demo-portable
+          name: Otaconvert-V2-Portable
           path: v2/demo/
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: Otaconvert-V2-Instalador
+          path: v2/instalador/salida/*.exe
 
   vulnerabilidades:
     runs-on: ubuntu-latest

@@ -18,7 +18,7 @@ fn main() {
         r.set_ar_path(&a);
     }
     r.set("ProductName", "Otaconvert")
-        .set("FileDescription", "Otaconvert - motor y Prueba de hardware")
+        .set("FileDescription", "Otaconvert V2 - motor y Prueba de hardware")
         .set("CompanyName", "Otaconvert (proyecto libre)")
         .set("LegalCopyright", "Software libre GPLv3")
         .set("OriginalFilename", "otaconvert-motor.exe")

@@ -1031,3 +1031,63 @@ Pedido del usuario: "Sí, sigue con la etapa 5." Repartida en cuatro partes que 
   - Se corrigió el redondeo (salía −81,5999…).
   - **No visto con sonido audible**: las barras con nivel alto y LIM quedan por ver con sonido real.
 - **129 pruebas en verde.**
+
+## 13. Etapa 6: entrega (instalador y portable), 22/10/2026
+
+**Riesgos explicados antes de empezar** (pedido del usuario):
+- El instalador modifica la computadora donde se instala. Por eso: por usuario, sin administrador, todo se borra con el desinstalador, que **nunca borra los shows ni los ajustes**. Y **no se instala en la PC del usuario sin su permiso**.
+- Que choque con la V1 instalada: lleva otro nombre y otro AppId.
+- El instalador de WebView2 se baja de Microsoft: se exige su **firma digital válida**.
+- Sin firma propia sigue el aviso de SmartScreen.
+- Subir a GitHub se avisa antes; publicar una Release, solo con permiso aparte.
+
+### Nombre: «Otaconvert V2» (pedido del usuario, 22/10/2026)
+- «De ahora en adelante no hablemos más de Otaconvert, sino de Otaconvert V2, tanto al nombrarla como en el nombre del programa, del acceso directo, del instalador, etc.»
+- Hecho en todo lo visible:
+  - el título de la ventana y el nombre por defecto;
+  - Acerca de y Primeros pasos;
+  - los títulos de la proyección;
+  - los mensajes del motor y del lanzador;
+  - `--version`;
+  - el informe de la Prueba de hardware;
+  - el instalador (AppName, carpeta, accesos directos, `Otaconvert V2.exe`, `Otaconvert-V2-Instalador-<v>.exe`);
+  - la portable (`Otaconvert-V2-<v>`, artifact `Otaconvert-V2-Portable`);
+  - el LEEME y el manual de usuario;
+  - las descripciones de los exe (FileDescription).
+- **Excepción a propósito:** el `ProductName` interno de los exe sigue siendo «Otaconvert», porque SignPath exige que coincida con el proyecto pedido, que incluye V1/V1.5 y V2. No se ve al usarlo. Se le explicó al usuario y se le recomendó no cambiar el nombre en SignPath.
+- La carpeta de datos `%LOCALAPPDATA%\Otaconvert` no cambia, para no perder ajustes.
+- «Otaconvert V1» se sigue llamando así donde se nombra.
+
+### Lanzador sin ventana negra (`crates/lanzador` → `Otaconvert V2.exe`)
+- Programa sin consola (`windows_subsystem = "windows"`). Abre `otaconvert-motor.exe` (junto a él) con `CREATE_NO_WINDOW`; los procesos del motor (proyección) heredan su consola oculta. Comprobado: solo se ven las ventanas del programa.
+- Los mensajes del motor van a `registro-motor.txt` de la carpeta de datos (el anterior queda como `registro-motor.anterior.txt`).
+- Si el motor termina con error, una ventana normal muestra las últimas 15 líneas y dónde está el registro completo.
+- Qué abre:
+  - sin nada: el «Show de ejemplo» de al lado;
+  - algo arrastrado o un `.otashow` con doble clic: eso;
+  - opciones (`--…`): tal cual;
+  - sin ejemplo: explica cómo abrir un show.
+- **Componentes que faltan:** si no está WebView2 (claves de registro de Microsoft) y viene `componentes\MicrosoftEdgeWebView2RuntimeInstallerX64.exe`, una sola ventana ofrece instalarlo («Sí / No»). Usa `/silent /install`: sin internet, por usuario, sin administrador. Si se dice que no, el programa se abre en el navegador. Nunca instala sin preguntar.
+- Mensajes en el idioma de Windows (español o inglés).
+- `SetDefaultDllDirectories` como el motor; mismos datos de versión, icono y manifiesto.
+- Pruebas (2): qué abre según lo que recibe, la carpeta de datos portable, las últimas líneas.
+- Probado en la PC del usuario: abre el show con la ventana propia, sin consola; el registro quedó en `datos\`.
+- **El motor sigue con consola** a propósito: la Prueba de hardware y el diagnóstico la necesitan.
+
+### Instalador y portable (workflow V2)
+- **WebView2:** se baja de `https://go.microsoft.com/fwlink/?linkid=2124701`. La compilación falla si `Get-AuthenticodeSignature` no da `Valid` con sujeto `O=Microsoft Corporation`. Va en `componentes\`.
+- **Portable:** carpeta `Otaconvert-V2-<v>` con `Otaconvert V2.exe` (lanzador), `otaconvert-motor.exe`, `Prueba de hardware.exe`, ventana, libmpv, Vulkan, `componentes\`, manual, LEEME, licencias, `portable.txt`, `pruebas\` y «Show de ejemplo». Artifact `Otaconvert-V2-Portable`.
+- **Instalador** (`v2/instalador/otaconvert-v2.iss`, Inno Setup 6, como la V1):
+  - AppId `{64A53954-3B3A-42BF-B091-4902CF3464BA}`; convive con la V1.
+  - Por usuario (`PrivilegesRequired=lowest`), Windows 10 1607+, x64; idiomas español e inglés; muestra la licencia GPLv3.
+  - Accesos directos: «Otaconvert V2», «Manual de usuario de Otaconvert V2», «Prueba de hardware de Otaconvert V2» y escritorio opcional.
+  - Tarea opcional: **abrir los `.otashow` con Otaconvert V2** (solo HKCU, `Otaconvert2.Show`, se borra al desinstalar).
+  - No instala `portable.txt` ni `datos`.
+  - Se arma con `choco install innosetup` + `ISCC /DAppVersion /DOrigen` a partir de la carpeta de la portable. Artifact `Otaconvert-V2-Instalador`.
+- Las comprobaciones de seguridad (sin runtime de C externo, `/DEPENDENTLOADFLAG:0x800`, datos de versión) ahora también cubren el lanzador.
+- **Pendiente:**
+  - Subir y ver la compilación en GitHub (avisar antes).
+  - **Instalar en la PC del usuario solo con su permiso.**
+  - Firma (SignPath).
+  - Release pública (con permiso).
+  - Que «Archivo → Abrir…» funcione dentro del programa (hoy se abre arrastrando o con doble clic en el `.otashow`).
