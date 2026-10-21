@@ -27,7 +27,7 @@ use tungstenite::handshake::server::{ErrorResponse, Request, Response};
 use tungstenite::protocol::WebSocketConfig;
 use tungstenite::{Error as ErrorWs, Message};
 
-pub use sesion::{Modo, Sesion, TareaPreparar};
+pub use sesion::{tecla_valida, Modo, Sesion, TareaBoton, TareaPreparar};
 pub use sonido::{Destino, Sonido};
 pub use texto::{Idioma, Texto};
 pub use proyector::{motivo, AvisoProyector, OrdenProyector, Proyector};
@@ -173,7 +173,20 @@ impl Servidor {
                         difundir(&c3, e);
                     }
                 }
-                None => std::thread::sleep(Duration::from_millis(100)),
+                // Sin cues que preparar: los sonidos de la botonera (siempre en memoria).
+                None => match c3.sesion.lock().ok().and_then(|mut s| s.siguiente_boton_a_preparar()) {
+                    Some(t) => {
+                        let r = t.hacer();
+                        let estado = c3.sesion.lock().ok().map(|mut s| {
+                            s.resultado_boton(t.clave.clone(), r);
+                            s.estado_json()
+                        });
+                        if let Some(e) = estado {
+                            difundir(&c3, e);
+                        }
+                    }
+                    None => std::thread::sleep(Duration::from_millis(100)),
+                },
             }
         })?;
         let c4 = ctx.clone();
@@ -691,6 +704,31 @@ fn ejecutar(ctx: &Arc<Contexto>, texto: &str) {
             Some("pausa") => s.pausa(),
             Some("fundir_todo") => s.fundir_todo(),
             Some("fundir_ultimo") => s.fundir_ultimo(),
+            // Botonera (sección 5b): tocar un botón (Edición y Función), por su tecla, o armarla (Edición).
+            Some("boton") => {
+                let n = |k: &str| v.get(k).and_then(|x| x.as_u64()).and_then(|x| usize::try_from(x).ok());
+                let r = match (n("pagina"), n("boton")) {
+                    (Some(p), Some(b)) => s.tocar_boton(p, b),
+                    _ => Err(Texto::nuevo("Botón no válido.", "Invalid button.")),
+                };
+                if let Err(e) = r {
+                    s.aviso = Some(e);
+                }
+            }
+            Some("boton_tecla") => {
+                if let Some(k) = v.get("tecla").and_then(|x| x.as_str()) {
+                    s.tecla_boton(k);
+                }
+            }
+            Some("botonera") => {
+                let r = match v.get("paginas") {
+                    Some(p) => s.editar_botonera(p),
+                    None => Err(Texto::nuevo("Botonera no válida.", "Invalid sound board.")),
+                };
+                if let Err(e) = r {
+                    s.aviso = Some(e);
+                }
+            }
             // Panel Sonando (etapa 5C): parar o fundir solo uno (también en Función).
             Some("parar_uno") => match v.get("id").and_then(|x| x.as_u64()) {
                 Some(id) => s.parar_uno(id as u32),

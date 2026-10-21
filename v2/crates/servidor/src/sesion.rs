@@ -15,6 +15,11 @@ use crate::sonido::{Destino, Sonido};
 use crate::proyector::{AvisoProyector, OrdenProyector, Proyector};
 use crate::texto::{Idioma, Texto};
 
+// Botonera de sonidos (sección 5b): es parte de la sesión (usa sus campos).
+#[path = "botonera.rs"]
+mod botonera;
+pub use botonera::{tecla_valida, TareaBoton};
+
 /// Cuántos cues de vídeo o imagen se precargan desde el que está en espera.
 pub const PRECARGAR_VISUALES: usize = 2;
 
@@ -81,6 +86,12 @@ pub struct Sesion {
     /// revisa, cuántos cues van. Se borra al cambiar el show o las salidas.
     pub comprobacion: Option<(Vec<crate::comprobar::Punto>, String)>,
     pub comprobando: Option<(usize, usize)>,
+    /// Botonera: audios en memoria (por archivo y bucle), los que fallaron, el que
+    /// se está preparando y lo que suena ahora.
+    botones_prep: HashMap<String, Arc<Pista>>,
+    botones_err: HashMap<String, Texto>,
+    boton_preparando: Option<String>,
+    voces_boton: Vec<botonera::VozBoton>,
     /// Idioma del programa (lo elige la ventana): avisos y errores salen en él.
     pub idioma: Idioma,
     pub pausado: bool,
@@ -218,6 +229,10 @@ impl Sesion {
             salidas_respondidas: 0,
             comprobacion: None,
             comprobando: None,
+            botones_prep: HashMap::new(),
+            botones_err: HashMap::new(),
+            boton_preparando: None,
+            voces_boton: Vec::new(),
             historial: Vec::new(),
             rehechos: Vec::new(),
             ultimo_cambio: None,
@@ -543,6 +558,11 @@ impl Sesion {
         self.preparados.clear();
         self.errores.clear();
         self.mudos.clear();
+        // Botonera: otro mezclador (quizás a otra frecuencia): se vuelve a preparar.
+        self.botones_prep.clear();
+        self.botones_err.clear();
+        self.boton_preparando = None;
+        self.voces_boton.clear();
     }
 
     /// Manda al mezclador las rampas y el volumen maestro del show (sin cortar
@@ -1344,6 +1364,7 @@ impl Sesion {
         self.remostrar = None;
         self.sonando.clear();
         self.pausado = false;
+        self.voces_boton.clear();
         self.pausa_desde = None;
         self.registro.anotar("PARAR", "Parar todo");
         self.aviso = None;
@@ -1361,6 +1382,10 @@ impl Sesion {
         for s in &mut self.sonando {
             s.duracion = Some(fin.saturating_duration_since(s.inicio).min(s.duracion.unwrap_or(Duration::MAX)));
             s.fundiendo = true;
+        }
+        for v in &mut self.voces_boton {
+            v.fundiendo = true;
+            v.fin = Some(v.fin.map_or(fin, |f| f.min(fin)));
         }
     }
 
@@ -1434,6 +1459,11 @@ impl Sesion {
                 for s in &mut self.sonando {
                     s.inicio += pausa;
                 }
+                for v in &mut self.voces_boton {
+                    if let Some(f) = v.fin.as_mut() {
+                        *f += pausa;
+                    }
+                }
             }
             self.pausado = false;
             self.registro.anotar("SIGUE", "Fin de la pausa");
@@ -1476,6 +1506,9 @@ impl Sesion {
     pub fn limpiar(&mut self) {
         let ahora = Instant::now();
         let pausado = self.pausado;
+        if !pausado {
+            self.limpiar_botones();
+        }
         self.sonando.retain(|s| pausado || s.duracion.is_none_or(|d| ahora.duration_since(s.inicio) < d + Duration::from_millis(200)));
         if let Some(s) = self.sonido.as_mut() {
             s.recoger_basura();
@@ -1833,6 +1866,7 @@ impl Sesion {
             "salidas_respondidas": self.salidas_respondidas,
             "comprobacion": self.comprobacion.as_ref().map(|(p, h)| crate::comprobar::a_json(p, self.idioma, h)),
             "comprobando": self.comprobando.map(|(h, t)| json!({ "hechos": h, "total": t })),
+            "botonera": self.estado_botonera(),
         })
         .to_string()
     }
