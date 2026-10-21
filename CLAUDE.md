@@ -979,3 +979,23 @@ Pedido del usuario: "Sí, sigue con la etapa 5." Repartida en cuatro partes que 
   - Consejo `onda` es/en.
 - **Prueba:** `la_onda_son_los_picos_del_audio` (sin preparar no hay; el tono de prueba da picos de 450 a 550 sobre 1000).
 - **Probado en el programa:** la música de sala se dibujó. Clic al 25 % → Desde 1,99 s; Mayús + clic al 75 % → Hasta 5,99 s; la duración pasó a 0:04.
+
+### «Ver antes» por Auriculares (etapa 5C, 22/10/2026)
+- **Sesión:** `ver_antes(i)` hace sonar el cue (audio o sonido de un vídeo) **solo por Auriculares**, como el «Audition» de QLab.
+  - Usa `iniciar_voz_en(…, Destino::Auriculares)`, con el volumen, el inicio y fin, los fundidos y el bucle del cue.
+  - No toca la sala, el proyector, el cue en espera, «Sonando» ni la protección contra doble GO.
+  - Tocarlo otra vez lo para; escuchar otro cue para el anterior. Vale en Edición y en Función.
+  - **Sin auriculares elegidos no suena por ningún lado** y avisa cómo elegirlos. Una imagen o un vídeo mudo: aviso.
+  - Parar todo y Fundir todo también la paran. Registro ESCUCHA.
+  - Estado `escucha` = el cue que se escucha, o null.
+- **Canal:** orden `ver_antes {cue}`.
+- **Ventana:** botón **🎧 Escuchar por auriculares** / **■ Parar la escucha**, que se atiende al apretar. Está en el panel del cue (Edición), en el próximo cue del panel «En vivo» (Función) y debajo de la vista previa de la Vista Estudio. Consejo `escucha` es/en.
+- **Pruebas** (`tests/escucha.rs`, 2):
+  - solo manda órdenes a Auriculares, no aparece en «Sonando», no mueve el cue en espera y el GO sigue;
+  - tocar otra vez para; imagen = error; Parar todo la para;
+  - sin auriculares no se manda nada a ninguna salida.
+  - **128 pruebas en verde.**
+- **Probado en el programa** (volumen maestro −60 dB):
+  - sin auriculares, el aviso;
+  - con NVIDIA como Auriculares: «■ Parar la escucha», «0 sonando» en la sala y, al volver a tocar, se para;
+  - registro: ESCUCHA «Cue 1 … por Auriculares» y «fin».
