@@ -874,3 +874,46 @@ Pedido del usuario: "Sí, sigue con la etapa 5." Repartida en cuatro partes que 
 - **Dónde:** Vista → **Madera de fresno** (`data-tema="fresno"`), junto a Modo noche, Modo día y Alto contraste. Se guarda como preferencia de la ventana.
 - **Colores:** fresno claro (`--bg #CDB491`) con veta suave hecha con degradados CSS (sin imágenes). Paneles como madera cepillada (`--card #F1E6D3` con veta leve, brillo arriba y sombra suave). Texto color nogal (`#2E2216`). Acento verde pino (`#2F6A55`) para GO y lo elegido. Parar todo sigue rojo.
 - **Consejo `modo_fresno`:** para ensayos y preparación con luz; en cabina a oscuras, mejor Modo noche (el fondo claro encandila).
+
+### Etapa 5C, parte 1: panel Sonando (21/10/2026, trabajando solo)
+- **Sesión:** `fundir_uno(id)` funde solo lo que suena con ese `id`, en la duración de Fundir todo. `parar_uno(id)` lo para con la rampa de parada; si era la imagen o el vídeo que se ve, el proyector queda en negro. Los dos valen también en Función. Mayús+F ahora usa `fundir_uno`. Registro FUNDIR/PARAR «solo Cue N…».
+- **Canal:** órdenes `fundir_uno {id}` y `parar_uno {id}`; cada cosa de `sonando` lleva su `id`.
+- **Ventana:** botones **Fundir** y **Parar** (este en rojo) en cada cosa del panel «En vivo» y de la caja «al aire» de la Vista Estudio. Se atienden al **apretar** (`pointerdown`), no al soltar: el panel se redibuja varias veces por segundo y un clic se podría perder. Consejo `sonando_uno` es/en. En el Modo Ayuda no hacen nada.
+- **Prueba:** `parar_o_fundir_un_solo_cue_desde_sonando`.
+- **Probado en el programa**, con el volumen maestro en −60 dB para que no sonara nada en la PC del usuario mientras no estaba: música de sala en bucle + imagen. Fundir en la música → «Fundiendo · −0:03», y la imagen sigue. Parar en la imagen → sale, y en la Vista Estudio el proyector queda en «Negro». En el registro: FUNDIR y PARAR «solo…».
+
+### Etapa 5C, parte 2: luz verde (21/10/2026, trabajando solo)
+- **`crates/servidor/src/comprobar.rs`** solo **lee**: no cambia nada del show ni de lo que suena.
+  - `Pedido`: copia del show tomada con la sesión. La revisión se hace después, sin tener la sesión tomada.
+  - `revisar(pedido, progreso)`, cue por cue:
+    - archivo que falta o ruta mala;
+    - audio (o sonido de un vídeo) que no se puede reproducir;
+    - pico sobre 0 dB contando el volumen del cue;
+    - partes dañadas;
+    - **arranque de golpe a mitad de onda** (rampa de inicio 0 y sin fundido inicial; ver la regla abajo);
+    - cue para Auriculares sin auriculares elegidos.
+  - Además: salida de sonido abierta, proyección abierta si hay vídeos o imágenes, cambios sin guardar y errores que la sesión ya conoce.
+  - **Regla del clic:** el primer valor del cue está lejos de 0 **y** es más de 3 veces el paso al valor siguiente. Un tono que nace en 0 sube de a poco (0,029 → 0,10) y no se marca; un arranque en 0,5 sí.
+  - `a_json`: la luz es el peor nivel; la lista va de lo más grave a lo menos, en el idioma de la ventana.
+- **Motor** (`equipo_salidas::comprobar_equipo`): componentes que faltan (libmpv, Vulkan, WebView2), protector de pantalla, batería (enchufado o no), y show o programa en un pendrive (`GetDriveTypeW` = `DRIVE_REMOVABLE`; feature `Win32_Storage_FileSystem`).
+- **Orden `comprobar`:**
+  - Solo en Edición: decodifica todos los audios, no se hace en plena función.
+  - Una a la vez, en otro hilo, avisando el avance como mucho 4 veces por segundo.
+  - El resultado (`comprobacion`: luz, hora y puntos) se borra al cambiar el show o las salidas.
+  - Registro COMPROBAR con la cuenta de problemas y avisos.
+- **Ventana:**
+  - Luz en la cabecera: Sin comprobar (gris), Todo listo (verde), Revisar avisos (amarilla), Hay problemas (roja), o «Comprobando… n de m».
+  - Al tocarla, la ventanita **«Antes de la función»** con la lista y **Comprobar ahora** (en gris en Función).
+  - Textos `luz_*`, consejo `luz_verde` y ayuda `luz` (Modo Ayuda) en es/en.
+- **Pruebas** (`tests/comprobar.rs`, 4):
+  - un show sano no tiene nada que revisar;
+  - encuentra archivo que falta, Opus, imagen que falta, proyección cerrada, pico, Auriculares, clic y cambios sin guardar;
+  - la rampa al iniciar quita el aviso de clic;
+  - sin sonido es un problema;
+  - la luz es el peor nivel.
+  - **120 pruebas en verde.**
+- **Probado en el programa:**
+  - El show de prueba (10 cues) se revisó en menos de 0,25 s y salió **amarillo**: detectó un caso real, el cue «Viento nocturno» con Desde = 1,5 s empieza a mitad de onda.
+  - Al ponerle un fundido inicial, la luz volvió a «Sin comprobar»; al comprobar de nuevo quedó solo «cambios sin guardar».
+  - Tras Ctrl+S: **verde, «Todo listo»**.
+- **Pendiente:** revisar que el proyector esté en modo Extender y con la resolución correcta; avisar de las actualizaciones de Windows (sección 7).

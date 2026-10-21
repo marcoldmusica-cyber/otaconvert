@@ -458,7 +458,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <div class="boton parar"><div class="nombre">Parar todo <kbd>Esc</kbd></div>El botón de emergencia. Apaga todo al instante, sin ruidos feos en los altavoces.</div>
   </div>
   <p>Con <kbd>Mayús</kbd> + <kbd>F</kbd> se funde solo el último cue que empezó; lo demás sigue sonando.</p>
-  <p>En el panel <strong>Sonando</strong> también puedes parar o fundir un solo cue.</p>
+  <p><span class="estado ya">Ya funciona</span> En Función, cada cosa que suena (en el panel «En vivo», o en la caja «En el proyector · al aire» de la Vista Estudio) tiene sus botones <strong>Fundir</strong> y <strong>Parar</strong>: bajan o cortan solo ese cue y lo demás sigue. Ej.: termina la lluvia pero la música sigue: tocas Fundir en la lluvia.</p>
   <p class="muted">Antes de cada GO, el programa ya preparó el audio de ese cue y de los dos siguientes. Si un cue todavía se está preparando, el GO no hace nada y te avisa; vuelve a darlo en un momento. Si un archivo falta o no se puede leer, el cue se salta con un aviso y la función sigue.</p>
   <div class="nota">El programa no deja que un doble toque de GO dispare dos cues sin querer: entre un GO y el siguiente hay un tiempo mínimo, que puedes ajustar.</div>
 </section>
@@ -501,15 +501,17 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
 
 <section class="card" id="antes">
   <h2>Antes de la función</h2>
-  <h3>La luz verde</h3>
-  <p>Arriba ves <strong>Todo listo</strong> en verde cuando el programa revisó que:</p>
+  <h3>La luz verde <span class="estado ya">Ya funciona</span></h3>
+  <p>Arriba, junto a «Conectado al motor», hay una luz. Tócala y luego <strong>Comprobar ahora</strong>: el programa revisa todo y te dice qué mirar. <strong>No cambia nada</strong>, solo mira.</p>
   <ul>
-    <li>la tarjeta de sonido está conectada y cada salida tiene su lugar;</li>
-    <li>el proyector está en modo Extender y con la resolución correcta;</li>
-    <li>todos los archivos están y se pueden leer;</li>
-    <li>ningún sonido pasa del volumen máximo.</li>
+    <li><strong>Cada cue:</strong> que el archivo esté, que se pueda reproducir, que no pase de 0 dB (contando su volumen) y que no empiece de golpe a mitad de onda, porque se oiría un clic.</li>
+    <li><strong>Cues para Auriculares</strong> cuando no hay auriculares elegidos (sonarían en la sala).</li>
+    <li><strong>Este equipo:</strong> que haya salida de sonido y proyección, que no falte nada del programa, el protector de pantalla, la batería y si el show o el programa están en un pendrive.</li>
+    <li><strong>Cambios sin guardar.</strong></li>
   </ul>
-  <p>Si algo falla, te dice qué es y cómo arreglarlo. Si la tarjeta de sonido se desconecta en medio del show, el programa avisa fuerte: nunca pasa el sonido a los parlantes de la computadora sin decirte.</p>
+  <p>La luz queda <strong>verde</strong> (Todo listo), <strong>amarilla</strong> (Revisar avisos: el show funciona, pero conviene mirar algo) o <strong>roja</strong> (Hay problemas: algo no va a andar). Si cambias el show o las salidas, vuelve a «Sin comprobar»: compruébalo otra vez antes de abrir sala.</p>
+  <p class="muted">Se comprueba en Edición, porque lee todos los audios; en Función puedes ver el último resultado. Si la tarjeta de sonido se desconecta en medio del show, el programa avisa fuerte: nunca pasa el sonido a los parlantes de la computadora sin decirte.</p>
+  <p class="muted"><span class="estado pronto">Próximamente</span> Revisar también que el proyector esté en modo Extender y con la resolución correcta.</p>
   <h3>Prueba de hardware <span class="estado ya">Ya funciona</span></h3>
   <p>Prueba tu tarjeta de sonido, tus pantallas y el vídeo, y hace un informe. Conviene hacerla una vez en cada equipo o teatro nuevo, mejor una semana antes del estreno. En el programa terminado estará en <strong>Ayuda → Prueba de hardware</strong>; hoy viene como una carpeta aparte:</p>
   <ol class="pasos">
