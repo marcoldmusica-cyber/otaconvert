@@ -48,14 +48,14 @@ Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [CustomMessages]
-spanish:AsociarOtashow=Abrir los archivos .otashow con Otaconvert V2
-english:AsociarOtashow=Open .otashow files with Otaconvert V2
-spanish:ShowOtaconvert=Show de Otaconvert V2
-english:ShowOtaconvert=Otaconvert V2 show
-spanish:Manual=Manual de usuario de Otaconvert V2
-english:Manual=Otaconvert V2 user manual
-spanish:PruebaHardware=Prueba de hardware de Otaconvert V2
-english:PruebaHardware=Otaconvert V2 hardware test
+spanish.AsociarOtashow=Abrir los archivos .otashow con Otaconvert V2
+english.AsociarOtashow=Open .otashow files with Otaconvert V2
+spanish.ShowOtaconvert=Show de Otaconvert V2
+english.ShowOtaconvert=Otaconvert V2 show
+spanish.Manual=Manual de usuario de Otaconvert V2
+english.Manual=Otaconvert V2 user manual
+spanish.PruebaHardware=Prueba de hardware de Otaconvert V2
+english.PruebaHardware=Otaconvert V2 hardware test
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
