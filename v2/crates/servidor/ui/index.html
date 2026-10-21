@@ -382,7 +382,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
       <button aria-haspopup="true" aria-expanded="false" data-menu data-t="archivo"></button>
       <div class="menu" role="menu" hidden>
         <button role="menuitem" disabled><span data-t="nuevo_show"></span> <span class="pronto" data-t="proximamente"></span></button>
-        <button role="menuitem" disabled><span data-t="abrir"></span> <span class="pronto" data-t="proximamente"></span></button>
+        <button role="menuitem" data-orden="abrir_show" data-edita="si" data-consejo="abrir_show"><span data-t="abrir"></span> <kbd>Ctrl O</kbd><span class="q" aria-hidden="true">?</span></button>
         <button role="menuitem" disabled><span data-t="abrir_reciente"></span> <span class="pronto" data-t="proximamente"></span></button>
         <div class="sep"></div>
         <button role="menuitem" data-orden="guardar"><span data-t="guardar"></span> <kbd>Ctrl S</kbd></button>
@@ -1327,7 +1327,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
   function dialogoAtajos() {
     dialogo(T("atajos"), function (d) {
       var t = el("table");
-      [[T("tecla_espacio"), "atajo_go"], ["Esc", "atajo_esc"], ["P", "atajo_p"], ["F", "atajo_f"], [T("tecla_mayus") + " + F", "atajo_mf"], ["↑  ↓", "atajo_flechas"], ["Tab", "atajo_tab"], ["H", "atajo_h"], ["Ctrl + F", "atajo_buscar"], ["Ctrl + S", "atajo_s"], ["Ctrl + Z", "atajo_deshacer"], ["Ctrl + Y", "atajo_rehacer"], ["Ctrl + I", "atajo_agregar"], [T("tecla_supr"), "atajo_supr"], ["Alt + ↑  ↓", "atajo_mover"]]
+      [[T("tecla_espacio"), "atajo_go"], ["Esc", "atajo_esc"], ["P", "atajo_p"], ["F", "atajo_f"], [T("tecla_mayus") + " + F", "atajo_mf"], ["↑  ↓", "atajo_flechas"], ["Tab", "atajo_tab"], ["H", "atajo_h"], ["Ctrl + F", "atajo_buscar"], ["Ctrl + S", "atajo_s"], ["Ctrl + Z", "atajo_deshacer"], ["Ctrl + Y", "atajo_rehacer"], ["Ctrl + I", "atajo_agregar"], [T("tecla_supr"), "atajo_supr"], ["Alt + ↑  ↓", "atajo_mover"], ["Ctrl + O", "atajo_abrir"]]
         .forEach(function (f) { var tr = el("tr"), a = el("td"); a.appendChild(el("kbd", "", f[0])); tr.appendChild(a); tr.appendChild(el("td", "", T(f[1]))); t.appendChild(tr); });
       d.appendChild(t);
     });
@@ -2104,6 +2104,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
       if (k === "z" && !ev.shiftKey) { ev.preventDefault(); if (puedeEditar()) mandar("deshacer"); return; }
       if (k === "y" || (k === "z" && ev.shiftKey)) { ev.preventDefault(); if (puedeEditar()) mandar("rehacer"); return; }
       if (k === "i") { ev.preventDefault(); dialogoAgregar(); return; }
+      if (k === "o") { ev.preventDefault(); if (puedeEditar()) mandar("abrir_show"); else avisoLocal(T("abrir_funcion")); return; }
     }
     if (ev.altKey && !escribiendo && !velo && (ev.key === "ArrowUp" || ev.key === "ArrowDown")) { ev.preventDefault(); moverCue(ev.key === "ArrowUp" ? -1 : 1); return; }
     if (ev.key === "Delete" && !escribiendo && !velo) { ev.preventDefault(); eliminarCue(); return; }

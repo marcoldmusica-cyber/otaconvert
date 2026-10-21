@@ -84,12 +84,15 @@ struct Contexto {
     conexiones: AtomicUsize,
     /// Diálogo "Buscar archivos…" del sistema (lo pone el motor; en las pruebas no hay).
     buscar_archivos: Mutex<Option<BuscarArchivos>>,
+    abrir_show: Mutex<Option<BuscarShow>>,
     equipo: Mutex<Option<(ListaEquipo, ElegirSalida)>>,
     comprobar_equipo: Mutex<Option<comprobar::ComprobarEquipo>>,
 }
 
 /// Abre el diálogo de Windows para elegir archivos y devuelve los elegidos (vacío = canceló).
 pub type BuscarArchivos = Arc<dyn Fn() -> Vec<std::path::PathBuf> + Send + Sync>;
+/// Archivo → Abrir…: el diálogo de Windows para elegir un `.otashow` (None = canceló).
+pub type BuscarShow = Arc<dyn Fn() -> Option<std::path::PathBuf> + Send + Sync>;
 
 /// Salidas de sonido y pantallas de este equipo (etapa 5B), en JSON para la ventana.
 pub type ListaEquipo = Arc<dyn Fn() -> serde_json::Value + Send + Sync>;
@@ -133,6 +136,7 @@ impl Servidor {
             clientes: Mutex::new(Vec::new()),
             conexiones: AtomicUsize::new(0),
             buscar_archivos: Mutex::new(None),
+            abrir_show: Mutex::new(None),
             equipo: Mutex::new(None),
             comprobar_equipo: Mutex::new(None),
         });
@@ -237,6 +241,14 @@ impl Servidor {
     /// pantalla, batería, pendrive…) además del show.
     pub fn al_comprobar_equipo(&self, f: comprobar::ComprobarEquipo) {
         if let Ok(mut b) = self.ctx.comprobar_equipo.lock() {
+            *b = Some(f);
+        }
+    }
+
+    /// Archivo → Abrir… (etapa 6). El cambio de show lo hace el motor (orden
+    /// «abrir_show» por el mismo camino que elegir salidas).
+    pub fn al_abrir_show(&self, f: BuscarShow) {
+        if let Ok(mut b) = self.ctx.abrir_show.lock() {
             *b = Some(f);
         }
     }
@@ -554,6 +566,38 @@ fn ejecutar(ctx: &Arc<Contexto>, texto: &str) {
                     difundir(&c, e);
                 }
             });
+            return;
+        }
+        // Archivo → Abrir… (etapa 6): solo en Edición y con nada sonando; se
+        // guarda lo actual y el motor abre el otro show. En otro hilo: el
+        // diálogo de Windows espera al usuario.
+        Some("abrir_show") => {
+            let permitido = ctx.sesion.lock().map(|s| s.se_puede_cambiar_de_show()).unwrap_or(Ok(()));
+            if let Err(e) = permitido {
+                if let Ok(mut s) = ctx.sesion.lock() {
+                    s.aviso = Some(e);
+                    let est = s.estado_json();
+                    drop(s);
+                    difundir(ctx, est);
+                }
+                return;
+            }
+            let dialogo = ctx.abrir_show.lock().ok().and_then(|b| b.clone());
+            let cambiar = ctx.equipo.lock().ok().and_then(|b| b.as_ref().map(|(_, e)| e.clone()));
+            if let (Some(dialogo), Some(cambiar)) = (dialogo, cambiar) {
+                let c = ctx.clone();
+                let _ = std::thread::Builder::new().name("abrir-show".into()).spawn(move || {
+                    let Some(ruta) = dialogo() else { return };
+                    if let Err(e) = cambiar("abrir_show", Some(ruta.to_string_lossy().into_owned())) {
+                        if let Ok(mut s) = c.sesion.lock() {
+                            s.aviso = Some(e);
+                            let est = s.estado_json();
+                            drop(s);
+                            difundir(&c, est);
+                        }
+                    }
+                });
+            }
             return;
         }
         // Etapa 5B: salidas de sonido y pantalla del proyector de este equipo.

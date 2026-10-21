@@ -373,6 +373,12 @@ pub fn abrir(
     // Edición → Ajustes del show → Salidas: la ventana pide; las tarjetas y la
     // proyección se cambian aquí, en el hilo principal, donde viven.
     let (tx_pedidos, rx_pedidos) = std::sync::mpsc::channel::<(String, Option<String>, std::sync::mpsc::Sender<Result<(), Texto>>)>();
+    // Archivo → Abrir…: el diálogo de Windows, en el idioma del programa.
+    let s_idioma2 = sesion.clone();
+    srv.al_abrir_show(Arc::new(move || {
+        let ingles = s_idioma2.lock().map(|s| s.idioma == otaconvert_servidor::Idioma::En).unwrap_or(false);
+        crate::dialogo::elegir_show(ingles)
+    }));
     // Luz verde: lo que se revisa de este equipo, además del show.
     srv.al_comprobar_equipo(Arc::new(crate::equipo_salidas::comprobar_equipo));
     srv.al_elegir_salidas(
@@ -409,6 +415,18 @@ pub fn abrir(
     let mut tardias_vistas = [0u64; 2];
     loop {
         if let Ok((que, id, resp)) = rx_pedidos.recv_timeout(std::time::Duration::from_millis(500)) {
+            // Archivo → Abrir…: se guarda este show y un motor nuevo abre el otro
+            // (mismo programa, misma salida de mensajes); este termina.
+            if que == "abrir_show" {
+                let r = abrir_otro_show(&sesion, id.as_deref());
+                let ok = r.is_ok();
+                let _ = resp.send(r);
+                if ok {
+                    drop(abiertas);
+                    return Ok(true);
+                }
+                continue;
+            }
             let r = cambiar_salida(&sesion, &que, id, margen_ms, &mut abiertas, &mut pantalla_info, &mut guardado);
             if r.is_ok() || que != "pantalla" {
                 vistos = [0; 2];
@@ -611,4 +629,25 @@ fn sumar_aviso(aviso: &mut Option<otaconvert_servidor::Texto>, nuevo: otaconvert
         Some(v) => otaconvert_servidor::Texto::nuevo(format!("{} · {}", v.es, nuevo.es), format!("{} · {}", v.en, nuevo.en)),
         None => nuevo,
     });
+}
+
+/// Archivo → Abrir… (etapa 6): guarda el show actual y abre `ruta` con un motor
+/// nuevo (este proceso termina después). Solo en Edición y con nada sonando.
+fn abrir_otro_show(sesion: &Arc<Mutex<Sesion>>, ruta: Option<&str>) -> Result<(), otaconvert_servidor::Texto> {
+    use otaconvert_servidor::Texto;
+    let ruta = ruta.map(std::path::PathBuf::from).filter(|r| r.is_file() || r.is_dir()).ok_or_else(|| Texto::nuevo("No se encontró ese show.", "That show was not found."))?;
+    // Que se pueda abrir antes de soltar el actual.
+    Sesion::abrir(&ruta).map_err(|e| Texto::nuevo(format!("No se pudo abrir ese show: {e}"), format!("That show could not be opened: {e}")))?;
+    let mut s = sesion.lock().map_err(|_| Texto::nuevo("Error interno.", "Internal error."))?;
+    s.se_puede_cambiar_de_show()?;
+    s.guardar_si_hace_falta();
+    let exe = std::env::current_exe().map_err(|e| Texto::nuevo(format!("No se pudo abrir: {e}"), format!("Could not open: {e}")))?;
+    std::process::Command::new(exe)
+        .arg("--abrir-show")
+        .arg(&ruta)
+        .stdin(std::process::Stdio::null())
+        .spawn()
+        .map_err(|e| Texto::nuevo(format!("No se pudo abrir el otro show: {e}"), format!("The other show could not be opened: {e}")))?;
+    s.anotar("CERRAR", &format!("Se abre otro show: {}", ruta.display()));
+    Ok(())
 }

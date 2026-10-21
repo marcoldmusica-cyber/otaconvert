@@ -277,6 +277,16 @@ impl Sesion {
         }
     }
 
+    /// Para abrir otro show (Archivo → Abrir…): solo en Edición y con nada
+    /// sonando ni a la vista (abrir otro show para todo).
+    pub fn se_puede_cambiar_de_show(&self) -> Result<(), Texto> {
+        self.solo_en_edicion().map_err(|_| t("Otro show se abre en Edición. Pasa a Edición con Tab.", "Another show is opened in Edit mode. Switch to Edit with Tab."))?;
+        if !self.sonando.is_empty() {
+            return Err(t("Para abrir otro show, primero para todo (Esc).", "To open another show, stop everything first (Esc)."));
+        }
+        Ok(())
+    }
+
     /// Para cambiar la tarjeta o la pantalla (etapa 5B): solo en Edición y con
     /// nada sonando ni a la vista, así el cambio no corta nada de la función.
     pub fn se_pueden_cambiar_salidas(&self) -> Result<(), Texto> {

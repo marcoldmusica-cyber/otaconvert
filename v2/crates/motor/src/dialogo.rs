@@ -63,3 +63,43 @@ pub fn elegir_archivos(ingles: bool) -> Vec<PathBuf> {
 pub fn elegir_archivos(_ingles: bool) -> Vec<PathBuf> {
     Vec::new()
 }
+
+/// Archivo → Abrir… (etapa 6): elegir un archivo de show (`.otashow`).
+#[cfg(windows)]
+pub fn elegir_show(ingles: bool) -> Option<PathBuf> {
+    use windows_sys::Win32::System::Com::{CoInitializeEx, CoUninitialize, COINIT_APARTMENTTHREADED};
+    use windows_sys::Win32::UI::Controls::Dialogs::{GetOpenFileNameW, OFN_EXPLORER, OFN_FILEMUSTEXIST, OFN_NOCHANGEDIR, OFN_PATHMUSTEXIST, OPENFILENAMEW};
+    use windows_sys::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
+
+    let (tipo, titulo) = if ingles { ("Otaconvert V2 shows", "Open a show") } else { ("Shows de Otaconvert V2", "Abrir un show") };
+    let mut filtro = ancho(&format!("{tipo}\0*.otashow\0"));
+    filtro.push(0);
+    let mut titulo_w = ancho(titulo);
+    titulo_w.push(0);
+    let mut buf = vec![0u16; 4096];
+    // SAFETY: estructura con su tamaño; búferes vivos durante la llamada; diálogo modal en este hilo.
+    let elegido = unsafe {
+        CoInitializeEx(std::ptr::null(), COINIT_APARTMENTTHREADED as u32);
+        let mut ofn: OPENFILENAMEW = std::mem::zeroed();
+        ofn.lStructSize = std::mem::size_of::<OPENFILENAMEW>() as u32;
+        ofn.hwndOwner = GetForegroundWindow();
+        ofn.lpstrFilter = filtro.as_ptr();
+        ofn.lpstrFile = buf.as_mut_ptr();
+        ofn.nMaxFile = buf.len() as u32;
+        ofn.lpstrTitle = titulo_w.as_ptr();
+        ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
+        let r = GetOpenFileNameW(&mut ofn);
+        CoUninitialize();
+        r != 0
+    };
+    if !elegido {
+        return None;
+    }
+    let n = buf.iter().position(|&c| c == 0).unwrap_or(buf.len());
+    Some(PathBuf::from(String::from_utf16_lossy(&buf[..n])))
+}
+
+#[cfg(not(windows))]
+pub fn elegir_show(_ingles: bool) -> Option<PathBuf> {
+    None
+}

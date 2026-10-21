@@ -21,6 +21,8 @@
       "personalizar": "Personalizar…",
       "modo_noche": "Modo noche",
       "modo_fresno": "Madera de fresno",
+      "abrir_funcion": "Otro show se abre en Edición. Pasa a Edición con Tab.",
+      "atajo_abrir": "Abrir otro show (en Edición)",
       "med_sala": "Sala",
       "med_auris": "Auris",
       "medidor_lim": "El limitador está bajando el volumen para que no pase de 0 dB.",
@@ -284,6 +286,14 @@
       "consejo_boton": "Consejo"
     },
     "consejos": {
+      "abrir_show": {
+        "titulo": "Abrir otro show",
+        "que_hace": "Guarda el show actual y abre otro archivo .otashow. Lo que suena tiene que estar parado.",
+        "activar": "Para pasar de un show a otro en el mismo equipo.",
+        "ejemplo_activar": "Ej.: terminó el ensayo de «Bodas de sangre» y empiezas a preparar «Yerma».",
+        "desactivar": "Durante la función no se cambia de show (en Función está en gris).",
+        "ejemplo_desactivar": "Ej.: en el intervalo, con el público en sala, sigue con el mismo show."
+      },
       "medidor": {
         "titulo": "Medidor de nivel",
         "que_hace": "Muestra cuánto suena lo que sale por la sala (y por auriculares), izquierda arriba y derecha abajo.",
@@ -666,6 +676,8 @@
       "personalizar": "Customize…",
       "modo_noche": "Night mode",
       "modo_fresno": "Ash wood",
+      "abrir_funcion": "Another show is opened in Edit mode. Switch to Edit with Tab.",
+      "atajo_abrir": "Open another show (in Edit mode)",
       "med_sala": "House",
       "med_auris": "Phones",
       "medidor_lim": "The limiter is lowering the volume so it doesn't go above 0 dB.",
@@ -929,6 +941,14 @@
       "consejo_boton": "Tip"
     },
     "consejos": {
+      "abrir_show": {
+        "titulo": "Open another show",
+        "que_hace": "Saves the current show and opens another .otashow file. Everything playing must be stopped.",
+        "activar": "To move from one show to another on the same computer.",
+        "ejemplo_activar": "E.g.: the “Blood Wedding” rehearsal is over and you start preparing “Yerma”.",
+        "desactivar": "The show isn't changed during a performance (it's greyed out in Live mode).",
+        "ejemplo_desactivar": "E.g.: in the interval, with the audience in the house, keep the same show."
+      },
       "medidor": {
         "titulo": "Level meter",
         "que_hace": "Shows how loud the house output (and headphones) is: left on top, right below.",
