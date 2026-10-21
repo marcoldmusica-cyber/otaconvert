@@ -106,7 +106,7 @@ const SHADER_FALLO: &str = "Failed executing hook";
 
 /// Carpeta de datos del programa (como la ventana): junto al exe si es la
 /// versión portable, si no `%LOCALAPPDATA%\Otaconvert`.
-fn carpeta_datos() -> Option<std::path::PathBuf> {
+pub(crate) fn carpeta_datos() -> Option<std::path::PathBuf> {
     let exe_dir = std::env::current_exe().ok()?.parent()?.to_path_buf();
     if exe_dir.join("portable.txt").is_file() {
         return Some(exe_dir.join("datos"));

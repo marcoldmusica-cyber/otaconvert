@@ -20,6 +20,7 @@
       "ajustes_show": "Ajustes del show…",
       "personalizar": "Personalizar…",
       "modo_noche": "Modo noche",
+      "modo_fresno": "Madera de fresno",
       "modo_dia": "Modo día (al aire libre)",
       "alto_contraste": "Alto contraste",
       "idioma": "Idioma",
@@ -157,6 +158,19 @@
       "atajo_tab": "Cambiar entre Edición y Función",
       "atajo_h": "Modo Ayuda (tocar cualquier parte y ver qué hace)",
       "atajo_s": "Guardar",
+      "aj_salidas": "Salidas de este equipo",
+      "aj_salidas_s": "Se recuerdan en este equipo, no en el show: cada teatro tiene su tarjeta y su proyector. Solo se cambian con nada sonando.",
+      "salida_principal": "Sonido Principal (la sala)",
+      "salida_auriculares": "Sonido Auriculares (escucha previa)",
+      "salida_pantalla": "Pantalla del proyector",
+      "aj_buscar_salidas": "Volver a buscar",
+      "aj_cambiando": "Cambiando…",
+      "aj_buscando": "Buscando tarjetas y pantallas…",
+      "aj_no_esta": "(no está conectada)",
+      "aj_predeterminada": "predeterminada de Windows",
+      "aj_sin_usar": "Sin usar",
+      "aj_pantalla_principal": "la de este programa",
+      "aj_vista_previa": "Vista previa en una ventana (sin proyector)",
       "aj_funcion": "Los ajustes del show se cambian en Edición. Pasa a Edición con Tab.",
       "aj_rampas": "Rampas cortas",
       "aj_rampas_s": "Subidas o bajadas de volumen tan cortas que no se notan, pero evitan el clic. En 0 el sonido empieza o se corta de golpe.",
@@ -216,6 +230,38 @@
       "consejo_boton": "Consejo"
     },
     "consejos": {
+      "modo_fresno": {
+        "titulo": "Madera de fresno",
+        "que_hace": "Un aspecto cálido de madera clara, solo estético. Funciona igual que siempre.",
+        "activar": "Para un ambiente más acogedor en ensayos y preparación, con buena luz.",
+        "ejemplo_activar": "Ej.: armas el show de tarde en la sala de ensayo, con la luz encendida.",
+        "desactivar": "En cabina a oscuras usa Modo noche: el fondo claro encandila.",
+        "ejemplo_desactivar": "Ej.: la función de noche, con la sala en apagón."
+      },
+      "salida_principal": {
+        "titulo": "Sonido Principal",
+        "que_hace": "La tarjeta por la que sale todo lo que oye la sala.",
+        "activar": "Elige la tarjeta que va a la mesa de sonido del teatro.",
+        "ejemplo_activar": "Ej.: la interfaz USB conectada a la consola, en vez de los parlantes del monitor.",
+        "desactivar": "Déjala en la predeterminada si solo hay una salida.",
+        "ejemplo_desactivar": "Ej.: un ensayo en casa con los parlantes de la computadora."
+      },
+      "salida_auriculares": {
+        "titulo": "Sonido Auriculares",
+        "que_hace": "Otra tarjeta solo para ti, para escuchar un cue sin que lo oiga la sala.",
+        "activar": "Úsala si tienes una segunda salida para auriculares en la cabina.",
+        "ejemplo_activar": "Ej.: revisar el volumen de la música final mientras la sala ya está llena.",
+        "desactivar": "Déjala en Sin usar si no tienes auriculares conectados aparte.",
+        "ejemplo_desactivar": "Ej.: una función simple con una sola salida a la mesa."
+      },
+      "salida_pantalla": {
+        "titulo": "Pantalla del proyector",
+        "que_hace": "En qué pantalla salen los vídeos e imágenes, a pantalla completa.",
+        "activar": "Elige el proyector (Windows en modo Extender: Windows + P).",
+        "ejemplo_activar": "Ej.: el proyector de la sala conectado por HDMI a la notebook.",
+        "desactivar": "Vista previa en una ventana si todavía no hay proyector.",
+        "ejemplo_desactivar": "Ej.: armar el show en casa con un solo monitor."
+      },
       "ajustes_show": {
         "titulo": "Ajustes del show",
         "que_hace": "Rampas cortas, protección contra doble GO, duración de Fundir todo y volumen maestro. Viajan con el show.",
@@ -482,6 +528,7 @@
       "ajustes_show": "Show settings…",
       "personalizar": "Customize…",
       "modo_noche": "Night mode",
+      "modo_fresno": "Ash wood",
       "modo_dia": "Day mode (outdoors)",
       "alto_contraste": "High contrast",
       "idioma": "Language",
@@ -619,6 +666,19 @@
       "atajo_tab": "Switch between Edit and Live",
       "atajo_h": "Help mode (tap anything to see what it does)",
       "atajo_s": "Save",
+      "aj_salidas": "Outputs on this computer",
+      "aj_salidas_s": "Remembered on this computer, not in the show: each theatre has its own card and projector. They can only change with nothing playing.",
+      "salida_principal": "Main sound (the house)",
+      "salida_auriculares": "Headphones sound (preview)",
+      "salida_pantalla": "Projector screen",
+      "aj_buscar_salidas": "Look again",
+      "aj_cambiando": "Changing…",
+      "aj_buscando": "Looking for cards and screens…",
+      "aj_no_esta": "(not connected)",
+      "aj_predeterminada": "Windows default",
+      "aj_sin_usar": "Not used",
+      "aj_pantalla_principal": "this program's screen",
+      "aj_vista_previa": "Preview in a window (no projector)",
       "aj_funcion": "Show settings are changed in Edit mode. Switch to Edit with Tab.",
       "aj_rampas": "Short ramps",
       "aj_rampas_s": "Volume rises or dips so short you don't notice them, but they prevent clicks. At 0 the sound starts or cuts abruptly.",
@@ -678,6 +738,38 @@
       "consejo_boton": "Tip"
     },
     "consejos": {
+      "modo_fresno": {
+        "titulo": "Ash wood",
+        "que_hace": "A warm light-wood look, purely cosmetic. Everything works the same.",
+        "activar": "For a cosier feel during rehearsals and preparation, with good light.",
+        "ejemplo_activar": "E.g.: you build the show in the afternoon in the rehearsal room, lights on.",
+        "desactivar": "In a dark booth use Night mode: the light background is glaring.",
+        "ejemplo_desactivar": "E.g.: the evening performance, during a blackout."
+      },
+      "salida_principal": {
+        "titulo": "Main sound",
+        "que_hace": "The card that carries everything the audience hears.",
+        "activar": "Choose the card that goes to the theatre's mixing desk.",
+        "ejemplo_activar": "E.g.: the USB interface connected to the desk, instead of the monitor's speakers.",
+        "desactivar": "Leave the default if there is only one output.",
+        "ejemplo_desactivar": "E.g.: a rehearsal at home with the computer speakers."
+      },
+      "salida_auriculares": {
+        "titulo": "Headphones sound",
+        "que_hace": "Another card just for you, to listen to a cue without the audience hearing it.",
+        "activar": "Use it if you have a second output for headphones in the booth.",
+        "ejemplo_activar": "E.g.: checking the level of the final song while the house is already full.",
+        "desactivar": "Leave it on Not used if you have no separate headphones connected.",
+        "ejemplo_desactivar": "E.g.: a simple show with a single output to the desk."
+      },
+      "salida_pantalla": {
+        "titulo": "Projector screen",
+        "que_hace": "Which screen shows the videos and images, full screen.",
+        "activar": "Choose the projector (Windows in Extend mode: Windows + P).",
+        "ejemplo_activar": "E.g.: the venue's projector connected to the laptop by HDMI.",
+        "desactivar": "Preview in a window if there is no projector yet.",
+        "ejemplo_desactivar": "E.g.: building the show at home with a single monitor."
+      },
       "ajustes_show": {
         "titulo": "Show settings",
         "que_hace": "Short ramps, double-GO protection, Fade all duration and master volume. They travel with the show.",

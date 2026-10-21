@@ -17,6 +17,8 @@ mod pantallas;
 mod show_cmd;
 #[cfg(windows)]
 mod proyector;
+#[cfg(windows)]
+mod equipo_salidas;
 mod proyector_cliente;
 #[cfg(windows)]
 mod prueba_proyector;

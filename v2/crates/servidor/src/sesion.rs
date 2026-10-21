@@ -71,6 +71,12 @@ pub struct Sesion {
     pub sucio: bool,
     /// Aviso para la ventana, en los dos idiomas.
     pub aviso: Option<Texto>,
+    /// Salidas elegidas en este equipo (las pone el motor; la ventana las muestra en
+    /// Ajustes del show → Salidas).
+    pub equipo: serde_json::Value,
+    /// Cuántos pedidos de cambio de salida terminó el motor (bien o mal): la
+    /// ventana sabe así que el suyo ya tuvo respuesta.
+    pub salidas_respondidas: u64,
     /// Idioma del programa (lo elige la ventana): avisos y errores salen en él.
     pub idioma: Idioma,
     pub pausado: bool,
@@ -204,6 +210,8 @@ impl Sesion {
             miniaturas_hechas: HashMap::new(),
             desde_elegido: None,
             patron: false,
+            equipo: serde_json::Value::Null,
+            salidas_respondidas: 0,
             historial: Vec::new(),
             rehechos: Vec::new(),
             ultimo_cambio: None,
@@ -221,6 +229,16 @@ impl Sesion {
     }
 
     /// Solo en Edición se cambia el show.
+    /// Para cambiar la tarjeta o la pantalla (etapa 5B): solo en Edición y con
+    /// nada sonando ni a la vista, así el cambio no corta nada de la función.
+    pub fn se_pueden_cambiar_salidas(&self) -> Result<(), Texto> {
+        self.solo_en_edicion()?;
+        if !self.sonando.is_empty() {
+            return Err(t("Para cambiar la salida, primero para todo (Esc): no se cambia con algo sonando o a la vista.", "To change the output, stop everything first (Esc): it is never changed while something plays or is on screen."));
+        }
+        Ok(())
+    }
+
     fn solo_en_edicion(&self) -> Result<(), Texto> {
         if self.modo == Modo::Funcion {
             return Err(t("En Función no se puede cambiar el show. Pasa a Edición con Tab.", "The show can't be changed in Live mode. Switch to Edit with Tab."));
@@ -1745,6 +1763,8 @@ impl Sesion {
             "puede_rehacer": !self.rehechos.is_empty(),
             // Edición → Ajustes del show (etapa 5B).
             "ajustes": self.show.ajustes,
+            "equipo": self.equipo,
+            "salidas_respondidas": self.salidas_respondidas,
         })
         .to_string()
     }

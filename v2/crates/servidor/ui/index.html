@@ -35,6 +35,31 @@
   --text:#05070C;--muted:#2E3543;--dim:#535B6B;
   --accent:#2A3FD9;--accent-h:#2033BD;--ok:#0B7340;--err:#C0261D;--warn:#8F5A00;--on-accent:#FFFFFF;
 }
+/* Tema opcional "Madera de fresno" (Vista → Madera de fresno): fresno claro con
+   veta suave, paneles como madera cepillada, texto color nogal y un acento verde
+   pino. Solo cambia colores y fondos; la distribución es la misma. */
+:root[data-tema="fresno"]{
+  color-scheme:light;
+  --bg:#CDB491;--card:#F1E6D3;--card2:#E6D6BC;--hover:#DCC8A8;--border:#B89B74;
+  --text:#2E2216;--muted:#5C4733;--dim:#80694F;
+  --accent:#2F6A55;--accent-h:#26594A;--ok:#3B7A3A;--err:#A8382A;--warn:#8A5A12;--on-accent:#FFFDF8;
+}
+:root[data-tema="fresno"] body{
+  background-color:var(--bg);
+  background-image:
+    repeating-linear-gradient(91deg, rgba(110,72,36,.07) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(89.4deg, rgba(255,246,228,.10) 0 2px, transparent 2px 23px),
+    repeating-linear-gradient(90.6deg, rgba(96,62,30,.06) 0 3px, transparent 3px 61px),
+    linear-gradient(90deg, rgba(255,240,214,.18), rgba(120,82,44,.10) 38%, rgba(255,240,214,.14) 71%, rgba(110,76,40,.10));
+}
+:root[data-tema="fresno"] .top,
+:root[data-tema="fresno"] .panel,
+:root[data-tema="fresno"] .dlg{
+  background-image:
+    repeating-linear-gradient(90.5deg, rgba(150,110,62,.045) 0 1px, transparent 1px 9px),
+    linear-gradient(180deg, rgba(255,255,255,.35), rgba(255,255,255,0) 60%);
+  box-shadow:0 1px 0 rgba(255,255,255,.55) inset, 0 6px 18px rgba(70,44,18,.16);
+}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{height:100%}
@@ -330,6 +355,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
         <button role="menuitemcheckbox" data-tema="noche" data-consejo="modo_noche" aria-checked="false"><span data-t="modo_noche"></span><span class="q" aria-hidden="true">?</span></button>
         <button role="menuitemcheckbox" data-tema="dia" data-consejo="modo_dia" aria-checked="false"><span data-t="modo_dia"></span><span class="q" aria-hidden="true">?</span></button>
         <button role="menuitemcheckbox" data-tema="contraste" data-consejo="alto_contraste" aria-checked="false"><span data-t="alto_contraste"></span><span class="q" aria-hidden="true">?</span></button>
+        <button role="menuitemcheckbox" data-tema="fresno" data-consejo="modo_fresno" aria-checked="false"><span data-t="modo_fresno"></span><span class="q" aria-hidden="true">?</span></button>
         <div class="sep"></div>
         <div class="lbl" data-t="estilo"></div>
         <button role="menuitemradio" data-estilo="lista" data-consejo="estilo_lista" aria-checked="true"><span data-t="estilo_lista"></span><span class="q" aria-hidden="true">?</span></button>
@@ -998,6 +1024,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     ws.onmessage = function (m) {
       var d; try { d = JSON.parse(m.data); } catch (x) { return; }
       if (d.tipo === "medios") { dibujarMedios(d.lista || []); return; }
+      if (d.tipo === "equipo") { if (ajustesDlg) { ajustesDlg.lista = d; pintarSalidas(); } return; }
       if (d.tipo !== "estado") return;
       e = d;
       if (desbloqueado != null && !(e.sonando || []).some(function (s) { return s.cue === desbloqueado; })) desbloqueado = null;
@@ -1347,6 +1374,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
   function dialogoAgregar() {
     var titulo = T("agregar_cues").replace("…", "");
     if (!puedeEditar()) { dialogo(titulo, function (d) { d.appendChild(el("p", "", T("agregar_funcion"))); }); return; }
+    cerrarDialogo();
     agregar = { elegidos: {} };
     dialogo(titulo, function (d) {
       d.classList.add("ancho");
@@ -1448,6 +1476,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
   var ajustesDlg = null; // { campos: {clave: {input, leer(e), mostrar(input, valor)}} }
   function dialogoAjustes() {
     if (!puedeEditar()) { dialogo(T("ajustes_show").replace("…", ""), function (d) { d.appendChild(el("p", "", T("aj_funcion"))); }); return; }
+    cerrarDialogo();   // antes de preparar la nueva (la anterior limpia lo suyo al cerrarse)
     ajustesDlg = { campos: {} };
     dialogo(T("ajustes_show").replace("…", ""), function (d) {
       d.classList.add("ancho");
@@ -1468,6 +1497,25 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
         };
         return n;
       }
+      // Salidas de este equipo (se recuerdan aquí, no en el show).
+      cuerpo.appendChild(el("h3", "", T("aj_salidas")));
+      cuerpo.appendChild(el("p", "note-small", T("aj_salidas_s")));
+      var sp = el("select"), sa = el("select"), spr = el("select");
+      [["principal", "salida_principal", sp], ["auriculares", "salida_auriculares", sa], ["pantalla", "salida_pantalla", spr]].forEach(function (x) {
+        x[2].onchange = function () {
+          var id = x[2].value === "" ? null : x[2].value;   // antes de redibujar la lista
+          ajustesDlg.cambiando = true; ajustesDlg.cambioDe = firmaSalidas(); ajustesDlg.cambiandoHasta = Date.now() + 35000; pintarSalidas();
+          mandar("elegir_salida", { que: x[0], id: id });
+        };
+        cuerpo.appendChild(fila("sal_" + x[0], x[1], x[1], x[2], ""));
+      });
+      var fb = el("div", "aj-fila");
+      var buscar = el("button", "btn", T("aj_buscar_salidas")); buscar.type = "button";
+      buscar.onclick = function () { mandar("equipo_lista"); };
+      ajustesDlg.estadoSalidas = el("span", "note-small", "");
+      fb.appendChild(ajustesDlg.estadoSalidas); fb.appendChild(buscar);
+      cuerpo.appendChild(fb);
+      ajustesDlg.salidas = { principal: sp, auriculares: sa, pantalla: spr };
       // Rampas cortas.
       cuerpo.appendChild(el("h3", "", T("aj_rampas")));
       cuerpo.appendChild(el("p", "note-small", T("aj_rampas_s")));
@@ -1504,11 +1552,39 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     }, true);
     alCerrarDialogo = function () { ajustesDlg = null; };
     actualizarAjustes(true);
+    pintarSalidas();
+    mandar("equipo_lista");
   }
+  function firmaSalidas() { return e ? e.salidas_respondidas : 0; }
+  // Rellena las listas de Salidas con lo que ve Windows y marca lo elegido ahora.
+  function pintarSalidas() {
+    if (!ajustesDlg || !ajustesDlg.salidas) return;
+    var l = ajustesDlg.lista, eq = (e && e.equipo) || {}, s = ajustesDlg.salidas;
+    var ocupado = !!ajustesDlg.cambiando || !l;
+    [s.principal, s.auriculares, s.pantalla].forEach(function (x) { x.disabled = ocupado; });
+    ajustesDlg.estadoSalidas.textContent = ajustesDlg.cambiando ? T("aj_cambiando") : !l ? T("aj_buscando") : "";
+    if (!l) return;
+    function opciones(sel, items, actual) {
+      sel.textContent = "";
+      items.forEach(function (it) { var o = el("option", "", it[1]); o.value = it[0]; o.selected = it[0] === actual; sel.appendChild(o); });
+      if (actual != null && !items.some(function (it) { return it[0] === actual; })) {
+        var o = el("option", "", T("aj_no_esta")); o.value = actual; o.selected = true; o.disabled = true; sel.appendChild(o);
+      }
+    }
+    var tarjetas = l.salidas.map(function (x) { return [x.id, x.nombre + (x.predeterminada ? " · " + T("aj_predeterminada") : "") + (x.hz ? " · " + (x.hz / 1000).toLocaleString(idioma) + " kHz" : "")]; });
+    opciones(s.principal, tarjetas, eq.principal ? eq.principal.id : null);
+    opciones(s.auriculares, [["", T("aj_sin_usar")]].concat(tarjetas), eq.auriculares ? eq.auriculares.id : "");
+    var pantallas = l.pantallas.map(function (p) { return [p.id, p.nombre + " · " + p.ancho + " × " + p.alto + (p.principal ? " · " + T("aj_pantalla_principal") : "")]; });
+    opciones(s.pantalla, pantallas.concat([["vista", T("aj_vista_previa")]]), eq.pantalla ? eq.pantalla.id : null);
+  }
+
   // Pone en la ventanita los valores del motor (sin pisar lo que se está escribiendo).
   function actualizarAjustes(todo) {
     if (!ajustesDlg || !e || !e.ajustes) return;
     if (e.modo === "funcion") { cerrarDialogo(); return; }
+    // El cambio terminó cuando el motor contesta (cambia lo elegido o llega un aviso).
+    if (ajustesDlg.cambiando && (firmaSalidas() !== ajustesDlg.cambioDe || Date.now() > ajustesDlg.cambiandoHasta)) ajustesDlg.cambiando = false;
+    pintarSalidas();
     Object.keys(ajustesDlg.campos).forEach(function (k) {
       var c = ajustesDlg.campos[k];
       if (!todo && document.activeElement === c.input) return;

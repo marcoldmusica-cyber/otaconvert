@@ -199,7 +199,15 @@ pub enum Interfaz {
 /// arriba a la derecha que no tapa los botones del programa.
 #[cfg(windows)]
 pub(crate) fn abrir_proyeccion(pantalla: Option<&str>) -> Result<crate::proyector_cliente::ProyectorProceso, String> {
+    abrir_proyeccion_con_info(pantalla).map(|(p, _)| p)
+}
+
+/// Como `abrir_proyeccion`, y además dice dónde quedó (para la ventana:
+/// `{id, nombre, vista}`).
+#[cfg(windows)]
+pub(crate) fn abrir_proyeccion_con_info(pantalla: Option<&str>) -> Result<(crate::proyector_cliente::ProyectorProceso, serde_json::Value), String> {
     use crate::proyector_cliente::ProyectorProceso;
+    let info;
     let lista = crate::pantallas::listar();
     let elegida = match pantalla {
         Some("vista") => None,
@@ -209,6 +217,7 @@ pub(crate) fn abrir_proyeccion(pantalla: Option<&str>) -> Result<crate::proyecto
     let p = match elegida {
         Some(p) => {
             println!("Proyección: {} · {} × {} a pantalla completa", p.nombre, p.ancho, p.alto);
+            info = serde_json::json!({ "id": p.dispositivo, "nombre": p.nombre, "vista": false, "ancho": p.ancho, "alto": p.alto });
             ProyectorProceso::abrir(p.x, p.y, p.ancho, p.alto, false)?
         }
         None => {
@@ -216,13 +225,14 @@ pub(crate) fn abrir_proyeccion(pantalla: Option<&str>) -> Result<crate::proyecto
             let w = (base.ancho / 4).max(320);
             let h = w * 9 / 16 + 32;
             println!("Proyección: vista previa en una ventana (hay una sola pantalla)");
+            info = serde_json::json!({ "id": "vista", "nombre": "", "vista": true });
             ProyectorProceso::abrir(base.x + base.ancho - w - 24, base.y + 140, w, h, true)?
         }
     };
     if !p.esperar_hola(std::time::Duration::from_secs(10)) {
         return Err("la proyección no arrancó (¿falta libmpv-2.dll junto al programa?)".into());
     }
-    Ok(p)
+    Ok((p, info))
 }
 
 #[cfg(not(windows))]
@@ -269,50 +279,84 @@ pub fn abrir(
         );
         println!("Aviso: {es}");
         sesion.anotar("AVISO", &es);
-        sesion.aviso = Some(otaconvert_servidor::Texto::nuevo(es, en));
+        sumar_aviso(&mut sesion.aviso, otaconvert_servidor::Texto::nuevo(es, en));
     }
     // Las salidas viven aquí, en el hilo principal, mientras dure el programa.
-    let principal = crate::sonido_cpal::abrir_salida(salida, margen_ms)?;
-    println!("Principal: {} · {} Hz · margen {margen_ms} ms", principal.nombre, principal.frecuencia);
-    let mut salidas = Vec::new();
-    let mut vigilar_errores = vec![("Principal", principal.errores.clone())];
-    let mut vigilar_tardias = vec![("Principal", principal.tardias.clone(), principal.intervalo_max_us.clone())];
-    let mut control_auriculares = None;
-    if let Some(a) = auriculares {
-        let s = crate::sonido_cpal::abrir_salida(Some(a), margen_ms)?;
-        if s.frecuencia == principal.frecuencia {
-            println!("Auriculares: {} · {} Hz", s.nombre, s.frecuencia);
-            control_auriculares = Some(s.control);
-            vigilar_errores.push(("Auriculares", s.errores.clone()));
-            vigilar_tardias.push(("Auriculares", s.tardias.clone(), s.intervalo_max_us.clone()));
-            salidas.push(s.stream);
-        } else {
-            println!(
-                "Aviso: Auriculares ({}) trabaja a {} Hz y Principal a {} Hz; por ahora deben ser iguales. Auriculares queda sin usar.",
-                s.nombre, s.frecuencia, principal.frecuencia
+    // Qué tarjeta y qué pantalla: lo pedido al abrir (--salida, --auriculares,
+    // --pantalla) o, si no, lo elegido antes en este equipo (etapa 5B).
+    use crate::equipo_salidas::{abrir_sonido, buscar_pantalla, elegido_json, Guardado};
+    use otaconvert_servidor::Texto;
+    let mut guardado = Guardado::leer();
+    let pedido_principal = salida.map(str::to_string).or_else(|| guardado.principal.as_ref().map(|p| p.0.clone()));
+    let pedido_auriculares = auriculares.map(str::to_string).or_else(|| guardado.auriculares.as_ref().map(|p| p.0.clone()));
+    let (juego, aviso_auriculares) = match abrir_sonido(pedido_principal.as_deref(), pedido_auriculares.as_deref(), margen_ms) {
+        Ok(x) => x,
+        // La tarjeta guardada para Principal no está (p. ej. no se conectó):
+        // suena por la predeterminada, con un aviso fuerte. Nunca en silencio.
+        Err(e) if salida.is_none() && guardado.principal.is_some() => {
+            let nombre = guardado.principal.as_ref().map(|p| p.1.clone()).unwrap_or_default();
+            let x = abrir_sonido(None, pedido_auriculares.as_deref(), margen_ms)?;
+            let es = format!(
+                "¡Atención! La tarjeta elegida para Principal («{nombre}») no está: ¿está conectada? Por ahora suena por la predeterminada de Windows («{}»). Conéctala y vuelve a abrir, o elige otra en Edición → Ajustes del show → Salidas.",
+                x.0.principal.nombre
             );
+            let en = format!(
+                "Warning! The card chosen for Main (\"{nombre}\") is not there: is it connected? For now sound goes to the Windows default (\"{}\"). Connect it and reopen, or choose another in Edit → Show settings → Outputs.",
+                x.0.principal.nombre
+            );
+            println!("{es} ({e})");
+            sesion.anotar("AVISO", &es);
+            sumar_aviso(&mut sesion.aviso, Texto::nuevo(es, en));
+            x
         }
+        Err(e) => return Err(e),
+    };
+    if let Some(a) = aviso_auriculares {
+        println!("Aviso: {a}");
+        sesion.anotar("AVISO", &a);
+        sumar_aviso(&mut sesion.aviso, Texto::nuevo(a, "The Headphones output could not be used (see the show log). It stays unused."));
     }
-    let frecuencia = principal.frecuencia;
-    salidas.push(principal.stream);
-    sesion.conectar_sonido(Box::new(crate::sonido_cpal::SonidoCpal {
-        principal: principal.control,
-        frecuencia,
-        auriculares: control_auriculares,
-    }));
+    let crate::equipo_salidas::JuegoSonido { principal, auriculares: salida_auriculares, sonido, frecuencia } = juego;
+    println!("Principal: {} · {} Hz · margen {margen_ms} ms", principal.nombre, frecuencia);
+    if let Some(a) = &salida_auriculares {
+        println!("Auriculares: {} · {} Hz", a.nombre, frecuencia);
+    }
+    let mut abiertas = (principal, salida_auriculares, frecuencia);
+    sesion.conectar_sonido(Box::new(sonido));
     // La proyección (vídeo e imagen), en un proceso aparte. Si no se puede
     // abrir, el sonido funciona igual y se avisa.
-    match abrir_proyeccion(pantalla) {
-        Ok(p) => sesion.conectar_proyector(Box::new(p)),
+    let pantalla_pedida: Option<String> = match (pantalla, &guardado.pantalla) {
+        (Some(p), _) => Some(p.to_string()),
+        (None, Some((d, _))) if d == "vista" => Some("vista".into()),
+        (None, Some((d, n))) => match buscar_pantalla(d, n) {
+            Some(p) => Some(p.dispositivo),
+            None => {
+                let es = format!("¡Atención! La pantalla elegida para el proyector («{n}») no está: ¿está conectada y en modo Extender (Windows + P)? Por ahora la proyección sale donde el programa la encuentre.");
+                let en = format!("Warning! The screen chosen for the projector (\"{n}\") is not there: is it connected and in Extend mode (Windows + P)? For now the projection goes wherever the program finds a screen.");
+                println!("{es}");
+                sesion.anotar("AVISO", &es);
+                sumar_aviso(&mut sesion.aviso, Texto::nuevo(es, en));
+                None
+            }
+        },
+        (None, None) => None,
+    };
+    let mut pantalla_info = serde_json::Value::Null;
+    match abrir_proyeccion_con_info(pantalla_pedida.as_deref()) {
+        Ok((p, info)) => {
+            pantalla_info = info;
+            sesion.conectar_proyector(Box::new(p));
+        }
         Err(e) => {
             println!("Aviso: sin proyección: {e}");
             sesion.anotar("ERROR", &format!("proyección: {e}"));
-            sesion.aviso = Some(otaconvert_servidor::Texto::nuevo(
+            sumar_aviso(&mut sesion.aviso, Texto::nuevo(
                 format!("No se pudo abrir la proyección: {e}. El sonido funciona igual."),
                 format!("The projection could not be opened: {e}. Sound works as usual."),
             ));
         }
     }
+    sesion.equipo = elegido_json(&abiertas.0, abiertas.1.as_ref(), abiertas.2, &pantalla_info);
     let sesion = Arc::new(Mutex::new(sesion));
     #[cfg(windows)]
     {
@@ -326,6 +370,20 @@ pub fn abrir(
         let ingles = s_idioma.lock().map(|s| s.idioma == otaconvert_servidor::Idioma::En).unwrap_or(false);
         crate::dialogo::elegir_archivos(ingles)
     }));
+    // Edición → Ajustes del show → Salidas: la ventana pide; las tarjetas y la
+    // proyección se cambian aquí, en el hilo principal, donde viven.
+    let (tx_pedidos, rx_pedidos) = std::sync::mpsc::channel::<(String, Option<String>, std::sync::mpsc::Sender<Result<(), Texto>>)>();
+    srv.al_elegir_salidas(
+        Arc::new(crate::equipo_salidas::lista_json),
+        Arc::new(move |que: &str, id: Option<String>| {
+            let (tx, rx) = std::sync::mpsc::channel();
+            if tx_pedidos.send((que.to_string(), id, tx)).is_err() {
+                return Err(Texto::nuevo("El programa se está cerrando.", "The program is closing."));
+            }
+            rx.recv_timeout(std::time::Duration::from_secs(30))
+                .unwrap_or_else(|_| Err(Texto::nuevo("El cambio de salida tardó demasiado.", "The output change took too long.")))
+        }),
+    );
     println!("Interfaz en {}", srv.url().split("?t=").next().unwrap_or(""));
     println!("(La dirección completa lleva una clave secreta; ábrela solo desde aquí.)");
     let mut ventana = None;
@@ -343,19 +401,28 @@ pub fn abrir(
         }
         Interfaz::Ninguna => println!("{}", srv.url()),
     }
-    // Si una tarjeta da errores (por ejemplo, se desconectó), avisar fuerte:
-    // nunca se cambia en silencio a otra salida.
-    let mut vistos = vec![0u64; vigilar_errores.len()];
-    let mut tardias_vistas = vec![0u64; vigilar_tardias.len()];
+    // Errores y llamadas tardías ya vistos, de Principal [0] y Auriculares [1]
+    // (vuelven a 0 cuando se cambia de tarjeta).
+    let mut vistos = [0u64; 2];
+    let mut tardias_vistas = [0u64; 2];
     loop {
-        std::thread::sleep(std::time::Duration::from_millis(500));
+        if let Ok((que, id, resp)) = rx_pedidos.recv_timeout(std::time::Duration::from_millis(500)) {
+            let r = cambiar_salida(&sesion, &que, id, margen_ms, &mut abiertas, &mut pantalla_info, &mut guardado);
+            if r.is_ok() || que != "pantalla" {
+                vistos = [0; 2];
+                tardias_vistas = [0; 2];
+            }
+            let _ = resp.send(r);
+        }
+        let vigiladas = [("Principal", Some(&abiertas.0)), ("Auriculares", abiertas.1.as_ref())];
         // La tarjeta pidió sonido más tarde que el margen: pudo oírse un corte.
         // Se anota en el registro (para revisar después de la función) sin molestar.
-        for (k, (nombre, tardias, maximo)) in vigilar_tardias.iter().enumerate() {
-            let n = tardias.load(std::sync::atomic::Ordering::Relaxed);
+        for (k, (nombre, a)) in vigiladas.iter().enumerate() {
+            let Some(a) = a else { continue };
+            let n = a.tardias.load(std::sync::atomic::Ordering::Relaxed);
             if n > tardias_vistas[k] {
                 tardias_vistas[k] = n;
-                let ms = maximo.load(std::sync::atomic::Ordering::Relaxed) as f64 / 1000.0;
+                let ms = a.intervalo_max_us.load(std::sync::atomic::Ordering::Relaxed) as f64 / 1000.0;
                 let texto = format!(
                     "Posible corte de sonido en {nombre}: la tarjeta tardó más que el margen de {margen_ms} ms (mayor espera {ms:.0} ms; van {n}). Si se repite, sube el margen o revisa el equipo con la Prueba de hardware."
                 );
@@ -365,8 +432,11 @@ pub fn abrir(
                 }
             }
         }
-        for (k, (nombre, contador)) in vigilar_errores.iter().enumerate() {
-            let n = contador.load(std::sync::atomic::Ordering::Relaxed);
+        // Si una tarjeta da errores (por ejemplo, se desconectó), avisar fuerte:
+        // nunca se cambia en silencio a otra salida.
+        for (k, (nombre, a)) in vigiladas.iter().enumerate() {
+            let Some(a) = a else { continue };
+            let n = a.errores.load(std::sync::atomic::Ordering::Relaxed);
             if n > vistos[k] {
                 vistos[k] = n;
                 let texto = format!("¡Atención! La salida {nombre} dio un error: puede haberse desconectado la tarjeta de sonido. Revisa el cable.");
@@ -375,7 +445,7 @@ pub fn abrir(
                 println!("{texto}");
                 if let Ok(mut s) = sesion.lock() {
                     s.anotar_error(&texto);
-                    s.aviso = Some(otaconvert_servidor::Texto::nuevo(texto, texto_en));
+                    s.aviso = Some(Texto::nuevo(texto, texto_en));
                 }
             }
         }
@@ -388,7 +458,7 @@ pub fn abrir(
                         s.guardar_si_hace_falta();
                         s.anotar("CERRAR", "Ventana cerrada por el usuario");
                     }
-                    drop(salidas);
+                    drop(abiertas);
                     return Ok(true);
                 }
                 crate::ventana_ui::Estado::UsarNavegador(motivo) => {
@@ -398,6 +468,93 @@ pub fn abrir(
             }
         }
     }
+}
+
+/// Principal, Auriculares (si hay) y la frecuencia a la que trabajan.
+type Abiertas = (crate::equipo_salidas::Abierta, Option<crate::equipo_salidas::Abierta>, u32);
+
+/// Cambia una salida pedida desde la ventana (etapa 5B). Solo en Edición y
+/// con nada sonando ni a la vista. Lo nuevo se abre **antes** de soltar lo
+/// viejo: si falla, queda lo que estaba y se avisa. Lo elegido se recuerda
+/// en este equipo.
+fn cambiar_salida(
+    sesion: &Arc<Mutex<Sesion>>,
+    que: &str,
+    id: Option<String>,
+    margen_ms: u64,
+    abiertas: &mut Abiertas,
+    pantalla_info: &mut serde_json::Value,
+    guardado: &mut crate::equipo_salidas::Guardado,
+) -> Result<(), otaconvert_servidor::Texto> {
+    use otaconvert_servidor::Texto;
+    let se_puede = || sesion.lock().map_err(|_| Texto::nuevo("Error interno.", "Internal error."))?.se_pueden_cambiar_salidas();
+    se_puede()?;
+    if que == "pantalla" {
+        let (p, info) = abrir_proyeccion_con_info(id.as_deref()).map_err(|e| {
+            Texto::nuevo(format!("No se pudo abrir la proyección ahí: {e}. Sigue donde estaba."), format!("The projection could not be opened there: {e}. It stays where it was."))
+        })?;
+        let mut s = sesion.lock().map_err(|_| Texto::nuevo("Error interno.", "Internal error."))?;
+        // Mientras se abría pudo empezar algo: entonces no se cambia.
+        s.se_pueden_cambiar_salidas()?;
+        s.conectar_proyector(Box::new(p));
+        let nombre = info["nombre"].as_str().unwrap_or("").to_string();
+        let donde = if info["vista"] == true { "vista previa".to_string() } else { nombre.clone() };
+        s.anotar("SALIDA", &format!("proyector → {donde}"));
+        *pantalla_info = info;
+        s.equipo = crate::equipo_salidas::elegido_json(&abiertas.0, abiertas.1.as_ref(), abiertas.2, pantalla_info);
+        guardado.pantalla = id.map(|d| if d == "vista" { ("vista".to_string(), String::new()) } else { (d, nombre) });
+        if let Err(e) = guardado.guardar() {
+            s.anotar("AVISO", &format!("no se pudo recordar la pantalla en este equipo: {e}"));
+        }
+        return Ok(());
+    }
+    // Sonido: se abren de nuevo las dos (Principal y Auriculares) con lo pedido.
+    let actual_aur = abiertas.1.as_ref().map(|a| a.id.clone());
+    let (p_id, a_id) = match que {
+        "principal" => (id.clone(), actual_aur),
+        _ => (Some(abiertas.0.id.clone()), id.clone()),
+    };
+    let (nuevo, aviso) = crate::equipo_salidas::abrir_sonido(p_id.as_deref(), a_id.as_deref(), margen_ms).map_err(|e| {
+        Texto::nuevo(format!("No se pudo abrir esa tarjeta: {e}. Sigue sonando por la que estaba."), format!("That card could not be opened: {e}. Sound stays on the previous one."))
+    })?;
+    if que == "auriculares" && id.is_some() && nuevo.auriculares.is_none() {
+        let a = aviso.unwrap_or_default();
+        return Err(Texto::nuevo(format!("{a} Auriculares sigue como estaba."), "That card can't be used for Headphones (it must work at the same frequency as Main). Headphones stays as it was."));
+    }
+    let mut s = sesion.lock().map_err(|_| Texto::nuevo("Error interno.", "Internal error."))?;
+    s.se_pueden_cambiar_salidas()?;
+    let crate::equipo_salidas::JuegoSonido { principal, auriculares, sonido, frecuencia } = nuevo;
+    let antes_hz = abiertas.2;
+    s.conectar_sonido(Box::new(sonido));
+    let viejas = std::mem::replace(abiertas, (principal, auriculares, frecuencia));
+    s.equipo = crate::equipo_salidas::elegido_json(&abiertas.0, abiertas.1.as_ref(), abiertas.2, pantalla_info);
+    s.anotar(
+        "SALIDA",
+        &format!(
+            "Principal → {} ({} Hz); Auriculares → {}",
+            abiertas.0.nombre,
+            abiertas.2,
+            abiertas.1.as_ref().map(|a| a.nombre.as_str()).unwrap_or("sin usar")
+        ),
+    );
+    guardado.principal = Some((abiertas.0.id.clone(), abiertas.0.nombre.clone()));
+    guardado.auriculares = abiertas.1.as_ref().map(|a| (a.id.clone(), a.nombre.clone()));
+    if let Err(e) = guardado.guardar() {
+        s.anotar("AVISO", &format!("no se pudo recordar la salida en este equipo: {e}"));
+    }
+    drop(s);
+    // Las tarjetas viejas se sueltan recién ahora, con las nuevas ya sonando.
+    drop(viejas);
+    if let Some(a) = aviso {
+        return Err(Texto::nuevo(a, "The Headphones output could not be used (see the show log). It stays unused."));
+    }
+    if antes_hz != abiertas.2 {
+        return Err(Texto::nuevo(
+            format!("Listo. Esta tarjeta trabaja a {} Hz: los audios se están volviendo a preparar (unos segundos).", abiertas.2),
+            format!("Done. This card works at {} Hz: the audio files are being prepared again (a few seconds).", abiertas.2),
+        ));
+    }
+    Ok(())
 }
 
 /// La ventana propia no se pudo usar: se avisa (consola, ventana y registro)
@@ -443,4 +600,13 @@ mod pruebas {
         assert!(crear_desde_carpeta(&vacia).unwrap_err().contains("no tiene un show"));
         let _ = std::fs::remove_dir_all(&d);
     }
+}
+
+/// Junta los avisos del arranque (tarjeta que falta, pantalla que falta,
+/// protector de pantalla…) para que ninguno tape a otro en la ventana.
+fn sumar_aviso(aviso: &mut Option<otaconvert_servidor::Texto>, nuevo: otaconvert_servidor::Texto) {
+    *aviso = Some(match aviso.take() {
+        Some(v) => otaconvert_servidor::Texto::nuevo(format!("{} · {}", v.es, nuevo.es), format!("{} · {}", v.en, nuevo.en)),
+        None => nuevo,
+    });
 }

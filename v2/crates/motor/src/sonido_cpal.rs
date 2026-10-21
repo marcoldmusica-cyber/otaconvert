@@ -14,6 +14,8 @@ pub struct SalidaAbierta {
     pub control: Control,
     pub frecuencia: u32,
     pub nombre: String,
+    /// Identificador estable de la tarjeta (cpal), para recordarla en este equipo.
+    pub id: String,
     pub errores: Arc<AtomicU64>,
     /// Veces que la tarjeta pidió sonido más tarde que el margen: el búfer
     /// pudo vaciarse y oírse un corte (lo vigila el programa y lo anota).
@@ -27,6 +29,7 @@ pub struct SalidaAbierta {
 pub fn abrir_salida(pedida: Option<&str>, margen_ms: u64) -> Result<SalidaAbierta, String> {
     let device = crate::elegir_salida(pedida)?;
     let nombre = device.to_string();
+    let id = device.id().map(|i| i.to_string()).unwrap_or_default();
     let soportada = device.default_output_config().map_err(|e| e.to_string())?;
     if soportada.sample_format() != cpal::SampleFormat::F32 {
         return Err(format!("{nombre}: formato {:?} todavía no soportado", soportada.sample_format()));
@@ -69,7 +72,7 @@ pub fn abrir_salida(pedida: Option<&str>, margen_ms: u64) -> Result<SalidaAbiert
         )
         .map_err(|e| format!("{nombre}: {e}"))?;
     stream.play().map_err(|e| format!("{nombre}: {e}"))?;
-    Ok(SalidaAbierta { stream, control, frecuencia, nombre, errores, tardias, intervalo_max_us })
+    Ok(SalidaAbierta { stream, control, frecuencia, nombre, id, errores, tardias, intervalo_max_us })
 }
 
 pub struct SonidoCpal {

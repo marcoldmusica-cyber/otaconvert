@@ -354,3 +354,26 @@ fn ajustes_del_show_en_vivo_validados_y_con_deshacer() {
     assert_eq!(otra.show.ajustes.fundir_todo_ms, 1000);
     assert_eq!(otra.show.ajustes.rampas_ms.inicio, 5.0);
 }
+
+/// Etapa 5B: la tarjeta y la pantalla solo se cambian en Edición y con nada
+/// sonando ni a la vista (el cambio nunca corta la función).
+#[test]
+fn las_salidas_solo_se_cambian_en_edicion_y_sin_nada_sonando() {
+    let d = carpeta();
+    let (mut s, _p, _son) = abrir(&d);
+    assert!(s.se_pueden_cambiar_salidas().is_ok());
+    s.cambiar_modo(Modo::Funcion);
+    assert!(s.se_pueden_cambiar_salidas().is_err(), "en Función no");
+    s.cambiar_modo(Modo::Edicion);
+    preparar_todo(&mut s);
+    s.go();
+    assert!(s.se_pueden_cambiar_salidas().unwrap_err().contiene("para todo"), "con algo sonando no");
+    s.parar_todo();
+    assert!(s.se_pueden_cambiar_salidas().is_ok(), "después de Parar todo, sí");
+    // El estado lleva lo elegido (lo pone el motor) y cuántos pedidos respondió.
+    s.equipo = serde_json::json!({ "principal": { "id": "x", "nombre": "Tarjeta" } });
+    s.salidas_respondidas = 3;
+    let e = estado(&s);
+    assert_eq!(e["equipo"]["principal"]["nombre"], "Tarjeta");
+    assert_eq!(e["salidas_respondidas"], 3);
+}

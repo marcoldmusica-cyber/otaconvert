@@ -83,10 +83,18 @@ struct Contexto {
     conexiones: AtomicUsize,
     /// Diálogo "Buscar archivos…" del sistema (lo pone el motor; en las pruebas no hay).
     buscar_archivos: Mutex<Option<BuscarArchivos>>,
+    equipo: Mutex<Option<(ListaEquipo, ElegirSalida)>>,
 }
 
 /// Abre el diálogo de Windows para elegir archivos y devuelve los elegidos (vacío = canceló).
 pub type BuscarArchivos = Arc<dyn Fn() -> Vec<std::path::PathBuf> + Send + Sync>;
+
+/// Salidas de sonido y pantallas de este equipo (etapa 5B), en JSON para la ventana.
+pub type ListaEquipo = Arc<dyn Fn() -> serde_json::Value + Send + Sync>;
+/// Cambia una salida: `que` = "principal" | "auriculares" | "pantalla"; `id` = cuál
+/// (`None` = la predeterminada de Windows, o quitar Auriculares). Lo hace el motor,
+/// que tiene las tarjetas abiertas; si falla, queda la que estaba.
+pub type ElegirSalida = Arc<dyn Fn(&str, Option<String>) -> Result<(), Texto> + Send + Sync>;
 
 pub struct Servidor {
     pub puerto: u16,
@@ -123,6 +131,7 @@ impl Servidor {
             clientes: Mutex::new(Vec::new()),
             conexiones: AtomicUsize::new(0),
             buscar_archivos: Mutex::new(None),
+            equipo: Mutex::new(None),
         });
         let c = ctx.clone();
         std::thread::Builder::new().name("servidor".into()).spawn(move || {
@@ -189,6 +198,13 @@ impl Servidor {
     pub fn al_buscar_archivos(&self, f: BuscarArchivos) {
         if let Ok(mut b) = self.ctx.buscar_archivos.lock() {
             *b = Some(f);
+        }
+    }
+
+    /// Etapa 5B: listar y elegir las salidas de sonido y la pantalla del proyector.
+    pub fn al_elegir_salidas(&self, lista: ListaEquipo, elegir: ElegirSalida) {
+        if let Ok(mut b) = self.ctx.equipo.lock() {
+            *b = Some((lista, elegir));
         }
     }
 
@@ -437,6 +453,42 @@ fn ejecutar(ctx: &Arc<Contexto>, texto: &str) {
                 let c = ctx.clone();
                 let _ = std::thread::Builder::new().name("buscar-archivos".into()).spawn(move || traer_archivos(&c, f(), despues_de));
             }
+            return;
+        }
+        // Etapa 5B: salidas de sonido y pantalla del proyector de este equipo.
+        Some("equipo_lista") => {
+            let f = ctx.equipo.lock().ok().and_then(|b| b.as_ref().map(|(l, _)| l.clone()));
+            if let Some(f) = f {
+                let c = ctx.clone();
+                let _ = std::thread::Builder::new().name("equipo-lista".into()).spawn(move || {
+                    let mut v = f();
+                    v["tipo"] = serde_json::json!("equipo");
+                    difundir(&c, v.to_string());
+                });
+            }
+            return;
+        }
+        Some("elegir_salida") => {
+            let que = v.get("que").and_then(|q| q.as_str()).unwrap_or("").to_string();
+            let id = v.get("id").and_then(|i| i.as_str()).map(|s| s.chars().take(512).collect::<String>());
+            let f = ctx.equipo.lock().ok().and_then(|b| b.as_ref().map(|(_, e)| e.clone()));
+            let c = ctx.clone();
+            // En otro hilo y sin tener la sesión tomada: abrir una tarjeta o
+            // la proyección tarda, y el motor necesita la sesión para hacerlo.
+            let _ = std::thread::Builder::new().name("elegir-salida".into()).spawn(move || {
+                let r = match (que.as_str(), f) {
+                    ("principal" | "auriculares" | "pantalla", Some(f)) => f(&que, id),
+                    (_, None) => Err(Texto::nuevo("Este programa no puede cambiar salidas.", "This program can't change outputs.")),
+                    _ => Err(Texto::nuevo("Salida no válida.", "Invalid output.")),
+                };
+                if let Ok(mut s) = c.sesion.lock() {
+                    s.aviso = r.err();
+                    s.salidas_respondidas += 1;
+                    let e = s.estado_json();
+                    drop(s);
+                    difundir(&c, e);
+                }
+            });
             return;
         }
         Some("medios_carpeta") => {
