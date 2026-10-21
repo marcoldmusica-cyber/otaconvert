@@ -269,6 +269,7 @@ impl Sesion {
             auriculares: self.sonido.as_ref().is_some_and(|s| s.tiene_auriculares()),
             sucio: self.sucio,
             errores,
+            botones: self.show.botonera.iter().flat_map(|p| p.botones.clone()).collect(),
         }
     }
 

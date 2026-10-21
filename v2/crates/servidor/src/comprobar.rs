@@ -55,6 +55,8 @@ pub struct Pedido {
     pub sucio: bool,
     /// Errores que la sesión ya conoce (p. ej. un vídeo que la proyección no pudo abrir).
     pub errores: Vec<(String, Texto)>,
+    /// Los botones de la botonera (también se revisan sus sonidos).
+    pub botones: Vec<otaconvert_show::BotonSonido>,
 }
 
 fn nombre_cue(n: &str, c: &Cue) -> (String, String) {
@@ -98,6 +100,9 @@ pub fn revisar(p: &Pedido, mut progreso: impl FnMut(usize, usize)) -> Vec<Punto>
             cues_bien += 1;
         }
         progreso(k + 1, total);
+    }
+    for b in &p.botones {
+        revisar_boton(p, b, &mut puntos);
     }
     if total > 0 {
         puntos.push(Punto::nuevo(
@@ -198,3 +203,40 @@ pub fn a_json(puntos: &[Punto], idioma: crate::Idioma, hora: &str) -> Value {
 
 /// Para que el motor agregue lo del equipo (protector de pantalla, batería, pendrive…).
 pub type ComprobarEquipo = std::sync::Arc<dyn Fn(&Path) -> Vec<Punto> + Send + Sync>;
+
+/// Un botón de la botonera: que su sonido esté, se pueda reproducir y no pase de 0 dB.
+fn revisar_boton(p: &Pedido, b: &otaconvert_show::BotonSonido, puntos: &mut Vec<Punto>) {
+    let (es, en) = (format!("Botón «{}» de la botonera", b.nombre), format!("Sound board button “{}”", b.nombre));
+    let ruta = match rutas::resolver(&p.carpeta, &b.archivo) {
+        Ok(r) if r.is_file() => r,
+        _ => {
+            puntos.push(Punto::nuevo(Nivel::Problema, format!("{es}: falta el archivo {}.", b.archivo), format!("{en}: the file {} is missing.", b.archivo)));
+            return;
+        }
+    };
+    let Some(fs) = p.frecuencia else { return };
+    match otaconvert_audio::preparar::preparar_con(&ruta, fs, b.bucle) {
+        Err(e) => {
+            let t = Texto::from(e);
+            puntos.push(Punto::nuevo(Nivel::Problema, format!("{es}: no se puede reproducir ({}).", t.es), format!("{en}: cannot be played ({}).", t.en)));
+        }
+        Ok(prep) => {
+            let pico = prep.pico * 10f32.powf(b.volumen_db / 20.0);
+            if pico > 1.0 {
+                let db = 20.0 * pico.log10();
+                puntos.push(Punto::nuevo(
+                    Nivel::Aviso,
+                    format!("{es} pasa de 0 dB (+{db:.1} dB con su volumen). El limitador lo controla, pero conviene bajarle el volumen."),
+                    format!("{en} goes above 0 dB (+{db:.1} dB with its volume). The limiter handles it, but lowering its volume is better."),
+                ));
+            }
+            if b.salida == "Auriculares" && !p.auriculares {
+                puntos.push(Punto::nuevo(
+                    Nivel::Aviso,
+                    format!("{es} va a Auriculares, pero no hay auriculares elegidos: sonará por Principal (la sala)."),
+                    format!("{en} goes to Headphones, but no headphones are set up: it will play on Main (the house)."),
+                ));
+            }
+        }
+    }
+}

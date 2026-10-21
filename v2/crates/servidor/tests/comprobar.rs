@@ -60,6 +60,7 @@ fn pedido(d: &Path, cues: Vec<(String, Cue)>) -> Pedido {
         auriculares: false,
         sucio: false,
         errores: Vec::new(),
+        botones: Vec::new(),
     }
 }
 
@@ -138,4 +139,23 @@ fn la_luz_es_el_peor_nivel() {
     assert_eq!(j["puntos"][0]["texto"], "b2", "primero lo más grave, en el idioma pedido");
     assert_eq!(j["hora"], "21:30");
     assert_eq!(a_json(&[], otaconvert_servidor::Idioma::Es, "")["luz"], "bien");
+}
+
+#[test]
+fn tambien_revisa_la_botonera() {
+    let d = carpeta();
+    let mut p = pedido(&d, vec![]);
+    let mut fuerte = otaconvert_show::BotonSonido { nombre: "Trueno".into(), archivo: "tono.wav".into(), ..Default::default() };
+    fuerte.volumen_db = 12.0;
+    p.botones = vec![
+        otaconvert_show::BotonSonido { nombre: "Timbre".into(), archivo: "tono.wav".into(), ..Default::default() },
+        otaconvert_show::BotonSonido { nombre: "Perdido".into(), archivo: "no-esta.wav".into(), ..Default::default() },
+        fuerte,
+    ];
+    let r = revisar(&p, |_, _| {});
+    let malos = textos(&r, Nivel::Problema);
+    let avisos = textos(&r, Nivel::Aviso);
+    assert!(malos.iter().any(|t| t.contains("«Perdido»") && t.contains("falta el archivo")), "{malos:?}");
+    assert!(avisos.iter().any(|t| t.contains("«Trueno»") && t.contains("0 dB")), "{avisos:?}");
+    assert!(!malos.iter().chain(&avisos).any(|t| t.contains("«Timbre»")), "el que está bien no se marca");
 }
