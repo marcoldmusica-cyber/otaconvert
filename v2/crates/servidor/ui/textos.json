@@ -21,6 +21,8 @@
       "personalizar": "Personalizar…",
       "modo_noche": "Modo noche",
       "modo_fresno": "Madera de fresno",
+      "fundir_uno": "Fundir",
+      "parar_uno": "Parar",
       "modo_dia": "Modo día (al aire libre)",
       "alto_contraste": "Alto contraste",
       "idioma": "Idioma",
@@ -230,6 +232,14 @@
       "consejo_boton": "Consejo"
     },
     "consejos": {
+      "sonando_uno": {
+        "titulo": "Fundir o parar solo uno",
+        "que_hace": "Baja (en la duración de Fundir todo) o corta solo este cue; lo demás sigue sonando.",
+        "activar": "Fundir para sacar un ambiente sin tocar el resto; Parar para cortarlo ya.",
+        "ejemplo_activar": "Ej.: termina la lluvia pero la música de la escena sigue: Fundir en la lluvia.",
+        "desactivar": "Para cortar todo a la vez usa Parar todo (Esc) o Fundir todo (F).",
+        "ejemplo_desactivar": "Ej.: el final de la escena, cuando se va todo junto con el apagón."
+      },
       "modo_fresno": {
         "titulo": "Madera de fresno",
         "que_hace": "Un aspecto cálido de madera clara, solo estético. Funciona igual que siempre.",
@@ -529,6 +539,8 @@
       "personalizar": "Customize…",
       "modo_noche": "Night mode",
       "modo_fresno": "Ash wood",
+      "fundir_uno": "Fade",
+      "parar_uno": "Stop",
       "modo_dia": "Day mode (outdoors)",
       "alto_contraste": "High contrast",
       "idioma": "Language",
@@ -738,6 +750,14 @@
       "consejo_boton": "Tip"
     },
     "consejos": {
+      "sonando_uno": {
+        "titulo": "Fade or stop just one",
+        "que_hace": "Fades (over the Fade all time) or cuts only this cue; everything else keeps playing.",
+        "activar": "Fade to take out an ambience without touching the rest; Stop to cut it now.",
+        "ejemplo_activar": "E.g.: the rain ends but the scene music goes on: Fade on the rain.",
+        "desactivar": "To cut everything at once use Stop all (Esc) or Fade all (F).",
+        "ejemplo_desactivar": "E.g.: the end of the scene, when everything goes with the blackout."
+      },
       "modo_fresno": {
         "titulo": "Ash wood",
         "que_hace": "A warm light-wood look, purely cosmetic. Everything works the same.",

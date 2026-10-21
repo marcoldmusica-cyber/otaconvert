@@ -619,6 +619,15 @@ fn ejecutar(ctx: &Arc<Contexto>, texto: &str) {
             Some("pausa") => s.pausa(),
             Some("fundir_todo") => s.fundir_todo(),
             Some("fundir_ultimo") => s.fundir_ultimo(),
+            // Panel Sonando (etapa 5C): parar o fundir solo uno (también en Función).
+            Some("parar_uno") => match v.get("id").and_then(|x| x.as_u64()) {
+                Some(id) => s.parar_uno(id as u32),
+                None => s.aviso = Some(Texto::nuevo("Cue no válido.", "Invalid cue.")),
+            },
+            Some("fundir_uno") => match v.get("id").and_then(|x| x.as_u64()) {
+                Some(id) => s.fundir_uno(id as u32),
+                None => s.aviso = Some(Texto::nuevo("Cue no válido.", "Invalid cue.")),
+            },
             Some("espera_arriba") => s.mover_espera(-1),
             Some("espera_abajo") => s.mover_espera(1),
             Some("guardar") => {

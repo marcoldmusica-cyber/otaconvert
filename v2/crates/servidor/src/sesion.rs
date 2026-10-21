@@ -1340,6 +1340,18 @@ impl Sesion {
             self.aviso = Some(Texto::nuevo("No hay nada sonando para fundir.", "Nothing is playing to fade out."));
             return;
         };
+        let id = s.id;
+        self.fundir_uno(id);
+    }
+
+    /// Panel Sonando (etapa 5C): funde solo lo que suena con este `id` (el de
+    /// la lista "sonando" del estado), en la duración de Fundir todo. Vale
+    /// también en Función: es un control de la función, no cambia el show.
+    pub fn fundir_uno(&mut self, id: u32) {
+        let Some(s) = self.sonando.iter().find(|s| s.id == id) else { return };
+        if s.fundiendo {
+            return;
+        }
         let (id, destino, cue, visual, voz) = (s.id, s.destino, s.cue, s.visual, s.voz);
         let f = self.cuadros(self.show.ajustes.fundir_todo_ms as u64) as u32;
         if visual {
@@ -1358,6 +1370,26 @@ impl Sesion {
             s.duracion = Some(fin.saturating_duration_since(s.inicio).min(s.duracion.unwrap_or(Duration::MAX)));
             s.fundiendo = true;
         }
+    }
+
+    /// Panel Sonando (etapa 5C): para solo lo que suena con este `id`, con la
+    /// rampa de parada (sin clic). Si es la imagen o el vídeo que se ve, el
+    /// proyector queda en negro. Vale también en Función.
+    pub fn parar_uno(&mut self, id: u32) {
+        let Some(k) = self.sonando.iter().position(|s| s.id == id) else { return };
+        let s = self.sonando.remove(k);
+        if s.voz {
+            if let Some(son) = self.sonido.as_mut() {
+                let _ = son.enviar(s.destino, Comando::Parar { id: s.id, fundido: 0 });
+            }
+        }
+        // Solo la imagen que se ve ahora (la última que salió) se tapa con negro.
+        if s.visual && !self.sonando.iter().any(|o| o.visual) {
+            self.al_proyector(OrdenProyector::Negro);
+            self.remostrar = None;
+        }
+        let d = self.describir(s.cue);
+        self.registro.anotar("PARAR", &format!("solo {d}"));
     }
 
     /// Pausa general (P): la primera vez pausa todo, la segunda lo reanuda.
@@ -1724,6 +1756,8 @@ impl Sesion {
                     None => None,
                 };
                 json!({
+                    // Para parar o fundir solo este desde el panel Sonando.
+                    "id": s.id,
                     "cue": s.cue,
                     "nombre": c.map(|c| c.nombre.clone()).unwrap_or_default(),
                     "visual": s.visual,

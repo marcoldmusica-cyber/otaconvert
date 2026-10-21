@@ -377,3 +377,43 @@ fn las_salidas_solo_se_cambian_en_edicion_y_sin_nada_sonando() {
     assert_eq!(e["equipo"]["principal"]["nombre"], "Tarjeta");
     assert_eq!(e["salidas_respondidas"], 3);
 }
+
+/// Etapa 5C, panel Sonando: parar o fundir uno solo, sin tocar lo demás
+/// (también en Función, que es donde se usa).
+#[test]
+fn parar_o_fundir_un_solo_cue_desde_sonando() {
+    let d = carpeta();
+    let (mut s, _p, son) = abrir(&d);
+    preparar_todo(&mut s);
+    s.cambiar_modo(Modo::Funcion);
+    assert!(s.go(), "GO del cue 1");
+    s.ir_a(2);
+    preparar_todo(&mut s);
+    std::thread::sleep(std::time::Duration::from_millis(350)); // protección contra doble GO
+    assert!(s.go(), "GO del cue 3");
+    let ids: Vec<u32> = estado(&s)["sonando"].as_array().unwrap().iter().map(|x| x["id"].as_u64().unwrap() as u32).collect();
+    assert_eq!(ids.len(), 2);
+    son.recibido.lock().unwrap().clear();
+
+    // Fundir solo el primero: Parar con el fundido de Fundir todo (3 s = 144 000 cuadros).
+    s.fundir_uno(ids[0]);
+    let rec = std::mem::take(&mut *son.recibido.lock().unwrap());
+    assert_eq!(rec.len(), 1, "{rec:?}");
+    assert!(matches!(rec[0].1, Comando::Parar { id, fundido: 144_000 } if id == ids[0]));
+    let e = estado(&s);
+    let fundiendo: Vec<bool> = e["sonando"].as_array().unwrap().iter().map(|x| x["fundiendo"].as_bool().unwrap()).collect();
+    assert_eq!(fundiendo, vec![true, false], "el segundo sigue igual");
+    s.fundir_uno(ids[0]);
+    assert!(son.recibido.lock().unwrap().is_empty(), "fundir dos veces no manda nada más");
+
+    // Parar solo el segundo: con la rampa de parada (fundido 0) y sale de Sonando.
+    s.parar_uno(ids[1]);
+    let rec = std::mem::take(&mut *son.recibido.lock().unwrap());
+    assert!(matches!(rec.as_slice(), [(_, Comando::Parar { id, fundido: 0 })] if *id == ids[1]), "{rec:?}");
+    assert_eq!(estado(&s)["sonando"].as_array().unwrap().len(), 1);
+
+    // Un número que no suena: nada.
+    s.parar_uno(9999);
+    s.fundir_uno(9999);
+    assert!(son.recibido.lock().unwrap().is_empty());
+}

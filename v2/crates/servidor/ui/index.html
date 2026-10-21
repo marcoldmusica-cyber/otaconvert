@@ -174,6 +174,11 @@ fieldset:disabled{opacity:.45}
 
 /* Panel lateral: Función */
 .live{flex:1;padding:16px;display:flex;flex-direction:column;gap:12px;overflow:auto}
+.uno-acc{display:inline-flex;gap:6px;margin-top:8px}
+.btn.chico{padding:3px 10px;font-size:12px;border-radius:8px}
+.btn.parar-uno{color:var(--err);border-color:color-mix(in srgb,var(--err) 45%,var(--border))}
+.aire-linea{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.aire-linea .uno-acc{margin-top:0}
 .big{background:var(--card2);border:1px solid var(--border);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:8px}
 .big .k{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
 .big .t{font-size:26px;font-weight:600;line-height:1.15;overflow-wrap:anywhere}
@@ -965,14 +970,35 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     }
     aireSv = sv && !sv.imagen ? sv : null;
     seguirAire();
-    var lineas = [];
-    if (sv) lineas.push((sv.fundiendo ? T("fundiendo") : "") + (sv.imagen ? T("imagen_fija") : sv.restante_s != null ? "-" + mmss(sv.restante_s) : T("en_bucle")));
+    // Cada cosa que suena, con Fundir y Parar solo esa (panel Sonando, etapa 5C).
+    var info = $("aireInfo"); info.textContent = "";
+    function linea(texto, s) { var d = el("div", "aire-linea"); d.appendChild(el("span", "", texto)); if (s) d.appendChild(botonesUno(s)); info.appendChild(d); }
+    if (e.pausado) linea(T("en_pausa"));
+    if (sv) linea((sv.fundiendo ? T("fundiendo") : "") + (sv.imagen ? T("imagen_fija") : sv.restante_s != null ? "-" + mmss(sv.restante_s) : T("en_bucle")), sv);
     lista.filter(function (s) { return !s.visual; }).forEach(function (s) {
-      lineas.push("♪ " + s.nombre + " · " + (s.fundiendo ? T("fundiendo") : "") + (s.restante_s != null ? "-" + mmss(s.restante_s) : T("en_bucle")));
+      linea("♪ " + s.nombre + " · " + (s.fundiendo ? T("fundiendo") : "") + (s.restante_s != null ? "-" + mmss(s.restante_s) : T("en_bucle")), s);
     });
-    if (e.pausado) lineas.unshift(T("en_pausa"));
-    $("aireInfo").textContent = lineas.join("\n");
   }
+
+  // Botones «Fundir» y «Parar» de una sola cosa que suena. Se atienden al
+  // apretar (pointerdown), no al soltar: el panel se redibuja varias veces por
+  // segundo y un clic podría perderse entre medio.
+  function botonesUno(s) {
+    var w = el("span", "uno-acc");
+    if (!s.fundiendo) {
+      var f = el("button", "btn chico", T("fundir_uno")); f.type = "button"; f.dataset.uno = "fundir"; f.dataset.id = s.id; f.dataset.consejo = "sonando_uno";
+      w.appendChild(f);
+    }
+    var p = el("button", "btn chico parar-uno", T("parar_uno")); p.type = "button"; p.dataset.uno = "parar"; p.dataset.id = s.id;
+    w.appendChild(p);
+    return w;
+  }
+  document.addEventListener("pointerdown", function (ev) {
+    var b = ev.target.closest && ev.target.closest("[data-uno]");
+    if (!b || ayudando) return;
+    ev.preventDefault();
+    mandar(b.dataset.uno === "fundir" ? "fundir_uno" : "parar_uno", { id: +b.dataset.id });
+  });
 
   function dibujarEnVivo(lado) {
     lado.textContent = "";
@@ -995,6 +1021,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
       var resto = s.imagen ? T("imagen_fija") : s.restante_s != null ? "-" + mmss(s.restante_s) : T("en_bucle");
       b.appendChild(el("div", "remain num", (s.fundiendo ? T("fundiendo") : "") + resto));
       if (!s.imagen) { var bar = el("div", "bigbar"), i = el("i"); i.style.width = (s.progreso * 100) + "%"; bar.appendChild(i); b.appendChild(bar); }
+      b.appendChild(botonesUno(s));
       now.appendChild(b);
     });
     live.appendChild(now);
