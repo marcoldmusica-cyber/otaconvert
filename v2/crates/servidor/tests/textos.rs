@@ -7,7 +7,7 @@ use serde_json::{Map, Value};
 const PAGINA: &str = include_str!("../ui/index.html");
 
 fn textos() -> Value {
-    serde_json::from_str(otaconvert_servidor::TEXTOS).expect("ui/textos.json no es JSON válido")
+    serde_json::from_str(otaconvert_servidor::textos()).expect("ui/textos.json no es JSON válido")
 }
 
 fn obj<'a>(v: &'a Value, k: &str) -> &'a Map<String, Value> {
@@ -100,7 +100,7 @@ fn todo_lo_que_usa_la_pagina_existe() {
 #[test]
 fn ningun_texto_puede_cerrar_el_script() {
     // El servidor escapa «</»; aquí se comprueba que el JSON resultante sigue siendo válido.
-    let escapado = otaconvert_servidor::TEXTOS.replace("</", "<\\/");
+    let escapado = otaconvert_servidor::textos().replace("</", "<\\/");
     assert!(!escapado.contains("</"));
     serde_json::from_str::<Value>(&escapado).unwrap();
 }

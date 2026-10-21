@@ -36,11 +36,36 @@ const PLANTILLA: &str = include_str!("../ui/index.html");
 /// ayuda). Se prueban en `tests/textos.rs`.
 pub const TEXTOS: &str = include_str!("../ui/textos.json");
 
+/// Los textos que recibe la ventana: `ui/textos.json` más los consejos de las
+/// 7 rampas cortas (`rampa_inicio`…`rampa_fin`), que viven en el motor de
+/// audio (`otaconvert_audio::consejos`) para no tener dos copias.
+pub fn textos() -> &'static str {
+    static T: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    T.get_or_init(|| {
+        use otaconvert_audio::consejos::{Idioma as I, TipoRampa};
+        let mut v: serde_json::Value = serde_json::from_str(TEXTOS).expect("ui/textos.json");
+        for (clave, idioma) in [("es", I::Es), ("en", I::En)] {
+            let Some(c) = v.get_mut(clave).and_then(|x| x.get_mut("consejos")).and_then(|x| x.as_object_mut()) else { continue };
+            for (tipo, nombre) in TipoRampa::TODAS.into_iter().zip(["inicio", "reanudar", "pausa", "parada", "salto", "volumen", "fin"]) {
+                let k = tipo.consejo(idioma);
+                c.insert(
+                    format!("rampa_{nombre}"),
+                    serde_json::json!({
+                        "titulo": k.titulo, "que_hace": k.que_hace, "activar": k.activar,
+                        "ejemplo_activar": k.ejemplo_activar, "desactivar": k.desactivar, "ejemplo_desactivar": k.ejemplo_desactivar,
+                    }),
+                );
+            }
+        }
+        v.to_string()
+    })
+}
+
 /// La página con los textos dentro (se arma una vez). `</` se escapa para
 /// que un texto nunca pueda cerrar el `<script>`.
 fn pagina() -> &'static str {
     static P: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-    P.get_or_init(|| PLANTILLA.replace("\"__TEXTOS__\"", &TEXTOS.replace("</", "<\\/")))
+    P.get_or_init(|| PLANTILLA.replace("\"__TEXTOS__\"", &textos().replace("</", "<\\/")))
 }
 
 const MAX_CONEXIONES: usize = 16;
@@ -459,6 +484,16 @@ fn ejecutar(ctx: &Arc<Contexto>, texto: &str) {
                 let r = match (indice(), a) {
                     (Some(i), Some(h)) => s.mover_cue(i, h),
                     _ => Err(Texto::nuevo("Cue no válido.", "Invalid cue.")),
+                };
+                if let Err(e) = r {
+                    s.aviso = Some(e);
+                }
+            }
+            // Etapa 5B: Edición → Ajustes del show.
+            Some("ajustes") => {
+                let r = match v.get("cambios") {
+                    Some(c) => s.cambiar_ajustes(c),
+                    None => Err(Texto::nuevo("Ajustes no válidos.", "Invalid settings.")),
                 };
                 if let Err(e) = r {
                     s.aviso = Some(e);

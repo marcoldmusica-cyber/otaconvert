@@ -350,6 +350,9 @@ impl Sesion {
         if viejo.superficie != self.show.superficie {
             self.enviar_esquinas();
         }
+        if viejo.ajustes != self.show.ajustes {
+            self.enviar_ajustes(0);
+        }
         self.sucio = true;
     }
 
@@ -483,7 +486,20 @@ impl Sesion {
     }
 
     /// Conecta el sonido y le pasa las rampas y el volumen maestro del show.
-    pub fn conectar_sonido(&mut self, mut s: Box<dyn Sonido>) {
+    pub fn conectar_sonido(&mut self, s: Box<dyn Sonido>) {
+        let fs = s.frecuencia();
+        self.sonido = Some(s);
+        self.enviar_ajustes(0);
+        self.registro.anotar("SONIDO", &format!("salida conectada a {fs} Hz"));
+        self.preparados.clear();
+        self.errores.clear();
+        self.mudos.clear();
+    }
+
+    /// Manda al mezclador las rampas y el volumen maestro del show (sin cortar
+    /// lo que suena). `cuadros_maestro`: cuánto tarda el cambio de volumen.
+    fn enviar_ajustes(&mut self, cuadros_maestro: u32) {
+        let Some(s) = self.sonido.as_mut() else { return };
         let fs = s.frecuencia();
         let r = &self.show.ajustes.rampas_ms;
         let cuadros = |ms: f32| otaconvert_audio::ms(fs, ms);
@@ -503,13 +519,62 @@ impl Sesion {
                 continue;
             }
             let _ = s.enviar(d, Comando::CambiarAjustes(ajustes));
-            let _ = s.enviar(d, Comando::VolumenMaestro { volumen: maestro, cuadros: 0 });
+            let _ = s.enviar(d, Comando::VolumenMaestro { volumen: maestro, cuadros: cuadros_maestro });
         }
-        self.registro.anotar("SONIDO", &format!("salida conectada a {fs} Hz"));
-        self.sonido = Some(s);
-        self.preparados.clear();
-        self.errores.clear();
-        self.mudos.clear();
+    }
+
+    /// Edición → Ajustes del show (etapa 5B): rampas cortas, protección contra
+    /// doble GO, duración de Fundir todo y volumen maestro. Valida todo antes
+    /// de cambiar nada; se aplica en vivo y se puede deshacer.
+    pub fn cambiar_ajustes(&mut self, cambios: &serde_json::Value) -> Result<(), Texto> {
+        self.solo_en_edicion()?;
+        let obj = cambios.as_object().ok_or_else(|| t("Ajustes no válidos.", "Invalid settings."))?;
+        let mut a = self.show.ajustes.clone();
+        for (k, v) in obj {
+            let n = v.as_f64().filter(|x| x.is_finite());
+            let rango = |min: f64, max: f64, es: &str, en: &str| {
+                n.filter(|x| (min..=max).contains(x)).ok_or_else(|| t(format!("{es}: debe ir de {min} a {max}."), format!("{en}: must be between {min} and {max}.")))
+            };
+            match k.as_str() {
+                "rampa_inicio" | "rampa_reanudar" | "rampa_pausa" | "rampa_parada" | "rampa_salto" | "rampa_volumen" | "rampa_fin" => {
+                    let ms = rango(0.0, 1000.0, "Rampa (ms)", "Ramp (ms)")? as f32;
+                    let r = &mut a.rampas_ms;
+                    match k.as_str() {
+                        "rampa_inicio" => r.inicio = ms,
+                        "rampa_reanudar" => r.reanudar = ms,
+                        "rampa_pausa" => r.pausa = ms,
+                        "rampa_parada" => r.parada = ms,
+                        "rampa_salto" => r.salto = ms,
+                        "rampa_volumen" => r.volumen = ms,
+                        _ => r.fin = ms,
+                    }
+                }
+                "doble_go_ms" => a.tiempo_minimo_entre_go_ms = rango(0.0, 5000.0, "Protección contra doble GO (ms)", "Double-GO protection (ms)")? as u32,
+                "fundir_todo_ms" => a.fundir_todo_ms = rango(0.0, 60_000.0, "Fundir todo (ms)", "Fade all (ms)")? as u32,
+                "volumen_maestro_db" => a.volumen_maestro_db = rango(-60.0, 12.0, "Volumen maestro (dB)", "Master volume (dB)")? as f32,
+                _ => return Err(t(format!("Ajuste desconocido: {k}"), format!("Unknown setting: {k}"))),
+            }
+        }
+        if a == self.show.ajustes {
+            return Ok(());
+        }
+        let mut prueba = self.show.clone();
+        prueba.ajustes = a.clone();
+        otaconvert_show::validar(&prueba).map_err(|e| t(format!("Ajuste no válido: {e}"), format!("Invalid setting: {e}")))?;
+        self.antes_de_cambiar(Some("ajustes"));
+        self.show.ajustes = a;
+        let fs = self.sonido.as_ref().map(|s| s.frecuencia()).unwrap_or(48_000);
+        self.enviar_ajustes(otaconvert_audio::ms(fs, 50.0));
+        let r = &self.show.ajustes.rampas_ms;
+        self.registro.anotar(
+            "AJUSTES",
+            &format!(
+                "rampas {}/{}/{}/{}/{}/{}/{} ms, doble GO {} ms, fundir todo {} ms, maestro {:.1} dB",
+                r.inicio, r.reanudar, r.pausa, r.parada, r.salto, r.volumen, r.fin,
+                self.show.ajustes.tiempo_minimo_entre_go_ms, self.show.ajustes.fundir_todo_ms, self.show.ajustes.volumen_maestro_db
+            ),
+        );
+        Ok(())
     }
 
     fn describir(&self, i: usize) -> String {
@@ -1678,6 +1743,8 @@ impl Sesion {
             // Deshacer y rehacer (etapa 5A).
             "puede_deshacer": !self.historial.is_empty(),
             "puede_rehacer": !self.rehechos.is_empty(),
+            // Edición → Ajustes del show (etapa 5B).
+            "ajustes": self.show.ajustes,
         })
         .to_string()
     }

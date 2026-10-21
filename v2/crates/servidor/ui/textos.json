@@ -157,6 +157,24 @@
       "atajo_tab": "Cambiar entre Edición y Función",
       "atajo_h": "Modo Ayuda (tocar cualquier parte y ver qué hace)",
       "atajo_s": "Guardar",
+      "aj_funcion": "Los ajustes del show se cambian en Edición. Pasa a Edición con Tab.",
+      "aj_rampas": "Rampas cortas",
+      "aj_rampas_s": "Subidas o bajadas de volumen tan cortas que no se notan, pero evitan el clic. En 0 el sonido empieza o se corta de golpe.",
+      "r_inicio": "Al iniciar",
+      "r_reanudar": "Al reanudar",
+      "r_pausa": "Al pausar",
+      "r_parada": "Al parar",
+      "r_salto": "Al saltar",
+      "r_volumen": "Cambios de volumen",
+      "r_fin": "Final del archivo",
+      "aj_go": "GO",
+      "doble_go": "Protección contra doble GO",
+      "fundir_todo_dur": "Duración de Fundir todo",
+      "aj_sonido": "Sonido",
+      "volumen_maestro": "Volumen maestro",
+      "aj_recomendados": "Volver a los valores recomendados",
+      "aj_deshacer": "Cada cambio se aplica al instante, sin cortar lo que suena, y se puede deshacer con Ctrl+Z.",
+      "aj_fuera": "Escribe un número entre {min} y {max}.",
       "agregar_cues": "Agregar cues…",
       "tecla_supr": "Supr",
       "subir_cue": "Subir cue",
@@ -198,6 +216,38 @@
       "consejo_boton": "Consejo"
     },
     "consejos": {
+      "ajustes_show": {
+        "titulo": "Ajustes del show",
+        "que_hace": "Rampas cortas, protección contra doble GO, duración de Fundir todo y volumen maestro. Viajan con el show.",
+        "activar": "Ábrelos al preparar un show nuevo o si oyes clics.",
+        "ejemplo_activar": "Ej.: el GO se dispara dos veces porque el operador toca fuerte: sube la protección.",
+        "desactivar": "Si todo suena bien, déjalos como vienen.",
+        "ejemplo_desactivar": "Ej.: una obra con músicas que arrancan en silencio: los valores recomendados alcanzan."
+      },
+      "doble_go": {
+        "titulo": "Protección contra doble GO",
+        "que_hace": "Tiempo mínimo entre dos GO. Un segundo GO antes de ese tiempo se ignora (y se anota).",
+        "activar": "Súbela (500–1000 ms) si se escapan GO repetidos.",
+        "ejemplo_activar": "Ej.: un operador nuevo que aprieta Espacio dos veces seguidas en el apagón.",
+        "desactivar": "Bájala (0–100 ms) si hay cues que van uno detrás de otro muy rápido.",
+        "ejemplo_desactivar": "Ej.: tres golpes de puerta disparados a mano, uno tras otro."
+      },
+      "fundir_todo_dur": {
+        "titulo": "Duración de Fundir todo",
+        "que_hace": "Cuánto tarda en apagarse todo con Fundir todo (F) y Mayús+F, sonido e imagen.",
+        "activar": "Más largo (5–8 s) para finales lentos.",
+        "ejemplo_activar": "Ej.: el final de la obra, con la luz bajando despacio: 8 s.",
+        "desactivar": "Más corto (1–2 s) para salir rápido sin cortar en seco.",
+        "ejemplo_desactivar": "Ej.: un cambio de escena a oscuras que dura un instante."
+      },
+      "volumen_maestro": {
+        "titulo": "Volumen maestro",
+        "que_hace": "Sube o baja todo lo que suena en el show a la vez, sin tocar cada cue.",
+        "activar": "Bájalo si en esta sala todo suena fuerte de más.",
+        "ejemplo_activar": "Ej.: la gira llega a una sala chica: −6 dB y listo.",
+        "desactivar": "Déjalo en 0 dB y ajusta en la mesa de sonido.",
+        "ejemplo_desactivar": "Ej.: en tu teatro de siempre, con la mesa ya calibrada."
+      },
       "agregar": {
         "titulo": "Agregar cues",
         "que_hace": "Suma audios, vídeos o imágenes como cues nuevos detrás del que está en espera. Lo de fuera se copia a la carpeta del show.",
@@ -569,6 +619,24 @@
       "atajo_tab": "Switch between Edit and Live",
       "atajo_h": "Help mode (tap anything to see what it does)",
       "atajo_s": "Save",
+      "aj_funcion": "Show settings are changed in Edit mode. Switch to Edit with Tab.",
+      "aj_rampas": "Short ramps",
+      "aj_rampas_s": "Volume rises or dips so short you don't notice them, but they prevent clicks. At 0 the sound starts or cuts abruptly.",
+      "r_inicio": "On start",
+      "r_reanudar": "On resume",
+      "r_pausa": "On pause",
+      "r_parada": "On stop",
+      "r_salto": "On jump",
+      "r_volumen": "Volume changes",
+      "r_fin": "End of file",
+      "aj_go": "GO",
+      "doble_go": "Double-GO protection",
+      "fundir_todo_dur": "Fade all duration",
+      "aj_sonido": "Sound",
+      "volumen_maestro": "Master volume",
+      "aj_recomendados": "Back to recommended values",
+      "aj_deshacer": "Each change applies instantly, without cutting what is playing, and can be undone with Ctrl+Z.",
+      "aj_fuera": "Type a number between {min} and {max}.",
       "agregar_cues": "Add cues…",
       "tecla_supr": "Del",
       "subir_cue": "Move cue up",
@@ -610,6 +678,38 @@
       "consejo_boton": "Tip"
     },
     "consejos": {
+      "ajustes_show": {
+        "titulo": "Show settings",
+        "que_hace": "Short ramps, double-GO protection, Fade all duration and master volume. They travel with the show.",
+        "activar": "Open them when preparing a new show or if you hear clicks.",
+        "ejemplo_activar": "E.g.: GO fires twice because the operator presses hard: raise the protection.",
+        "desactivar": "If everything sounds right, leave them as they come.",
+        "ejemplo_desactivar": "E.g.: a play whose music starts in silence: the recommended values are enough."
+      },
+      "doble_go": {
+        "titulo": "Double-GO protection",
+        "que_hace": "Minimum time between two GOs. A second GO sooner than that is ignored (and logged).",
+        "activar": "Raise it (500–1000 ms) if repeated GOs slip through.",
+        "ejemplo_activar": "E.g.: a new operator who hits Space twice in a row during the blackout.",
+        "desactivar": "Lower it (0–100 ms) if some cues follow each other very quickly.",
+        "ejemplo_desactivar": "E.g.: three door knocks fired by hand, one right after another."
+      },
+      "fundir_todo_dur": {
+        "titulo": "Fade all duration",
+        "que_hace": "How long Fade all (F) and Shift+F take to bring everything down, sound and image.",
+        "activar": "Longer (5–8 s) for slow endings.",
+        "ejemplo_activar": "E.g.: the end of the play, with the lights going down slowly: 8 s.",
+        "desactivar": "Shorter (1–2 s) to get out fast without a hard cut.",
+        "ejemplo_desactivar": "E.g.: a scene change in the dark that lasts a moment."
+      },
+      "volumen_maestro": {
+        "titulo": "Master volume",
+        "que_hace": "Raises or lowers everything the show plays at once, without touching each cue.",
+        "activar": "Lower it if everything is too loud in this venue.",
+        "ejemplo_activar": "E.g.: the tour reaches a small room: −6 dB and done.",
+        "desactivar": "Leave it at 0 dB and adjust on the mixing desk.",
+        "ejemplo_desactivar": "E.g.: in your usual theatre, with the desk already set."
+      },
       "agregar": {
         "titulo": "Add cues",
         "que_hace": "Adds audio, video or image files as new cues after the one on standby. Files from elsewhere are copied into the show folder.",

@@ -111,6 +111,12 @@ pub fn validar(show: &Show) -> Result<(), ErrorShow> {
     if !numero_ok(show.ajustes.volumen_maestro_db) || show.ajustes.volumen_maestro_db > 24.0 {
         return Err(ErrorShow::ValorMalo(format!("volumen maestro {}", show.ajustes.volumen_maestro_db)));
     }
+    if show.ajustes.tiempo_minimo_entre_go_ms > 5_000 {
+        return Err(ErrorShow::ValorMalo(format!("protección contra doble GO {} ms", show.ajustes.tiempo_minimo_entre_go_ms)));
+    }
+    if show.ajustes.fundir_todo_ms > 60_000 {
+        return Err(ErrorShow::ValorMalo(format!("Fundir todo {} ms", show.ajustes.fundir_todo_ms)));
+    }
     Ok(())
 }
 

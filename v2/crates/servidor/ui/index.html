@@ -190,6 +190,15 @@ fieldset:disabled{opacity:.45}
 .dlg td:first-child{white-space:nowrap;width:1%}
 .dlg .ok{align-self:flex-end;background:var(--accent);color:var(--on-accent);border:0;border-radius:10px;padding:8px 18px;font-weight:600}
 .dlg.ancho{width:min(780px,100%)}
+.ajustes{max-height:min(60vh,560px);overflow:auto;padding-right:4px}
+.ajustes h3{font-size:14px;margin:14px 0 4px}
+.ajustes h3:first-child{margin-top:0}
+.aj-fila{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid var(--border)}
+.aj-fila label{display:flex;align-items:center;gap:6px}
+.aj-valor{display:flex;align-items:center;gap:6px}
+.aj-valor input[type=number]{width:90px;text-align:right}
+.aj-valor input[type=range]{width:180px}
+.aj-unidad{color:var(--muted);font-size:12px;min-width:18px}
 .medios{max-height:min(46vh,420px);overflow:auto;border:1px solid var(--border);border-radius:12px;padding:6px;margin:10px 0}
 .medio{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:8px;cursor:pointer}
 .medio:hover{background:var(--hover)}
@@ -310,7 +319,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
         <button role="menuitem" disabled><span data-t="copiar"></span> <span class="pronto" data-t="proximamente"></span></button>
         <button role="menuitem" disabled><span data-t="pegar"></span> <span class="pronto" data-t="proximamente"></span></button>
         <div class="sep"></div>
-        <button role="menuitem" disabled><span data-t="ajustes_show"></span> <span class="pronto" data-t="proximamente"></span></button>
+        <button role="menuitem" data-accion="ajustes" data-consejo="ajustes_show"><span data-t="ajustes_show"></span><span class="q" aria-hidden="true">?</span></button>
       </div>
     </div>
     <div class="mb">
@@ -498,6 +507,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
       b.disabled = funcion || (k === "deshacer" && !e.puede_deshacer) || (k === "rehacer" && !e.puede_rehacer) || (k === "cue" && !e.cues[e.en_espera]);
     });
     $("soltar-texto").textContent = funcion ? T("soltar_funcion") : T("soltar_s");
+    actualizarAjustes();
     actualizarMapeo();
     var nx = e.cues[e.en_espera];
     $("goNext").textContent = nx ? nx.numero + " · " + nx.nombre : T("fin_lista");
@@ -1028,6 +1038,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
       else if (it.dataset.accion === "acerca") dialogoAcerca();
       else if (it.dataset.accion === "mapeo") dialogoMapeo();
       else if (it.dataset.accion === "agregar") dialogoAgregar();
+      else if (it.dataset.accion === "ajustes") dialogoAjustes();
       else if (it.dataset.accion === "eliminar") eliminarCue();
       else if (it.dataset.accion === "subir") moverCue(-1);
       else if (it.dataset.accion === "bajar") moverCue(1);
@@ -1428,6 +1439,84 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     }
   });
   var ignorarClic = false;
+
+  // ---- Edición → Ajustes del show (etapa 5B) ----
+  var RAMPAS = [["inicio", "rampa_inicio", "r_inicio"], ["reanudar", "rampa_reanudar", "r_reanudar"], ["pausa", "rampa_pausa", "r_pausa"],
+    ["parada", "rampa_parada", "r_parada"], ["salto", "rampa_salto", "r_salto"], ["volumen", "rampa_volumen", "r_volumen"], ["fin", "rampa_fin", "r_fin"]];
+  var RECOMENDADOS = { rampa_inicio: 0, rampa_reanudar: 5, rampa_pausa: 10, rampa_parada: 10, rampa_salto: 5, rampa_volumen: 5, rampa_fin: 10,
+    doble_go_ms: 300, fundir_todo_ms: 3000, volumen_maestro_db: 0 };
+  var ajustesDlg = null; // { campos: {clave: {input, leer(e), mostrar(input, valor)}} }
+  function dialogoAjustes() {
+    if (!puedeEditar()) { dialogo(T("ajustes_show").replace("…", ""), function (d) { d.appendChild(el("p", "", T("aj_funcion"))); }); return; }
+    ajustesDlg = { campos: {} };
+    dialogo(T("ajustes_show").replace("…", ""), function (d) {
+      d.classList.add("ancho");
+      var cuerpo = el("div", "ajustes");
+      function fila(clave, etiqueta, consejo, control, unidad, campo) {
+        var f = el("div", "aj-fila"), l = el("label", "", T(etiqueta));
+        campo = campo || control; campo.id = "aj-" + clave; l.htmlFor = campo.id;
+        if (consejo) l.appendChild(botonConsejo(consejo));
+        var w = el("span", "aj-valor"); w.appendChild(control); if (unidad) w.appendChild(el("span", "aj-unidad", unidad));
+        f.appendChild(l); f.appendChild(w); return f;
+      }
+      function numero(clave, min, max, paso, aEnviar) {
+        var n = el("input"); n.type = "number"; n.min = min; n.max = max; n.step = paso; n.className = "num";
+        n.onchange = function () {
+          var v = Number(String(n.value).replace(",", "."));
+          if (n.value === "" || !isFinite(v) || v < min || v > max) { avisoLocal(T("aj_fuera", { min: min, max: max })); actualizarAjustes(true); return; }
+          var o = {}; o[clave] = aEnviar(v); mandar("ajustes", { cambios: o });
+        };
+        return n;
+      }
+      // Rampas cortas.
+      cuerpo.appendChild(el("h3", "", T("aj_rampas")));
+      cuerpo.appendChild(el("p", "note-small", T("aj_rampas_s")));
+      RAMPAS.forEach(function (r) {
+        var n = numero(r[1], 0, 1000, 1, function (v) { return v; });
+        ajustesDlg.campos[r[1]] = { input: n, valor: function (a) { return a.rampas_ms[r[0]]; } };
+        cuerpo.appendChild(fila(r[1], r[2], r[1], n, "ms"));
+      });
+      // GO y Fundir todo.
+      cuerpo.appendChild(el("h3", "", T("aj_go")));
+      var dg = numero("doble_go_ms", 0, 5000, 50, function (v) { return Math.round(v); });
+      ajustesDlg.campos.doble_go_ms = { input: dg, valor: function (a) { return a.tiempo_minimo_entre_go_ms; } };
+      cuerpo.appendChild(fila("doble_go_ms", "doble_go", "doble_go", dg, "ms"));
+      var ft = numero("fundir_todo_ms", 0, 60, 0.5, function (v) { return Math.round(v * 1000); });
+      ajustesDlg.campos.fundir_todo_ms = { input: ft, valor: function (a) { return a.fundir_todo_ms / 1000; } };
+      cuerpo.appendChild(fila("fundir_todo_ms", "fundir_todo_dur", "fundir_todo_dur", ft, "s"));
+      // Volumen maestro.
+      cuerpo.appendChild(el("h3", "", T("aj_sonido")));
+      var vm = el("input"); vm.type = "range"; vm.min = -60; vm.max = 12; vm.step = 0.5;
+      var vv = el("span", "val num");
+      vm.oninput = function () { vv.textContent = fmtDb(+vm.value); };
+      vm.onchange = function () { mandar("ajustes", { cambios: { volumen_maestro_db: +vm.value } }); };
+      ajustesDlg.campos.volumen_maestro_db = { input: vm, valor: function (a) { return a.volumen_maestro_db; }, texto: vv };
+      var wv = el("span", "inline"); wv.appendChild(vm); wv.appendChild(vv);
+      cuerpo.appendChild(fila("volumen_maestro_db", "volumen_maestro", "volumen_maestro", wv, "", vm));
+      d.appendChild(cuerpo);
+      var acc = el("div", "acciones");
+      var rec = el("button", "btn", T("aj_recomendados")); rec.type = "button";
+      rec.onclick = function () { mandar("ajustes", { cambios: RECOMENDADOS }); };
+      var ok = el("button", "ok", T("mapeo_listo")); ok.type = "button"; ok.onclick = cerrarDialogo;
+      acc.appendChild(rec); acc.appendChild(el("span", "esp")); acc.appendChild(ok);
+      d.appendChild(acc);
+      d.appendChild(el("p", "note-small", T("aj_deshacer")));
+    }, true);
+    alCerrarDialogo = function () { ajustesDlg = null; };
+    actualizarAjustes(true);
+  }
+  // Pone en la ventanita los valores del motor (sin pisar lo que se está escribiendo).
+  function actualizarAjustes(todo) {
+    if (!ajustesDlg || !e || !e.ajustes) return;
+    if (e.modo === "funcion") { cerrarDialogo(); return; }
+    Object.keys(ajustesDlg.campos).forEach(function (k) {
+      var c = ajustesDlg.campos[k];
+      if (!todo && document.activeElement === c.input) return;
+      var v = c.valor(e.ajustes);
+      c.input.value = v;
+      if (c.texto) c.texto.textContent = fmtDb(v);
+    });
+  }
 
   // ---- Botones ----
   $("go").onclick = function () { mandar("go"); };

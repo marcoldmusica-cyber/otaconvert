@@ -286,3 +286,71 @@ fn quitar_lo_que_suena_no_se_puede_pero_deshacer_un_agregado_si() {
     assert_eq!(s.show.cues.len(), 4);
     assert!(son.parados().is_empty());
 }
+
+/// Etapa 5B: Edición → Ajustes del show. Se aplican en vivo al mezclador,
+/// se validan antes de cambiar nada, no se tocan en Función y se pueden deshacer.
+#[test]
+fn ajustes_del_show_en_vivo_validados_y_con_deshacer() {
+    let d = carpeta();
+    let (mut s, _p, son) = abrir(&d);
+    let tomar = || std::mem::take(&mut *son.recibido.lock().unwrap());
+    let cambiar = |s: &mut Sesion, j: serde_json::Value| s.cambiar_ajustes(&j);
+
+    cambiar(&mut s, serde_json::json!({ "rampa_inicio": 5, "volumen_maestro_db": -6.0, "fundir_todo_ms": 1000, "doble_go_ms": 0 })).unwrap();
+    let rec = tomar();
+    let aj = rec.iter().find_map(|(_, c)| if let Comando::CambiarAjustes(a) = c { Some(*a) } else { None }).expect("ajustes al mezclador");
+    assert_eq!(aj.rampa_inicio, 240, "5 ms a 48 kHz");
+    assert!(aj.limitador, "el limitador sigue activo");
+    let (vol, cuadros) = rec.iter().find_map(|(_, c)| if let Comando::VolumenMaestro { volumen, cuadros } = c { Some((*volumen, *cuadros)) } else { None }).unwrap();
+    assert!((vol - 0.501).abs() < 0.01, "{vol}");
+    assert!(cuadros > 0, "el maestro cambia con rampa, sin salto");
+    assert_eq!(s.show.ajustes.fundir_todo_ms, 1000);
+    assert_eq!(s.show.ajustes.tiempo_minimo_entre_go_ms, 0);
+    assert!(s.sucio);
+    let e = estado(&s);
+    assert_eq!(e["ajustes"]["rampas_ms"]["inicio"], 5.0);
+    assert_eq!(e["ajustes"]["fundir_todo_ms"], 1000);
+
+    // Un segundo cambio seguido cuenta como el mismo paso de deshacer.
+    cambiar(&mut s, serde_json::json!({ "rampa_parada": 30 })).unwrap();
+
+    // Fundir todo usa la duración nueva.
+    tomar();
+    s.fundir_todo();
+    assert!(tomar().iter().any(|(_, c)| matches!(c, Comando::PararTodo { fundido: 48_000 })));
+
+    // Valores imposibles o desconocidos: no cambia nada.
+    let antes = s.show.ajustes.clone();
+    for malo in [
+        serde_json::json!({ "rampa_inicio": 2000 }),
+        serde_json::json!({ "rampa_fin": -1 }),
+        serde_json::json!({ "doble_go_ms": 9000 }),
+        serde_json::json!({ "fundir_todo_ms": "mucho" }),
+        serde_json::json!({ "volumen_maestro_db": 40 }),
+        serde_json::json!({ "volumen_maestro_db": 3, "limitador": false }),
+        serde_json::json!([1, 2]),
+    ] {
+        assert!(cambiar(&mut s, malo.clone()).is_err(), "{malo}");
+    }
+    assert_eq!(s.show.ajustes, antes);
+    assert!(tomar().is_empty(), "nada al mezclador");
+
+    // En Función no se cambian.
+    s.cambiar_modo(Modo::Funcion);
+    assert!(cambiar(&mut s, serde_json::json!({ "rampa_inicio": 0 })).is_err());
+    s.cambiar_modo(Modo::Edicion);
+
+    // Deshacer vuelve a los de antes (los dos cambios juntos) y los manda al mezclador.
+    s.deshacer().unwrap();
+    assert_eq!(s.show.ajustes, otaconvert_show::AjustesShow::default());
+    let aj = tomar().iter().find_map(|(_, c)| if let Comando::CambiarAjustes(a) = c { Some(*a) } else { None }).expect("al deshacer se vuelven a mandar");
+    assert_eq!(aj.rampa_inicio, 0);
+    s.rehacer().unwrap();
+    assert_eq!(s.show.ajustes.rampas_ms.parada, 30.0);
+
+    // Se guardan con el show.
+    s.guardar().unwrap();
+    let otra = Sesion::abrir(&d).unwrap();
+    assert_eq!(otra.show.ajustes.fundir_todo_ms, 1000);
+    assert_eq!(otra.show.ajustes.rampas_ms.inicio, 5.0);
+}
