@@ -1508,7 +1508,9 @@ def selftest(report: str | None = None) -> int:
         lines.append(f"Interfaz: OK, arrastrar y soltar: {'sí' if dnd else 'no'}")
     except Exception as exc:  # noqa: BLE001
         lines.append(f"Interfaz: no verificada ({exc})")
-    text = "\n".join(lines)
+    # el informe se muestra en la consola de Windows (cp1252), que no tiene el signo «−»: se usa «-»
+    text = "\n".join(lines).replace("−", "-").replace("→", "->")
+    text = text.encode("cp1252", "replace").decode("cp1252")
     if report:
         Path(report).write_text(text, encoding="utf-8")
     elif sys.stdout:
