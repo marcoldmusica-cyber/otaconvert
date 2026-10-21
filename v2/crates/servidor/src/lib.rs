@@ -718,6 +718,15 @@ fn ejecutar(ctx: &Arc<Contexto>, texto: &str) {
             Some("pausa") => s.pausa(),
             Some("fundir_todo") => s.fundir_todo(),
             Some("fundir_ultimo") => s.fundir_ultimo(),
+            // «Ver antes» solo por Auriculares (Edición y Función).
+            Some("ver_antes") => match indice() {
+                Some(i) => {
+                    if let Err(e) = s.ver_antes(i) {
+                        s.aviso = Some(e);
+                    }
+                }
+                None => s.aviso = Some(Texto::nuevo("Cue no válido.", "Invalid cue.")),
+            },
             // Botonera (sección 5b): tocar un botón (Edición y Función), por su tecla, o armarla (Edición).
             Some("boton") => {
                 let n = |k: &str| v.get(k).and_then(|x| x.as_u64()).and_then(|x| usize::try_from(x).ok());

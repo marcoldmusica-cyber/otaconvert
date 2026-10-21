@@ -92,6 +92,9 @@ pub struct Sesion {
     botones_err: HashMap<String, Texto>,
     boton_preparando: Option<String>,
     voces_boton: Vec<botonera::VozBoton>,
+    /// «Ver antes» (etapa 5C): lo que se escucha solo por Auriculares (voz, cue,
+    /// cuándo termina; `None` = en bucle).
+    escucha: Option<(u32, usize, Option<Instant>)>,
     /// Idioma del programa (lo elige la ventana): avisos y errores salen en él.
     pub idioma: Idioma,
     pub pausado: bool,
@@ -233,6 +236,7 @@ impl Sesion {
             botones_err: HashMap::new(),
             boton_preparando: None,
             voces_boton: Vec::new(),
+            escucha: None,
             historial: Vec::new(),
             rehechos: Vec::new(),
             ultimo_cambio: None,
@@ -564,6 +568,7 @@ impl Sesion {
         self.botones_err.clear();
         self.boton_preparando = None;
         self.voces_boton.clear();
+        self.escucha = None;
     }
 
     /// Manda al mezclador las rampas y el volumen maestro del show (sin cortar
@@ -1029,8 +1034,13 @@ impl Sesion {
     /// `fin_s`: fin forzado en segundos (el del vídeo, para que en bucle el
     /// sonido vuelva a empezar junto con la imagen). Devuelve (voz, salida, largo).
     fn iniciar_voz(&mut self, i: usize, pista: Arc<Pista>, fin_s: Option<f64>, desde_s: Option<f64>) -> Option<(u32, Destino, Duration)> {
-        let c = self.show.cues[i].clone();
         let destino = self.destino_de(i);
+        self.iniciar_voz_en(i, pista, fin_s, desde_s, destino)
+    }
+
+    /// Como `iniciar_voz`, por la salida pedida («Ver antes» va siempre por Auriculares).
+    fn iniciar_voz_en(&mut self, i: usize, pista: Arc<Pista>, fin_s: Option<f64>, desde_s: Option<f64>, destino: Destino) -> Option<(u32, Destino, Duration)> {
+        let c = self.show.cues[i].clone();
         let id = self.siguiente_id;
         self.siguiente_id = self.siguiente_id.wrapping_add(1).max(1);
         let total = pista.cuadros();
@@ -1366,6 +1376,7 @@ impl Sesion {
         self.sonando.clear();
         self.pausado = false;
         self.voces_boton.clear();
+        self.escucha = None;
         self.pausa_desde = None;
         self.registro.anotar("PARAR", "Parar todo");
         self.aviso = None;
@@ -1379,6 +1390,7 @@ impl Sesion {
             self.al_proyector(OrdenProyector::Fundir { ms: self.show.ajustes.fundir_todo_ms as u64 });
         }
         self.registro.anotar("FUNDIR", "Fundir todo");
+        self.escucha = None;
         let fin = Instant::now() + Duration::from_millis(self.show.ajustes.fundir_todo_ms as u64);
         for s in &mut self.sonando {
             s.duracion = Some(fin.saturating_duration_since(s.inicio).min(s.duracion.unwrap_or(Duration::MAX)));
@@ -1509,6 +1521,9 @@ impl Sesion {
         let pausado = self.pausado;
         if !pausado {
             self.limpiar_botones();
+            if self.escucha.is_some_and(|(_, _, fin)| fin.is_some_and(|f| f <= ahora)) {
+                self.escucha = None;
+            }
         }
         self.sonando.retain(|s| pausado || s.duracion.is_none_or(|d| ahora.duration_since(s.inicio) < d + Duration::from_millis(200)));
         if let Some(s) = self.sonido.as_mut() {
@@ -1868,6 +1883,7 @@ impl Sesion {
             "comprobacion": self.comprobacion.as_ref().map(|(p, h)| crate::comprobar::a_json(p, self.idioma, h)),
             "comprobando": self.comprobando.map(|(h, t)| json!({ "hechos": h, "total": t })),
             "botonera": self.estado_botonera(),
+            "escucha": self.escucha.map(|(_, c, _)| c),
         })
         .to_string()
     }
@@ -1899,4 +1915,50 @@ pub fn picos_de_onda(p: &Pista, columnas: usize) -> Vec<u16> {
             (pico.min(1.0) * 1000.0).round() as u16
         })
         .collect()
+}
+
+impl Sesion {
+    /// «Ver antes» (etapa 5C, como el «Audition» de QLab): el cue `i` suena
+    /// **solo por Auriculares**, sin tocar la sala, el proyector, el cue en
+    /// espera ni la protección contra doble GO. Tocarlo otra vez lo para (y
+    /// escuchar otro cue para el anterior). Vale en Edición y en Función.
+    pub fn ver_antes(&mut self, i: usize) -> Result<(), Texto> {
+        // Otra vez el mismo: se para.
+        if let Some((id, c, _)) = self.escucha.take() {
+            if let Some(s) = self.sonido.as_mut() {
+                let _ = s.enviar(Destino::Auriculares, Comando::Parar { id, fundido: 0 });
+            }
+            if c == i {
+                self.registro.anotar("ESCUCHA", "fin");
+                return Ok(());
+            }
+        }
+        let c = self.show.cues.get(i).cloned().ok_or_else(|| t("Ese cue no existe.", "That cue does not exist."))?;
+        if c.tipo == TipoCue::Imagen {
+            return Err(t("Una imagen no tiene sonido para escuchar.", "An image has no sound to listen to."));
+        }
+        if !self.sonido.as_ref().is_some_and(|s| s.tiene_auriculares()) {
+            return Err(t(
+                "No hay auriculares elegidos: elige una tarjeta para Auriculares en Edición → Ajustes del show → Salidas. (Nunca se escucha por la sala.)",
+                "No headphones are set up: choose a card for Headphones in Edit → Show settings → Outputs. (It never plays in the house.)",
+            ));
+        }
+        if self.mudos.contains(&i) {
+            return Err(t("Este vídeo no tiene sonido.", "This video has no sound."));
+        }
+        let Some(pista) = self.preparados.get(&i).cloned() else {
+            return Err(match self.errores.get(&i) {
+                Some(e) => e.clone(),
+                None => t("Ese cue todavía se está preparando: elígelo y espera a que diga Listo.", "That cue is still being prepared: select it and wait until it says Ready."),
+            });
+        };
+        let (id, _, dur) = self
+            .iniciar_voz_en(i, pista, None, None, Destino::Auriculares)
+            .ok_or_else(|| t("No se pudo escuchar por Auriculares.", "Could not play on Headphones."))?;
+        let fin = if c.bucle { None } else { Some(Instant::now() + dur) };
+        self.escucha = Some((id, i, fin));
+        let d = self.describir(i);
+        self.registro.anotar("ESCUCHA", &format!("{d} por Auriculares"));
+        Ok(())
+    }
 }

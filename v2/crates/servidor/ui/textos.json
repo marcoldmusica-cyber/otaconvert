@@ -21,6 +21,8 @@
       "personalizar": "Personalizar…",
       "modo_noche": "Modo noche",
       "modo_fresno": "Madera de fresno",
+      "escucha": "🎧 Escuchar por auriculares",
+      "escucha_parar": "■ Parar la escucha",
       "onda": "Onda",
       "onda_ayuda": "Clic: el cue empieza ahí (Desde). Mayús + clic: termina ahí (Hasta). Se puede deshacer.",
       "onda_calculando": "Dibujando la onda…",
@@ -279,6 +281,14 @@
       "consejo_boton": "Consejo"
     },
     "consejos": {
+      "escucha": {
+        "titulo": "Escuchar por auriculares",
+        "que_hace": "El cue suena solo en tus auriculares: la sala no oye nada y la lista no se mueve.",
+        "activar": "Para revisar un sonido antes de darle GO, también con la función en marcha.",
+        "ejemplo_activar": "Ej.: con la sala llena, confirmas que la próxima música es la versión correcta.",
+        "desactivar": "Necesita una tarjeta para Auriculares en Ajustes del show → Salidas.",
+        "ejemplo_desactivar": "Ej.: con una sola salida, revisa el sonido antes de abrir sala."
+      },
       "onda": {
         "titulo": "Onda del audio",
         "que_hace": "Muestra cómo suena el archivo: lo alto es fuerte, lo bajo es silencio. La parte que suena va en color.",
@@ -644,6 +654,8 @@
       "personalizar": "Customize…",
       "modo_noche": "Night mode",
       "modo_fresno": "Ash wood",
+      "escucha": "🎧 Listen on headphones",
+      "escucha_parar": "■ Stop listening",
       "onda": "Waveform",
       "onda_ayuda": "Click: the cue starts there (From). Shift + click: it ends there (To). It can be undone.",
       "onda_calculando": "Drawing the waveform…",
@@ -902,6 +914,14 @@
       "consejo_boton": "Tip"
     },
     "consejos": {
+      "escucha": {
+        "titulo": "Listen on headphones",
+        "que_hace": "The cue plays only in your headphones: the house hears nothing and the list doesn't move.",
+        "activar": "To check a sound before its GO, even during the show.",
+        "ejemplo_activar": "E.g.: with a full house, you confirm the next song is the right version.",
+        "desactivar": "It needs a Headphones card in Show settings → Outputs.",
+        "ejemplo_desactivar": "E.g.: with a single output, check the sound before opening the house."
+      },
       "onda": {
         "titulo": "Audio waveform",
         "que_hace": "Shows how the file sounds: tall is loud, flat is silence. The part that plays is in colour.",

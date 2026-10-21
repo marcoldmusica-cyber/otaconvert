@@ -163,6 +163,9 @@ kbd{font:12px var(--mono);background:var(--card2);border:1px solid var(--border)
 .bt-ed-paginas{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .onda-caja{display:flex;flex-direction:column;gap:4px;margin-top:4px}
 .onda-titulo{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.btn.escucha{align-self:flex-start;margin-top:4px}
+.btn.escucha.activa{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.previa-escucha{margin-top:6px}
 canvas.onda{width:100%;height:90px;border-radius:10px;background:var(--bg);border:1px solid var(--border);cursor:crosshair}
 .bt-ed-paginas .btn[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 .bt-ed-fila label.toggle{flex-direction:row;align-items:center;gap:8px;grid-column:span 2;color:var(--text);font-size:13px}
@@ -697,7 +700,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
   function dibujarDetalle(lado) {
     var i = e.en_espera, c = e.cues[i];
     var suena = !!sonandoPorCue()[i];
-    var clave = JSON.stringify([i, c, suena, desbloqueado, idioma, consejos]);
+    var clave = JSON.stringify([i, c, suena, desbloqueado, idioma, consejos, e.escucha]);
     // No se redibuja mientras se escribe en el panel: se perdería lo escrito.
     if (clave === ladoClave || lado.contains(document.activeElement) && document.activeElement.matches("input[type=text],input[type=number],textarea")) return;
     ladoClave = clave;
@@ -737,6 +740,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     nota.placeholder = T("nota_ph");
     nota.onchange = function () { editar({ nota: nota.value }); };
     fs.appendChild(campo("nota", nota, "fNota", "nota"));
+    if (c.tipo !== "imagen" && !c.mudo) fs.appendChild(botonEscucha(i));
     // Número libre (1, 1.5, 2A) para que coincida con el libreto.
     var num = el("input"); num.type = "text"; num.value = c.numero; num.maxLength = 20;
     num.onchange = function () { if (num.value.trim()) editar({ numero: num.value.trim() }); else num.value = c.numero; };
@@ -912,6 +916,10 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     var inf = $("previaInfo");
     inf.textContent = c ? c.numero + " · " + c.nombre + " · " + [tipoTexto(c.tipo), c.duracion_s != null ? mmss(c.duracion_s) : "", prepTexto(c.preparacion)].filter(Boolean).join(" · ") + (c.nota ? "\n" + c.nota : "") : T("fin_lista");
     actualizarSalidaDesde();
+    var pe = $("previaEscucha");
+    if (!pe) { pe = el("div", "previa-escucha"); pe.id = "previaEscucha"; inf.parentNode.insertBefore(pe, inf.nextSibling); }
+    pe.textContent = "";
+    if (c && c.tipo !== "imagen" && !c.mudo) pe.appendChild(botonEscucha(i));
     if (clave === previaClave) return;
     previaClave = clave;
     var pp = $("previaPantalla"), ctl = $("previaControles"), sd = $("salidaDesde");
@@ -968,6 +976,10 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     b2.onclick = function () { v.pause(); mandar("elegir_desde", { cue: i, s: v.currentTime }); };
     sd.appendChild(b1); sd.appendChild(b2); sd.appendChild(botonConsejo("salir_desde"));
     actualizarSalidaDesde();
+    var pe = $("previaEscucha");
+    if (!pe) { pe = el("div", "previa-escucha"); pe.id = "previaEscucha"; inf.parentNode.insertBefore(pe, inf.nextSibling); }
+    pe.textContent = "";
+    if (c && c.tipo !== "imagen" && !c.mudo) pe.appendChild(botonEscucha(i));
   }
 
   function actualizarSalidaDesde() {
@@ -1093,6 +1105,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
       var estado = { listo: T("listo_memoria"), preparando: T("preparandose"), error: T("no_reproducible") }[nx.preparacion] || "";
       n.appendChild(el("div", "meta", [tipoTexto(nx.tipo), nx.duracion_s != null ? mmss(nx.duracion_s) : "", estado].filter(Boolean).join(" · ")));
       if (nx.nota) n.appendChild(el("div", "meta", nx.nota));
+      if (nx.tipo !== "imagen" && !nx.mudo) n.appendChild(botonEscucha(e.en_espera));
     }
     live.appendChild(n);
     lado.appendChild(live);
@@ -1979,6 +1992,21 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
       if (c && c.archivo === d.archivo) pintarOnda(cv, c);
     });
   }
+
+  // ---- «Ver antes» solo por Auriculares (etapa 5C) ----
+  function botonEscucha(i) {
+    var activo = e.escucha === i;
+    var b = el("button", "btn chico escucha" + (activo ? " activa" : ""), activo ? T("escucha_parar") : T("escucha"));
+    b.type = "button"; b.dataset.escucha = i; b.dataset.consejo = "escucha";
+    return b;
+  }
+  // Al apretar (los paneles se redibujan seguido).
+  document.addEventListener("pointerdown", function (ev) {
+    var b = ev.target.closest && ev.target.closest("[data-escucha]");
+    if (!b || ayudando || ev.button !== 0) return;
+    ev.preventDefault();
+    mandar("ver_antes", { cue: +b.dataset.escucha });
+  });
 
   // ---- Botones ----
   $("go").onclick = function () { mandar("go"); };
