@@ -148,3 +148,57 @@ pub fn elegido_json(principal: &Abierta, auriculares: Option<&Abierta>, hz: u32,
         "pantalla": pantalla,
     })
 }
+
+/// Luz verde (etapa 5C): lo que se revisa de **este equipo**, además del show.
+pub fn comprobar_equipo(carpeta: &std::path::Path) -> Vec<otaconvert_servidor::comprobar::Punto> {
+    use otaconvert_servidor::comprobar::{Nivel, Punto};
+    let mut v = Vec::new();
+    // Lo que el programa necesita para funcionar (libmpv, Vulkan, WebView2…).
+    for c in crate::componentes::comprobar().into_iter().filter(|c| !c.ok) {
+        v.push(Punto::nuevo(
+            Nivel::Problema,
+            format!("Falta {} ({}): {}", c.nombre, c.para_que, c.detalle),
+            format!("{} is missing: {}", c.nombre, c.detalle),
+        ));
+    }
+    if let Some((nombre, minutos)) = crate::despierto::protector_de_pantalla() {
+        v.push(Punto::nuevo(
+            Nivel::Aviso,
+            format!("El protector de pantalla «{nombre}» se activa a los {minutos} min sin tocar nada y puede tapar el proyector. Desactívalo en Configuración → Personalización → Pantalla de bloqueo → Protector de pantalla."),
+            format!("The \"{nombre}\" screen saver starts after {minutos} min idle and can cover the projector. Turn it off in Settings → Personalization → Lock screen → Screen saver."),
+        ));
+    }
+    match crate::equipo::leer().enchufado {
+        Some(false) => v.push(Punto::nuevo(
+            Nivel::Aviso,
+            "La computadora está funcionando a batería: enchúfala antes de la función.",
+            "The computer is running on battery: plug it in before the show.",
+        )),
+        Some(true) => v.push(Punto::nuevo(Nivel::Bien, "La computadora está enchufada.", "The computer is plugged in.")),
+        None => {}
+    }
+    // Pendrive: los audios se cargan en memoria, pero los vídeos se leen del disco mientras se ven.
+    let extraible = |p: &std::path::Path| -> bool {
+        use std::os::windows::ffi::OsStrExt;
+        use windows_sys::Win32::Storage::FileSystem::GetDriveTypeW;
+        let Some(raiz) = p.components().next() else { return false };
+        let mut r: Vec<u16> = std::path::Path::new(raiz.as_os_str()).join("\\").as_os_str().encode_wide().collect();
+        r.push(0);
+        // SAFETY: cadena terminada en 0, viva durante la llamada.
+        unsafe { GetDriveTypeW(r.as_ptr()) == 2 } // DRIVE_REMOVABLE
+    };
+    if extraible(carpeta) {
+        v.push(Punto::nuevo(
+            Nivel::Aviso,
+            "La carpeta del show está en un pendrive o disco extraíble: los vídeos se leen de ahí mientras se ven. Para la función, cópiala al disco del equipo.",
+            "The show folder is on a USB stick or removable drive: videos are read from it while they play. For the show, copy it to the computer's disk.",
+        ));
+    } else if std::env::current_exe().ok().is_some_and(|e| extraible(&e)) {
+        v.push(Punto::nuevo(
+            Nivel::Aviso,
+            "El programa se está usando desde un pendrive: si se sale, el programa se cae. Para la función, cópialo al disco del equipo.",
+            "The program is running from a USB stick: if it comes out, the program crashes. For the show, copy it to the computer's disk.",
+        ));
+    }
+    v
+}

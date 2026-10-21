@@ -9,6 +9,7 @@
 //! - Límites: 16 conexiones, cabeceras de 8 KB, mensajes de 64 KB, 5 s para
 //!   mandar el pedido.
 
+pub mod comprobar;
 pub mod importar;
 pub mod sesion;
 pub mod sonido;
@@ -84,6 +85,7 @@ struct Contexto {
     /// Diálogo "Buscar archivos…" del sistema (lo pone el motor; en las pruebas no hay).
     buscar_archivos: Mutex<Option<BuscarArchivos>>,
     equipo: Mutex<Option<(ListaEquipo, ElegirSalida)>>,
+    comprobar_equipo: Mutex<Option<comprobar::ComprobarEquipo>>,
 }
 
 /// Abre el diálogo de Windows para elegir archivos y devuelve los elegidos (vacío = canceló).
@@ -132,6 +134,7 @@ impl Servidor {
             conexiones: AtomicUsize::new(0),
             buscar_archivos: Mutex::new(None),
             equipo: Mutex::new(None),
+            comprobar_equipo: Mutex::new(None),
         });
         let c = ctx.clone();
         std::thread::Builder::new().name("servidor".into()).spawn(move || {
@@ -197,6 +200,14 @@ impl Servidor {
     /// El motor pone aquí el diálogo de Windows "Buscar archivos…".
     pub fn al_buscar_archivos(&self, f: BuscarArchivos) {
         if let Ok(mut b) = self.ctx.buscar_archivos.lock() {
+            *b = Some(f);
+        }
+    }
+
+    /// Luz verde (etapa 5C): lo que el motor revisa del equipo (protector de
+    /// pantalla, batería, pendrive…) además del show.
+    pub fn al_comprobar_equipo(&self, f: comprobar::ComprobarEquipo) {
+        if let Ok(mut b) = self.ctx.comprobar_equipo.lock() {
             *b = Some(f);
         }
     }
@@ -453,6 +464,67 @@ fn ejecutar(ctx: &Arc<Contexto>, texto: &str) {
                 let c = ctx.clone();
                 let _ = std::thread::Builder::new().name("buscar-archivos".into()).spawn(move || traer_archivos(&c, f(), despues_de));
             }
+            return;
+        }
+        // Luz verde (etapa 5C): revisar el show antes de la función. Solo en
+        // Edición (decodifica todos los audios: no se hace en plena función),
+        // en otro hilo y sin tener la sesión tomada.
+        Some("comprobar") => {
+            let pedido = match ctx.sesion.lock() {
+                Ok(mut s) => {
+                    let r = if s.comprobando.is_some() {
+                        Err(Texto::nuevo("La comprobación ya está en marcha.", "The check is already running."))
+                    } else if s.modo == sesion::Modo::Funcion {
+                        Err(Texto::nuevo("La comprobación se hace en Edición (revisa todos los audios). Pasa a Edición con Tab.", "The check runs in Edit mode (it reads every audio file). Switch to Edit with Tab."))
+                    } else {
+                        let p = s.pedido_comprobacion();
+                        s.comprobando = Some((0, p.cues.len()));
+                        s.anotar("COMPROBAR", "Comprobación antes de la función");
+                        Ok(p)
+                    };
+                    if let Err(e) = &r {
+                        s.aviso = Some(e.clone());
+                    }
+                    let e = s.estado_json();
+                    drop(s);
+                    difundir(ctx, e);
+                    r
+                }
+                Err(_) => return,
+            };
+            let Ok(pedido) = pedido else { return };
+            let equipo = ctx.comprobar_equipo.lock().ok().and_then(|b| b.clone());
+            let c = ctx.clone();
+            let _ = std::thread::Builder::new().name("comprobar".into()).spawn(move || {
+                let mut ultimo = std::time::Instant::now();
+                let mut puntos = comprobar::revisar(&pedido, |h, t| {
+                    if let Ok(mut s) = c.sesion.lock() {
+                        s.comprobando = Some((h, t));
+                        // Avance a la ventana, como mucho 4 veces por segundo.
+                        if ultimo.elapsed() > Duration::from_millis(250) || h == t {
+                            ultimo = std::time::Instant::now();
+                            let e = s.estado_json();
+                            drop(s);
+                            difundir(&c, e);
+                        }
+                    }
+                });
+                if let Some(f) = equipo {
+                    puntos.extend(f(&pedido.carpeta));
+                }
+                let malos = puntos.iter().filter(|p| p.nivel == comprobar::Nivel::Problema).count();
+                let avisos = puntos.iter().filter(|p| p.nivel == comprobar::Nivel::Aviso).count();
+                if let Ok(mut s) = c.sesion.lock() {
+                    let m = otaconvert_show::marca_de_tiempo();
+                    let hora = format!("{}:{}", m.get(9..11).unwrap_or(""), m.get(11..13).unwrap_or(""));
+                    s.comprobando = None;
+                    s.comprobacion = Some((puntos, hora));
+                    s.anotar("COMPROBAR", &format!("{malos} problema(s), {avisos} aviso(s)"));
+                    let e = s.estado_json();
+                    drop(s);
+                    difundir(&c, e);
+                }
+            });
             return;
         }
         // Etapa 5B: salidas de sonido y pantalla del proyector de este equipo.

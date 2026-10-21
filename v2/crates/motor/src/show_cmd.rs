@@ -373,6 +373,8 @@ pub fn abrir(
     // Edición → Ajustes del show → Salidas: la ventana pide; las tarjetas y la
     // proyección se cambian aquí, en el hilo principal, donde viven.
     let (tx_pedidos, rx_pedidos) = std::sync::mpsc::channel::<(String, Option<String>, std::sync::mpsc::Sender<Result<(), Texto>>)>();
+    // Luz verde: lo que se revisa de este equipo, además del show.
+    srv.al_comprobar_equipo(Arc::new(crate::equipo_salidas::comprobar_equipo));
     srv.al_elegir_salidas(
         Arc::new(crate::equipo_salidas::lista_json),
         Arc::new(move |que: &str, id: Option<String>| {

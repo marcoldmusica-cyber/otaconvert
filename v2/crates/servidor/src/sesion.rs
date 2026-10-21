@@ -77,6 +77,10 @@ pub struct Sesion {
     /// Cuántos pedidos de cambio de salida terminó el motor (bien o mal): la
     /// ventana sabe así que el suyo ya tuvo respuesta.
     pub salidas_respondidas: u64,
+    /// Luz verde (etapa 5C): el último resultado (puntos y hora) y, mientras se
+    /// revisa, cuántos cues van. Se borra al cambiar el show o las salidas.
+    pub comprobacion: Option<(Vec<crate::comprobar::Punto>, String)>,
+    pub comprobando: Option<(usize, usize)>,
     /// Idioma del programa (lo elige la ventana): avisos y errores salen en él.
     pub idioma: Idioma,
     pub pausado: bool,
@@ -212,6 +216,8 @@ impl Sesion {
             patron: false,
             equipo: serde_json::Value::Null,
             salidas_respondidas: 0,
+            comprobacion: None,
+            comprobando: None,
             historial: Vec::new(),
             rehechos: Vec::new(),
             ultimo_cambio: None,
@@ -228,7 +234,29 @@ impl Sesion {
         self.show.cues.iter().map(|c| c.id).max().map_or(0, |m| m + 1)
     }
 
-    /// Solo en Edición se cambia el show.
+    /// Luz verde: lo que hace falta para revisar el show (se copia con la
+    /// sesión tomada; la revisión se hace después, sin tenerla).
+    pub fn pedido_comprobacion(&self) -> crate::comprobar::Pedido {
+        let numero = |i: usize| self.show.cues.get(i).map(|c| if c.numero.is_empty() { (i + 1).to_string() } else { c.numero.clone() }).unwrap_or_default();
+        let mut errores: Vec<(String, Texto)> = self.errores.iter().map(|(i, e)| (numero(*i), e.clone())).collect();
+        for (i, v) in &self.visuales {
+            if let Visual::Error(e) = v {
+                errores.push((numero(*i), e.clone()));
+            }
+        }
+        errores.sort_by(|a, b| a.0.cmp(&b.0));
+        crate::comprobar::Pedido {
+            carpeta: self.carpeta(),
+            cues: self.show.cues.iter().enumerate().map(|(i, c)| (numero(i), c.clone())).collect(),
+            frecuencia: self.sonido.as_ref().map(|s| s.frecuencia()),
+            rampa_inicio_ms: self.show.ajustes.rampas_ms.inicio,
+            con_proyeccion: self.proyector.is_some(),
+            auriculares: self.sonido.as_ref().is_some_and(|s| s.tiene_auriculares()),
+            sucio: self.sucio,
+            errores,
+        }
+    }
+
     /// Para cambiar la tarjeta o la pantalla (etapa 5B): solo en Edición y con
     /// nada sonando ni a la vista, así el cambio no corta nada de la función.
     pub fn se_pueden_cambiar_salidas(&self) -> Result<(), Texto> {
@@ -239,6 +267,7 @@ impl Sesion {
         Ok(())
     }
 
+    /// Solo en Edición se cambia el show.
     fn solo_en_edicion(&self) -> Result<(), Texto> {
         if self.modo == Modo::Funcion {
             return Err(t("En Función no se puede cambiar el show. Pasa a Edición con Tab.", "The show can't be changed in Live mode. Switch to Edit with Tab."));
@@ -259,6 +288,7 @@ impl Sesion {
         self.rehechos.clear();
         self.ultimo_cambio = grupo.map(|g| (g, Instant::now()));
         self.sucio = true;
+        self.comprobacion = None;
     }
 
     /// Olvida lo preparado y precargado de un cue (cambió algo que lo afecta):
@@ -505,6 +535,7 @@ impl Sesion {
 
     /// Conecta el sonido y le pasa las rampas y el volumen maestro del show.
     pub fn conectar_sonido(&mut self, s: Box<dyn Sonido>) {
+        self.comprobacion = None;
         let fs = s.frecuencia();
         self.sonido = Some(s);
         self.enviar_ajustes(0);
@@ -751,6 +782,7 @@ impl Sesion {
 
     /// Conecta la proyección (vídeo e imagen).
     pub fn conectar_proyector(&mut self, p: Box<dyn Proyector>) {
+        self.comprobacion = None;
         self.registro.anotar("PROYECCION", "proyección conectada");
         self.proyector = Some(p);
         self.visuales.clear();
@@ -1799,6 +1831,8 @@ impl Sesion {
             "ajustes": self.show.ajustes,
             "equipo": self.equipo,
             "salidas_respondidas": self.salidas_respondidas,
+            "comprobacion": self.comprobacion.as_ref().map(|(p, h)| crate::comprobar::a_json(p, self.idioma, h)),
+            "comprobando": self.comprobando.map(|(h, t)| json!({ "hechos": h, "total": t })),
         })
         .to_string()
     }

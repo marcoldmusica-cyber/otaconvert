@@ -111,6 +111,20 @@ kbd{font:12px var(--mono);background:var(--card2);border:1px solid var(--border)
 .dot{width:8px;height:8px;border-radius:50%;background:var(--err);flex:none}
 .chip.on .dot{background:var(--ok)}
 .chip.warn .dot{background:var(--warn)}
+.chip.luz{cursor:pointer;font:inherit;font-size:12px}
+.chip.luz .dot{background:var(--dim)}
+.chip.luz.bien .dot{background:var(--ok)}
+.chip.luz.aviso .dot{background:var(--warn)}
+.chip.luz.problema .dot{background:var(--err)}
+.chip.luz.problema{color:var(--err);border-color:var(--err)}
+.puntos{list-style:none;margin:0;padding:0;max-height:min(55vh,480px);overflow:auto;display:flex;flex-direction:column;gap:6px}
+.puntos li{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:10px;background:var(--card);border:1px solid var(--border)}
+.puntos li .dot{flex:none;margin-top:5px}
+.puntos li.bien .dot{background:var(--ok)}
+.puntos li.aviso .dot{background:var(--warn)}
+.puntos li.problema .dot{background:var(--err)}
+.barra-prog{height:6px;border-radius:9px;background:var(--border);overflow:hidden}
+.barra-prog i{display:block;height:100%;background:var(--accent)}
 .clock{font:600 15px var(--mono);color:var(--text)}
 .btn{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:7px 12px}
 .btn:hover{background:var(--hover)}
@@ -411,6 +425,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
       </div>
       <kbd>Tab</kbd>
     </div>
+    <button class="chip luz" id="luz" type="button" data-help="luz" data-consejo="luz_verde"><span class="dot"></span><span id="luz-texto"></span></button>
     <div class="chip" id="conexion" data-help="conexion"><span class="dot"></span><span id="conexion-texto"></span></div>
     <div class="clock num" id="reloj" data-help="reloj">00:00:00</div>
   </header>
@@ -539,6 +554,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     });
     $("soltar-texto").textContent = funcion ? T("soltar_funcion") : T("soltar_s");
     actualizarAjustes();
+    pintarLuz();
     actualizarMapeo();
     var nx = e.cues[e.en_espera];
     $("goNext").textContent = nx ? nx.numero + " · " + nx.nombre : T("fin_lista");
@@ -1620,6 +1636,55 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
       if (c.texto) c.texto.textContent = fmtDb(v);
     });
   }
+
+  // ---- Luz verde: la comprobación antes de la función (etapa 5C) ----
+  function pintarLuz() {
+    var c = e.comprobacion, b = $("luz");
+    var nivel = e.comprobando ? "" : c ? c.luz : "";
+    b.className = "chip luz " + nivel;
+    $("luz-texto").textContent = e.comprobando ? T("luz_comprobando", { h: e.comprobando.hechos, t: e.comprobando.total })
+      : !c ? T("luz_sin") : { bien: T("luz_bien"), aviso: T("luz_aviso"), problema: T("luz_problema") }[c.luz];
+    if (luzDlg) dibujarLuz();
+  }
+  var luzDlg = null;
+  function dialogoLuz() {
+    cerrarDialogo();
+    luzDlg = {};
+    dialogo(T("luz_t"), function (d) {
+      d.classList.add("ancho");
+      luzDlg.cuerpo = el("div", "luz-cuerpo"); d.appendChild(luzDlg.cuerpo);
+      var acc = el("div", "acciones");
+      var b = el("button", "btn", T("luz_ahora")); b.type = "button"; luzDlg.boton = b;
+      b.onclick = function () { mandar("comprobar"); };
+      var ok = el("button", "ok", T("mapeo_listo")); ok.type = "button"; ok.onclick = cerrarDialogo;
+      acc.appendChild(b); acc.appendChild(el("span", "esp")); acc.appendChild(ok);
+      d.appendChild(acc);
+    }, true);
+    alCerrarDialogo = function () { luzDlg = null; };
+    dibujarLuz();
+  }
+  function dibujarLuz() {
+    var cu = luzDlg.cuerpo; cu.textContent = "";
+    var funcion = e.modo === "funcion";
+    luzDlg.boton.disabled = !!e.comprobando || funcion;
+    if (e.comprobando) {
+      cu.appendChild(el("p", "", T("luz_comprobando", { h: e.comprobando.hechos, t: e.comprobando.total })));
+      var bar = el("div", "barra-prog"), i = el("i"); i.style.width = (e.comprobando.total ? 100 * e.comprobando.hechos / e.comprobando.total : 0) + "%"; bar.appendChild(i); cu.appendChild(bar);
+      return;
+    }
+    var c = e.comprobacion;
+    if (!c) {
+      cu.appendChild(el("p", "", T("luz_explica")));
+      if (funcion) cu.appendChild(el("p", "note-small", T("luz_funcion")));
+      return;
+    }
+    cu.appendChild(el("p", "", { bien: T("luz_bien_largo"), aviso: T("luz_aviso_largo"), problema: T("luz_problema_largo") }[c.luz] + " " + T("luz_hora", { h: c.hora })));
+    var ul = el("ul", "puntos");
+    c.puntos.forEach(function (p) { var li = el("li", p.nivel); li.appendChild(el("span", "dot")); li.appendChild(el("span", "", p.texto)); ul.appendChild(li); });
+    cu.appendChild(ul);
+    if (funcion) cu.appendChild(el("p", "note-small", T("luz_funcion")));
+  }
+  $("luz").onclick = function () { if (e) dialogoLuz(); };
 
   // ---- Botones ----
   $("go").onclick = function () { mandar("go"); };
