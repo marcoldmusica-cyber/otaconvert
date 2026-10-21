@@ -999,3 +999,4 @@ Pedido del usuario: "Sí, sigue con la etapa 5." Repartida en cuatro partes que 
   - sin auriculares, el aviso;
   - con NVIDIA como Auriculares: «■ Parar la escucha», «0 sonando» en la sala y, al volver a tocar, se para;
   - registro: ESCUCHA «Cue 1 … por Auriculares» y «fin».
+- **Subido y comprobado (22/10/2026):** todo lo de la etapa 5B, 5C, 5D, la botonera y el tema fresno (16 commits hasta 2bb864c). Run 39623475936 **verde** (compilación, pruebas, ventana y vulnerabilidades). Demo nueva en `CLOUDE - Herramientas Ota\Otaconvert-Demo-0.0.1` (`Otaconvert.exe` SHA-256 `04f4c05b…`; `--comprobar`: no falta nada). Solo se reemplazaron los archivos del programa: `Show de ejemplo` y `datos` quedaron como estaban.
