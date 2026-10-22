@@ -1270,3 +1270,4 @@ Pedido del usuario: "Sí, sigue con la etapa 5." Repartida en cuatro partes que 
   - las tiras de fotos generándose en un show con vídeos;
   - el diálogo de Show nuevo en la ventana propia;
   - la prueba de rendimiento con la Multivista abierta.
+- **Subido y comprobado:** commit 6443153, run 39739154542 **verde**. Portable copiada a `CLOUDE - Herramientas Ota\Otaconvert-V2-0.0.1` (solo los archivos del programa; `datos` y «Show de ejemplo» quedaron); `otaconvert-motor.exe` SHA-256 `07e1dc93…`; `--comprobar`: no falta nada.
