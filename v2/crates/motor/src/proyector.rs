@@ -212,6 +212,9 @@ enum Trans {
     Apagar { viejo: usize, nuevo: usize, inicio: Instant, dur: Duration },
     /// Blackout, segunda mitad: lo nuevo sube desde negro.
     Encender { capa: usize, inicio: Instant, dur: Duration },
+    /// Palanca T: la capa nueva se ve tanto como diga la palanca (orden `alfa`);
+    /// `previos`: cómo estaban las capas de abajo, por si se vuelve atrás.
+    Manual { capa: usize, previos: Vec<(usize, Estado)> },
 }
 
 fn avisar(v: Value) {
@@ -303,6 +306,7 @@ pub fn ejecutar(args: &[String]) -> Result<bool, String> {
             let orden = o["o"].as_str().unwrap_or("");
             // Cualquier orden que cambie lo que se ve termina antes la transición
             // en curso (salta a su final): nunca quedan dos a medias.
+            // (La palanca T, en cambio, se termina o se cancela con sus propias órdenes.)
             if matches!(orden, "mostrar" | "negro" | "fundir" | "pausa" | "salir") {
                 if let Some(t) = trans.take() {
                     terminar_transicion(&proy, &mut capas, t);
@@ -311,6 +315,24 @@ pub fn ejecutar(args: &[String]) -> Result<bool, String> {
             match orden {
                 "salir" => return Ok(true),
                 "precargar" => precargar(&proy, &mut capas, &o),
+                // Palanca T: cuánto se ve lo nuevo (0 a 1), terminar o volver atrás.
+                "alfa" => {
+                    if let Some(Trans::Manual { capa, .. }) = &trans {
+                        let a = o["pos"].as_f64().unwrap_or(0.0).clamp(0.0, 1.0);
+                        proy.transparencia(*capa, Some((a * 255.0).round() as u8));
+                    }
+                }
+                "manual_fin" => {
+                    if let Some(t) = trans.take() {
+                        terminar_transicion(&proy, &mut capas, t);
+                    }
+                }
+                "manual_cancelar" => {
+                    match trans.take() {
+                        Some(Trans::Manual { capa, previos }) => cancelar_manual(&proy, &mut capas, capa, previos),
+                        otra => trans = otra,
+                    }
+                }
                 "mostrar" => {
                     let id = o["id"].as_u64().unwrap_or(0);
                     let ms = o["ms"].as_u64().unwrap_or(0).min(10_000);
@@ -524,7 +546,7 @@ fn precargar(proy: &Proyeccion, capas: &mut [Capa], o: &Value) {
 /// `dur / 2`). Devuelve la transición que queda en curso.
 fn mostrar(proy: &Proyeccion, capas: &mut [Capa], id: u64, trans: &str, dur: Duration) -> Option<Trans> {
     let repite = capas.iter().any(|c| matches!(c.estado, Estado::Mostrando { id: x, .. } if x == id));
-    let Some(i) = capas.iter().position(|c| c.estado == (Estado::Lista { id })).filter(|_| !repite && !dur.is_zero()) else {
+    let Some(i) = capas.iter().position(|c| c.estado == (Estado::Lista { id })).filter(|_| !repite && (!dur.is_zero() || trans == "manual")) else {
         mostrar_corte(proy, capas, id);
         return None;
     };
@@ -544,6 +566,20 @@ fn mostrar(proy: &Proyeccion, capas: &mut [Capa], id: u64, trans: &str, dur: Dur
             }
             avisar(json!({ "a": "mostrando", "id": id }));
             Some(Trans::Cruce { capa: i, inicio: ahora, dur })
+        }
+        "manual" => {
+            // Como el fundido, pero la transparencia la manda la palanca T.
+            let previos: Vec<(usize, Estado)> = a_la_vista.iter().map(|&k| (k, capas[k].estado.clone())).collect();
+            proy.transparencia(i, Some(0));
+            proy.arriba(i);
+            let bucle = capas[i].rep.leer("loop-file").is_some_and(|v| v != "no");
+            let _ = capas[i].rep.propiedad("pause", "no");
+            capas[i].estado = Estado::Mostrando { id, bucle, fin_avisado: false };
+            for k in a_la_vista {
+                capas[k].estado = Estado::Saliendo;
+            }
+            avisar(json!({ "a": "mostrando", "id": id }));
+            Some(Trans::Manual { capa: i, previos })
         }
         "negro" => {
             avisar(json!({ "a": "mostrando", "id": id }));
@@ -610,6 +646,7 @@ fn avanzar_transicion(proy: &Proyeccion, capas: &mut [Capa], t: Trans, ahora: In
             }
             Some(encender(proy, capas, nuevo, ahora, dur))
         }
+        Trans::Manual { capa, previos } => Some(Trans::Manual { capa, previos }),
         Trans::Encender { capa, inicio, dur } => {
             let x = avance(inicio, dur);
             let _ = capas[capa].rep.propiedad("brightness", &format!("{:.1}", -100.0 * (1.0 - x) * (1.0 - x)));
@@ -621,7 +658,7 @@ fn avanzar_transicion(proy: &Proyeccion, capas: &mut [Capa], t: Trans, ahora: In
 /// Salta al final de la transición (llegó otra orden, o terminó su tiempo).
 fn terminar_transicion(proy: &Proyeccion, capas: &mut [Capa], t: Trans) {
     match t {
-        Trans::Cruce { capa, .. } => {
+        Trans::Cruce { capa, .. } | Trans::Manual { capa, .. } => {
             proy.transparencia(capa, Some(255));
             proy.transparencia(capa, None);
             retirar_saliendo(capas);
@@ -633,6 +670,25 @@ fn terminar_transicion(proy: &Proyeccion, capas: &mut [Capa], t: Trans) {
         }
         Trans::Encender { capa, .. } => {
             let _ = capas[capa].rep.propiedad("brightness", "0");
+        }
+    }
+}
+
+/// Palanca T de vuelta al principio: lo nuevo baja otra vez (queda precargado,
+/// en pausa en su inicio, listo para otro GO) y lo de abajo sigue como estaba.
+fn cancelar_manual(proy: &Proyeccion, capas: &mut [Capa], capa: usize, previos: Vec<(usize, Estado)>) {
+    proy.transparencia(capa, None);
+    proy.abajo(capa);
+    let c = &mut capas[capa];
+    let _ = c.rep.propiedad("pause", "yes");
+    let inicio = c.rep.leer("start").and_then(|s| s.trim().parse::<f64>().ok()).filter(|s| s.is_finite() && *s >= 0.0).unwrap_or(0.0);
+    let _ = c.rep.comando(&["seek", &format!("{inicio:.3}"), "absolute+exact"]);
+    if let Estado::Mostrando { id, .. } = c.estado {
+        c.estado = Estado::Lista { id };
+    }
+    for (k, e) in previos {
+        if capas[k].estado == Estado::Saliendo {
+            capas[k].estado = e;
         }
     }
 }

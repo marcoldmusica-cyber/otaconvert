@@ -92,7 +92,8 @@ struct Contexto {
 /// Abre el diálogo de Windows para elegir archivos y devuelve los elegidos (vacío = canceló).
 pub type BuscarArchivos = Arc<dyn Fn() -> Vec<std::path::PathBuf> + Send + Sync>;
 /// Archivo → Abrir…: el diálogo de Windows para elegir un `.otashow` (None = canceló).
-pub type BuscarShow = Arc<dyn Fn() -> Option<std::path::PathBuf> + Send + Sync>;
+/// `true` = Archivo → Nuevo show… (elegir nombre y carpeta del show nuevo).
+pub type BuscarShow = Arc<dyn Fn(bool) -> Option<std::path::PathBuf> + Send + Sync>;
 
 /// Salidas de sonido y pantallas de este equipo (etapa 5B), en JSON para la ventana.
 pub type ListaEquipo = Arc<dyn Fn() -> serde_json::Value + Send + Sync>;
@@ -370,10 +371,17 @@ fn http(mut stream: TcpStream, ctx: &Contexto) {
             let cue = consulta
                 .and_then(|q| q.split('&').find_map(|p| p.strip_prefix("cue=")))
                 .and_then(|c| c.parse::<usize>().ok());
+            // `k`: una foto de la tira de la Multivista (1 a 6) en vez de la miniatura.
+            let k = consulta
+                .and_then(|q| q.split('&').find_map(|p| p.strip_prefix("k=")))
+                .and_then(|c| c.parse::<usize>().ok());
             let archivo = cue.and_then(|i| {
                 let s = ctx.sesion.lock().ok()?;
                 if ruta == "/miniatura" {
-                    s.miniatura_lista(i)
+                    match k {
+                        Some(k) => s.tira_lista(i, k),
+                        None => s.miniatura_lista(i),
+                    }
                 } else {
                     s.medio_visual(i)
                 }
@@ -582,7 +590,9 @@ fn ejecutar(ctx: &Arc<Contexto>, texto: &str) {
         // Archivo → Abrir… (etapa 6): solo en Edición y con nada sonando; se
         // guarda lo actual y el motor abre el otro show. En otro hilo: el
         // diálogo de Windows espera al usuario.
-        Some("abrir_show") => {
+        // Archivo → Abrir… o Nuevo show…: los dos cambian de show igual.
+        Some(orden @ ("abrir_show" | "nuevo_show")) => {
+            let nuevo = orden == "nuevo_show";
             let permitido = ctx.sesion.lock().map(|s| s.se_puede_cambiar_de_show()).unwrap_or(Ok(()));
             if let Err(e) = permitido {
                 if let Ok(mut s) = ctx.sesion.lock() {
@@ -598,8 +608,8 @@ fn ejecutar(ctx: &Arc<Contexto>, texto: &str) {
             if let (Some(dialogo), Some(cambiar)) = (dialogo, cambiar) {
                 let c = ctx.clone();
                 let _ = std::thread::Builder::new().name("abrir-show".into()).spawn(move || {
-                    let Some(ruta) = dialogo() else { return };
-                    if let Err(e) = cambiar("abrir_show", Some(ruta.to_string_lossy().into_owned())) {
+                    let Some(ruta) = dialogo(nuevo) else { return };
+                    if let Err(e) = cambiar(if nuevo { "nuevo_show" } else { "abrir_show" }, Some(ruta.to_string_lossy().into_owned())) {
                         if let Ok(mut s) = c.sesion.lock() {
                             s.aviso = Some(e);
                             let est = s.estado_json();
@@ -784,7 +794,23 @@ fn ejecutar(ctx: &Arc<Contexto>, texto: &str) {
             },
             // Vista Estudio (como OBS): `reemplazar` = el cue nuevo reemplaza lo anterior.
             Some("go") => {
-                s.go_con(v.get("reemplazar").and_then(|r| r.as_bool()).unwrap_or(false));
+                // Corte rápido: cuchilla aunque la transición elegida sea otra.
+                if v.get("corte").and_then(|r| r.as_bool()).unwrap_or(false) {
+                    s.go_corte();
+                } else {
+                    s.go_con(v.get("reemplazar").and_then(|r| r.as_bool()).unwrap_or(false));
+                }
+            }
+            // La Multivista se abrió o se cerró: las tiras de fotos solo se hacen con ella abierta.
+            Some("multivista") => s.pedir_tiras(v.get("si").and_then(|x| x.as_bool()).unwrap_or(false)),
+            // Palanca T de la Vista Estudio (0 a 1).
+            Some("tbar") => s.tbar(v.get("pos").and_then(|x| x.as_f64()).unwrap_or(f64::NAN) as f32),
+            Some("volumen_vivo") => {
+                let id = v.get("id").and_then(|x| x.as_u64()).unwrap_or(0) as u32;
+                let db = v.get("db").and_then(|x| x.as_f64()).unwrap_or(f64::NAN) as f32;
+                if let Err(e) = s.volumen_vivo(id, db) {
+                    s.aviso = Some(e);
+                }
             }
             Some("parar_todo") => s.parar_todo(),
             Some("pausa") => s.pausa(),

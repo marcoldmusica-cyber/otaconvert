@@ -1222,3 +1222,51 @@ Pedido del usuario: "Sí, sigue con la etapa 5." Repartida en cuatro partes que 
     - «Restaurar los recomendados» siempre a mano.
     - Se guarda en el equipo; más adelante, en los perfiles de operador.
   - **Reglas que no cambian:** **Esc = Parar todo** y **Espacio = GO** se pueden cambiar de tecla pero **nunca apagar**. Escribiendo en un campo, las teclas sueltas no disparan nada (Esc sí).
+
+### Vista Estudio como OBS: hecha (22/10/2026)
+- **Distribución** (`index.html`, solo con el estilo Estudio):
+  - `armarEstudio` / `desarmarEstudio`: arriba Vista previa | GO de transición (palanca T, Corte rápido, transición y ms) | Programa.
+  - Abajo, paneles: Escenas, Multivista, Controles, Transiciones, Mezclador, Fuentes y Botonera.
+  - La lista, la botonera y los botones de siempre **se mudan** a los paneles y vuelven al salir del estilo.
+  - Los paneles se mueven con el agarre ⋮⋮ (arrastrar, o ← →). El orden queda en `ota-paneles` y Restaurar vista lo borra.
+  - Cada panel tiene su ancho mínimo; si no entran, la fila se desplaza de costado.
+  - Barra de estado: proyector, sala y auriculares.
+- **Botonera:** en la Vista Estudio es siempre un panel más (pedido del usuario); si en Vista está «Oculta», ahí se ve en cuadrícula. En la Vista Lista sigue igual.
+- **Monitores:**
+  - luces de estado;
+  - cuenta de Programa amarilla en los últimos 10 s y roja en los últimos 3;
+  - destello cuando sale algo nuevo al aire;
+  - aviso «Ya está al aire» si la Previa es lo mismo que el Programa.
+- **Palanca T** (motor):
+  - `Sesion::tbar(pos)`: al moverla, el cue en espera sale **en silencio y transparente** (`en_manual`, `OrdenProyector::MostrarManual`).
+  - En el medio se mezclan los volúmenes (`Comando::Volumen`, rampa de 50 ms) y la transparencia (`Alfa`).
+  - Abajo del todo `terminar_manual` (lo de antes se va); arriba `cancelar_manual` (lo nuevo se va y el cue vuelve a quedar en espera).
+  - Otro GO, Pausa o Fundir todo la terminan; Parar todo la descarta.
+  - Proyector: `trans:"manual"`, órdenes `alfa`, `manual_fin` y `manual_cancelar`.
+- **Corte rápido:** `go_corte()`, orden `go {corte:true}`.
+- **Volumen en vivo:** `volumen_vivo(id, db)`, con un fader por cada cosa que suena. No cambia el show y vale en Función.
+- **Maestro y transición** se pueden cambiar en Función (`EN_VIVO` en `cambiar_ajustes`).
+- **Auriculares nunca pueden ser la misma tarjeta que la sala:** se rechaza al elegirla y, al abrir, queda sin usar con aviso.
+- **Multivista:**
+  - Órdenes Lista, Libre (grupos con nombre, arrastrar entre grupos), Tipo y Nombre; tamaño y filtro.
+  - Movimiento Todas / Al pasar el ratón / Ninguna, y ▶/⏸ por escena.
+  - 🎧 = «Ver antes», solo por auriculares.
+  - Clic = Previa; doble clic = GO.
+  - Se guarda por show en el equipo (`ota-mv:<show>`); el estado manda el `id` de cada cue.
+  - **Tiras de fotos**: `--miniatura` acepta «N%»; 6 fotos por vídeo (8 % a 92 %), de a una con 300 ms de pausa y solo con la Multivista abierta (orden `multivista {si}`). Ruta `/miniatura?cue=N&k=K`. La tarjeta pasa las fotos cada 700 ms: no reproduce vídeo.
+- **Atajos (editor):**
+  - `ATAJOS` (28: grupo, tecla de fábrica, encendido, fijo, acción) y juegos Mínimo, Recomendado y Completo.
+  - Se cambia la tecla tocándola; avisa de choques entre atajos y con la botonera.
+  - Esc es fijo; GO cambia de tecla pero no se apaga.
+  - Teclas 1–9, palanca con Re Pág / Av Pág y M vienen **apagadas**.
+  - Faders: rueda 0,5 / 0,1 / 3 dB, teclas y doble clic, envían cada 40 ms.
+- **Modo cabina** (F11, pantalla completa), **Rendimiento** Automático / Liviano (el automático pasa a Liviano si la ventana tiene 5 tirones de más de 120 ms en 10 s) y **Distribuciones de paneles** guardables.
+- **Tema «Espacio exterior»** (aprobado): estrellas, nebulosas, banda de galaxia y planeta con anillo; paneles de cristal con esquinas de radar; GO redondo; letra Bahnschrift. Todo con degradados quietos.
+- **Archivo → Nuevo show** (Ctrl+N): diálogo «Guardar» de Windows; `crear_show_vacio` crea el `.otashow` vacío con `Medios/` (nunca pisa uno existente) y lo abre como Abrir….
+- **Textos** es/en: unos 120 nuevos; consejos con ejemplos para cada opción y cada atajo; ayudas del Modo Ayuda para fuentes, mezclador, transiciones, controles, multivista y centro; paso 6 de Primeros pasos.
+- **Pruebas:** 140 en verde (nuevas: palanca T, volumen en vivo, show nuevo). Probado en el panel del navegador: Vista Estudio con tema Espacio y Multivista sin errores, clic en una tarjeta → Previa, editor de atajos. Capturas: `v2/diseno/programa-estudio-espacio.jpg` y `programa-atajos.jpg`.
+- **Sin probar:**
+  - la palanca T con el proyector y el sonido de verdad (sí las órdenes al mezclador y al proyector);
+  - las tiras de fotos generándose en un show con vídeos;
+  - el diálogo de Show nuevo en la ventana propia;
+  - la prueba de rendimiento con la Multivista abierta.

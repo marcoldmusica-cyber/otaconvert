@@ -60,6 +60,84 @@
     linear-gradient(180deg, rgba(255,255,255,.35), rgba(255,255,255,0) 60%);
   box-shadow:0 1px 0 rgba(255,255,255,.55) inset, 0 6px 18px rgba(70,44,18,.16);
 }
+/* Tema opcional «Espacio exterior» (Vista → Espacio exterior, pedido y aprobado
+   el 22/10/2026): espacial y futurista, como el tablero de una nave. Estrellas,
+   nebulosas, banda de galaxia y un planeta con anillo, todo con degradados
+   quietos (sin imágenes ni animaciones: no gasta nada). Paneles de cristal
+   oscuro con borde luminoso y esquinas de radar; letra Bahnschrift (viene con
+   Windows). En «Liviano» se apagan los brillos. */
+:root[data-tema="espacio"]{
+  --bg:#03040B;--card:#0A0F24;--card2:#0F1633;--hover:#162048;--border:#1F2B5C;
+  --text:#E4F3FF;--muted:#8FA6D9;--dim:#56669C;
+  --accent:#3CE6FF;--accent-h:#2BC8E0;--ok:#5CFFC8;--err:#FF4F7B;--warn:#FFD25A;--on-accent:#02121A;
+  --font:"Bahnschrift","Segoe UI",system-ui,sans-serif;--radar:#3CE6FF;
+}
+:root[data-tema="espacio"] body{
+  background-color:#03040B;
+  background-image:
+    radial-gradient(2px 2px at 8% 22%,#fff 50%,transparent 100%),radial-gradient(2.5px 2.5px at 37% 6%,#e6f7ff 50%,transparent 100%),
+    radial-gradient(2px 2px at 63% 47%,#fff 50%,transparent 100%),radial-gradient(3px 3px at 91% 38%,#d6f3ff 45%,transparent 100%),
+    radial-gradient(2px 2px at 22% 88%,#fff 50%,transparent 100%),radial-gradient(2px 2px at 76% 92%,#ffe7c2 50%,transparent 100%),
+    radial-gradient(ellipse 210px 34px at 94% 104%,transparent 62%,rgba(160,210,255,.45) 64%,rgba(160,210,255,.12) 72%,transparent 74%),
+    radial-gradient(circle 120px at 94% 104%,#4b3fa8 0%,#2a1f6b 45%,#120c33 70%,transparent 71%),
+    linear-gradient(118deg,transparent 30%,rgba(140,120,255,.10) 42%,rgba(200,180,255,.16) 48%,rgba(120,200,255,.10) 54%,transparent 66%),
+    radial-gradient(45% 40% at 85% 12%,rgba(180,80,255,.38),transparent 70%),
+    radial-gradient(40% 35% at 70% 22%,rgba(255,70,160,.20),transparent 70%),
+    radial-gradient(45% 45% at 8% 80%,rgba(30,200,255,.26),transparent 70%),
+    radial-gradient(35% 30% at 30% 60%,rgba(60,90,255,.14),transparent 70%),
+    radial-gradient(1px 1px at 20px 30px,#fff 98%,transparent),radial-gradient(1px 1px at 140px 90px,#cfe8ff 98%,transparent),
+    radial-gradient(1px 1px at 90px 170px,#fff 98%,transparent),radial-gradient(1.5px 1.5px at 180px 20px,#fff 98%,transparent),
+    radial-gradient(1px 1px at 60px 120px,#ffeacc 98%,transparent),radial-gradient(1px 1px at 230px 140px,#fff 98%,transparent);
+  background-size:auto,auto,auto,auto,auto,auto,auto,auto,auto,auto,auto,auto,auto,250px 210px,250px 210px,330px 290px,330px 290px,410px 370px,410px 370px;
+  background-attachment:fixed;
+}
+:root[data-tema="espacio"] .top,:root[data-tema="espacio"] .panel,:root[data-tema="espacio"] .dlg,
+:root[data-tema="espacio"] .mon,:root[data-tema="espacio"] .dock{
+  position:relative;
+  background:linear-gradient(180deg,rgba(60,230,255,.07),rgba(10,15,36,.55) 30%,rgba(5,8,20,.8));
+  border:1px solid rgba(60,230,255,.28);border-radius:6px;
+  box-shadow:inset 0 0 30px rgba(60,230,255,.06),0 0 18px -6px rgba(60,230,255,.45),0 14px 30px -12px #000;
+}
+:root[data-tema="espacio"] .mon::after,:root[data-tema="espacio"] .dock::after,:root[data-tema="espacio"] .panel::after{
+  content:"";position:absolute;inset:-1px;pointer-events:none;border-radius:6px;
+  background:
+    linear-gradient(var(--radar),var(--radar)) top left/18px 2px no-repeat,linear-gradient(var(--radar),var(--radar)) top left/2px 18px no-repeat,
+    linear-gradient(var(--radar),var(--radar)) top right/18px 2px no-repeat,linear-gradient(var(--radar),var(--radar)) top right/2px 18px no-repeat,
+    linear-gradient(var(--radar),var(--radar)) bottom left/18px 2px no-repeat,linear-gradient(var(--radar),var(--radar)) bottom left/2px 18px no-repeat,
+    linear-gradient(var(--radar),var(--radar)) bottom right/18px 2px no-repeat,linear-gradient(var(--radar),var(--radar)) bottom right/2px 18px no-repeat;
+  filter:drop-shadow(0 0 4px var(--radar));
+}
+:root[data-tema="espacio"] .mon.programa{--radar:#FF4F7B;border-color:rgba(255,79,123,.45);box-shadow:inset 0 0 30px rgba(255,79,123,.08),0 0 26px -4px rgba(255,79,123,.6),0 14px 30px -12px #000}
+:root[data-tema="espacio"] .mon.previa{box-shadow:inset 0 0 30px rgba(60,230,255,.08),0 0 26px -4px rgba(60,230,255,.6),0 14px 30px -12px #000}
+:root[data-tema="espacio"] .mon-k strong,:root[data-tema="espacio"] .dock h3 .titulo,:root[data-tema="espacio"] .panel-h strong,:root[data-tema="espacio"] #nombre{text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:600}
+:root[data-tema="espacio"] .dock h3{background:linear-gradient(90deg,rgba(60,230,255,.16),transparent 70%);border-bottom-color:rgba(60,230,255,.25)}
+:root[data-tema="espacio"] .mon .pantalla{border:1px solid rgba(60,230,255,.35);border-radius:3px;box-shadow:0 0 14px -2px rgba(60,230,255,.4)}
+:root[data-tema="espacio"] .mon .pantalla::before{background:repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px),linear-gradient(160deg,rgba(255,255,255,.10),transparent 30%)}
+:root[data-tema="espacio"] .est-centro .flecha{background:linear-gradient(90deg,#3CE6FF,#B46BFF,#FF4F7B);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:.2em}
+:root[data-tema="espacio"] .go-t{border-radius:50%;width:88px;height:88px;flex:none;margin:0 auto;padding:0;display:grid;place-content:center;transform:none;
+  background:radial-gradient(circle at 50% 35%,#d8fbff 0%,#3CE6FF 35%,#0b6f8f 75%);border:2px solid #b8f6ff;color:#02121A;
+  box-shadow:0 0 0 6px rgba(60,230,255,.12),0 0 0 7px rgba(60,230,255,.45),0 0 40px rgba(60,230,255,.85),inset 0 -8px 16px rgba(0,40,60,.5)}
+:root[data-tema="espacio"] .corte-rapido,:root[data-tema="espacio"] .opc-b,:root[data-tema="espacio"] .fuente,:root[data-tema="espacio"] .aire-linea,
+:root[data-tema="espacio"] .btn,:root[data-tema="espacio"] .dock .side-btns .tb{border-radius:4px;border-color:rgba(60,230,255,.25);background:linear-gradient(180deg,rgba(60,230,255,.08),rgba(10,15,36,.6))}
+:root[data-tema="espacio"] .dock #go{border-radius:4px;background:linear-gradient(90deg,#0b6f8f,#3CE6FF);color:#02121A;box-shadow:0 0 20px -2px rgba(60,230,255,.8);letter-spacing:.15em}
+:root[data-tema="espacio"] .dock .side-btns .panic{background:linear-gradient(90deg,#8f1131,#FF4F7B);color:#fff;box-shadow:0 0 20px -2px rgba(255,79,123,.85);text-transform:uppercase;letter-spacing:.12em}
+:root[data-tema="espacio"] .tbar .riel{border-radius:3px;border-color:rgba(60,230,255,.35);background:repeating-linear-gradient(0deg,rgba(60,230,255,.10) 0 1px,transparent 1px 8px),#04070f}
+:root[data-tema="espacio"] .tbar .riel::before{background:linear-gradient(180deg,#3CE6FF,#B46BFF,#FF4F7B);opacity:.9}
+:root[data-tema="espacio"] .tbar .riel i,:root[data-tema="espacio"] .fader2 .riel .perilla{background:linear-gradient(180deg,#e8fbff,#7fe9ff);box-shadow:0 0 12px #3CE6FF;border-radius:2px}
+:root[data-tema="espacio"] .fader2 .riel .lleno{background:linear-gradient(90deg,#B46BFF,#3CE6FF);box-shadow:0 0 10px #3CE6FF}
+:root[data-tema="espacio"] .mv-tile{border-radius:4px;border-color:rgba(60,230,255,.22)}
+:root[data-tema="espacio"] .mv-tile.prev{border-color:#3CE6FF;box-shadow:0 0 0 1px #3CE6FF,0 0 18px -1px #3CE6FF}
+:root[data-tema="espacio"] .mv-tile.prev .mv-tal{color:#02121A}
+:root[data-tema="espacio"] .mv-tile.aire{border-color:#FF4F7B;box-shadow:0 0 0 1px #FF4F7B,0 0 18px -1px #FF4F7B}
+:root[data-tema="espacio"] .mv-lab{text-transform:uppercase;letter-spacing:.06em;font-size:10px}
+:root[data-tema="espacio"] .seg2 button.on,:root[data-tema="espacio"] .mini-tr button.on{color:#02121A;background:#3CE6FF;box-shadow:0 0 10px #3CE6FF}
+:root[data-tema="espacio"] .mv-gnom{color:#3CE6FF;letter-spacing:.18em}
+:root[data-tema="espacio"] .fuente .ic{border-radius:3px;background:linear-gradient(135deg,#B46BFF,#3CE6FF)}
+:root[data-tema="espacio"] .seg button[aria-pressed="true"]{background:#3CE6FF;color:#02121A;box-shadow:0 0 12px #3CE6FF}
+:root[data-tema="espacio"] .clock{color:#3CE6FF;text-shadow:0 0 10px rgba(60,230,255,.7);letter-spacing:.1em}
+:root[data-tema="espacio"] .bars i{background:#3CE6FF;box-shadow:0 0 10px #3CE6FF}
+:root[data-tema="espacio"] .dlg{background:linear-gradient(180deg,rgba(60,230,255,.08),rgba(5,8,20,.97) 25%),#05081A}
+:root.liviano[data-tema="espacio"] .mon::after,:root.liviano[data-tema="espacio"] .dock::after,:root.liviano[data-tema="espacio"] .panel::after{filter:none}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{height:100%}
@@ -373,6 +451,209 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
 .salida-desde button{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:6px 10px;color:var(--text)}
 .salida-desde button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);font-weight:600}
 .caja .meta{white-space:pre-wrap;color:var(--muted);font-size:13px}
+
+/* ===== Vista Estudio como OBS (aprobada el 22/10/2026) =====
+   Arriba Vista previa | GO de transición | Programa; abajo paneles movibles.
+   Relieve hecho con capas semitransparentes sobre los colores del tema (vale en
+   Noche, Día, Fresno y Alto contraste). Sin desenfoque de fondo (caro).
+   En «Liviano» se quitan brillos, sombras y animaciones. */
+.app.estudio .col-izq,.app.estudio #lado,.app.estudio .transport{display:none}
+.app.estudio .body{display:flex;flex-direction:column;min-height:0}
+.est{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
+.est-mon{flex:1 1 0;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 132px minmax(0,1fr);gap:10px}
+.est-docks{flex:1.25 1 0;min-height:190px;display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding-bottom:2px}
+.dock[data-panel="escenas"]{--min:250px}.dock[data-panel="fuentes"]{--min:230px}.dock[data-panel="mezclador"]{--min:240px}
+.dock[data-panel="transiciones"]{--min:180px}.dock[data-panel="controles"]{--min:160px}.dock[data-panel="botonera"]{--min:200px}.dock[data-panel="multivista"]{--min:460px}
+.mon,.dock{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,0) 40%,rgba(0,0,0,.12)),var(--card);border:1px solid var(--border);border-radius:16px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),inset 0 -2px 0 rgba(0,0,0,.25),0 10px 24px -10px rgba(0,0,0,.7)}
+.mon{padding:8px 10px 10px;display:flex;flex-direction:column;gap:6px;min-height:0;min-width:0}
+.mon.previa{box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 0 0 1px color-mix(in srgb,var(--accent) 60%,transparent),0 0 26px -8px var(--accent),0 12px 26px -10px rgba(0,0,0,.8)}
+.mon.programa{box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 0 0 1px color-mix(in srgb,var(--err) 65%,transparent),0 0 30px -6px var(--err),0 12px 26px -10px rgba(0,0,0,.8)}
+.mon-k{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);min-width:0}
+.mon-k strong{color:var(--text);font-size:13px}
+.mon-k .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mon-k .r{margin-left:auto;white-space:nowrap;font-size:11px}
+.mon-k .r.alerta{color:var(--warn);font-weight:700}
+.mon-k .r.vivo{color:var(--err);font-weight:800;letter-spacing:.04em;text-shadow:0 0 10px color-mix(in srgb,var(--err) 70%,transparent)}
+.tally{width:9px;height:9px;border-radius:50%;flex:none}
+.tally.p{background:var(--accent);box-shadow:0 0 6px var(--accent),0 0 14px var(--accent)}
+.tally.a{background:var(--err);box-shadow:0 0 6px var(--err),0 0 16px var(--err);animation:latido 1.6s infinite}
+@keyframes latido{50%{opacity:.5}}
+.mon .pantalla{flex:1;min-height:60px;aspect-ratio:auto;border:4px solid #07090d;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),inset 0 8px 18px rgba(0,0,0,.45)}
+.mon .pantalla::before{content:"";position:absolute;inset:0;background:linear-gradient(160deg,rgba(255,255,255,.12),rgba(255,255,255,0) 32%);z-index:1;pointer-events:none}
+.mon .pantalla .rotulo{z-index:2;left:10px;bottom:8px;right:auto;background:rgba(8,10,14,.6);border:1px solid rgba(255,255,255,.12);padding:2px 8px;border-radius:6px;font-weight:600}
+.mon .pantalla .t{position:absolute;right:10px;top:8px;z-index:2;font-size:14px;font-weight:700;background:rgba(8,10,14,.62);border:1px solid rgba(255,255,255,.14);padding:2px 9px;border-radius:7px;color:#E9ECF2}
+.mon .pantalla .t:empty{display:none}
+.mon .pantalla .t.amarillo{color:#ffd47a;border-color:rgba(255,212,122,.6);box-shadow:0 0 12px rgba(232,194,90,.6)}
+.mon .pantalla .t.rojo{color:#fff;background:rgba(200,50,44,.85);border-color:#ffb3ae;box-shadow:0 0 14px rgba(242,122,116,.8)}
+.mon.programa.destello .pantalla::after{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.35) 45%,transparent 60%);animation:barrido .6s ease-out forwards}
+@keyframes barrido{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.mon .controles{gap:6px}
+.mon .salida-desde{gap:6px}
+.mon .meta{font-size:12px;max-height:3.6em;overflow:hidden}
+.aire-lista{display:flex;flex-direction:column;gap:4px;max-height:none!important}
+.aire-linea{display:flex;align-items:center;gap:8px;padding:3px 6px;border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(0,0,0,.08)),var(--card2)}
+.aire-linea>span:first-child{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Centro: GO de la transición, palanca T y corte rápido */
+.est-centro{display:flex;flex-direction:column;justify-content:center;gap:7px;min-height:0;overflow:hidden}
+.est-centro .tbar{flex:1 1 86px;min-height:50px;height:auto;max-height:110px}
+.est-centro .flecha{text-align:center;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--muted)}
+.go-t{border:1px solid color-mix(in srgb,var(--accent) 70%,#fff);border-radius:16px;padding:14px 6px 10px;color:var(--on-accent);font-size:26px;font-weight:800;letter-spacing:.06em;
+  background:radial-gradient(120% 80% at 50% 0%,color-mix(in srgb,var(--accent) 55%,#fff),var(--accent) 45%,color-mix(in srgb,var(--accent) 70%,#000));
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.4),inset 0 -6px 12px rgba(0,0,0,.25),0 5px 0 color-mix(in srgb,var(--accent) 45%,#000),0 12px 26px -6px color-mix(in srgb,var(--accent) 80%,transparent);transform:translateY(-3px);transition:transform .06s,box-shadow .06s}
+.go-t:active{transform:translateY(1px);box-shadow:inset 0 2px 0 rgba(255,255,255,.3),0 1px 0 color-mix(in srgb,var(--accent) 45%,#000)}
+.go-t small{display:block;font-size:10px;font-weight:600;letter-spacing:.02em;opacity:.9;margin-top:2px}
+.tbar{display:flex;align-items:stretch;gap:5px;height:86px}
+.tbar .lbl{writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;color:var(--dim);text-align:center}
+.tbar .riel{flex:1;position:relative;border-radius:10px;background:rgba(0,0,0,.35);border:1px solid var(--border);box-shadow:inset 0 2px 6px rgba(0,0,0,.6);cursor:ns-resize;touch-action:none}
+.tbar .riel::before{content:"";position:absolute;left:50%;top:6px;bottom:6px;width:3px;margin-left:-1.5px;border-radius:2px;background:linear-gradient(180deg,var(--accent),var(--err));opacity:.55}
+.tbar .riel i{position:absolute;left:3px;right:3px;top:-9px;height:18px;border-radius:5px;background:linear-gradient(180deg,#f4f6fb,#9aa1b3);border:1px solid #6b7285;box-shadow:0 3px 6px rgba(0,0,0,.55)}
+.tbar.activa .riel{box-shadow:inset 0 2px 6px rgba(0,0,0,.6),0 0 0 1px var(--accent)}
+.corte-rapido{border-radius:10px;padding:6px 4px;font-weight:700;font-size:12px;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(0,0,0,.15)),var(--card2);border:1px solid var(--border);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 3px 0 rgba(0,0,0,.45)}
+.mini-tr{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
+.mini-tr button{border:1px solid var(--border);border-radius:7px;padding:3px 0;font-size:10px;color:var(--muted);background:var(--card)}
+.mini-tr button.on{border-color:var(--accent);color:var(--accent);font-weight:700}
+.mini-tr .ms{grid-column:1/-1;text-align:center;font-size:11px;color:var(--muted)}
+/* Paneles */
+.dock{flex:var(--w,1) 1 0;min-width:var(--min,190px);display:flex;flex-direction:column;min-height:0;overflow:hidden;position:relative}
+.dock h3{margin:0;display:flex;align-items:center;gap:6px;padding:6px 10px 6px 4px;font-size:13px;font-weight:600;border-bottom:1px solid var(--border);background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,0))}
+.dock h3 .titulo{white-space:nowrap}
+.dock h3 .r{margin-left:auto;color:var(--muted);font-weight:400;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grip{border:0;background:none;color:var(--dim);font-size:13px;letter-spacing:-2px;padding:0 5px;cursor:grab;touch-action:none;border-radius:6px}
+.grip:hover,.grip:focus-visible{color:var(--accent)}
+.dock-c{flex:1;min-height:0;overflow:auto;padding:6px;display:flex;flex-direction:column;gap:5px}
+.dock.levantado{z-index:20;box-shadow:0 0 0 2px var(--accent),0 24px 46px rgba(0,0,0,.7);opacity:.95;pointer-events:none}
+.dock.destino.antes{box-shadow:-4px 0 0 var(--accent)}
+.dock.destino.despues{box-shadow:4px 0 0 var(--accent)}
+.dock .buscador{padding:0}
+.dock .list{padding:0}
+.dock .row{grid-template-columns:30px 44px minmax(0,1fr) 46px}
+.dock .row .out{display:none}
+.dock .row.standby{box-shadow:inset 0 0 0 1px var(--accent),0 0 12px -4px var(--accent)}
+.dock .row.playing{background:linear-gradient(90deg,color-mix(in srgb,var(--err) 20%,transparent),transparent)}
+.dock #botonera{border:0;border-radius:0;background:none;box-shadow:none;max-height:none;flex:1}
+.dock #botonera>.panel-h{padding:0 0 6px;border:0}
+.dock #botonera>.panel-h>strong{display:none}
+.est-estado{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--dim)}
+.est-estado b{color:var(--muted);font-weight:500}
+/* Fuentes */
+.fuente{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:7px;padding:5px 6px;border-radius:9px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(0,0,0,.08)),var(--card2);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+.fuente .ic{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;font-size:12px;color:var(--on-accent);background:radial-gradient(circle at 30% 25%,color-mix(in srgb,var(--accent) 55%,#fff),var(--accent))}
+.fuente .fx{min-width:0;display:flex;flex-direction:column}
+.fuente .fx>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px}
+.fuente small{color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fuente-error{color:var(--err);font-size:12px;margin:0}
+.fuentes .pie{margin-top:4px}
+.prop-t{margin-top:8px;color:var(--muted);font-size:12px;border-top:1px solid var(--border);padding-top:6px}
+.dock .detalle{padding:0}
+.dock .detalle .props{padding:6px 0}
+.dock .detalle .panel-h{display:none}
+/* Mezclador: medidores LED con pico retenido y faders con perilla */
+.canal{display:grid;grid-template-columns:74px minmax(0,1fr) 58px;align-items:center;gap:6px;font-size:12px}
+.canal .k{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.canal.maestro .k{color:var(--text);font-weight:700}
+.canal .fader2{grid-column:2/4;display:grid;grid-template-columns:minmax(0,1fr) 58px;align-items:center;gap:6px}
+.leds{display:flex;flex-direction:column;gap:2px}
+.led{position:relative;height:6px;border-radius:2px;background:rgba(0,0,0,.35);overflow:hidden}
+.led i{position:absolute;inset:0 auto 0 0;width:0;background:repeating-linear-gradient(90deg,transparent 0 3px,rgba(0,0,0,.55) 3px 4px),linear-gradient(90deg,var(--ok) 0 70%,var(--warn) 70% 90%,var(--err) 90%);background-size:100% 100%,var(--ancho-led,100%) 100%}
+.led b{position:absolute;top:0;bottom:0;width:2px;background:var(--text)}
+.escala{display:flex;justify-content:space-between;color:var(--dim);font-size:9px;margin:0 64px 0 80px}
+.sep{height:1px;background:var(--border);margin:3px 0}
+.mz-voces{display:flex;flex-direction:column;gap:5px}
+.fader2{outline:none}
+.fader2 .riel{position:relative;height:6px;border-radius:3px;background:rgba(0,0,0,.4);box-shadow:inset 0 1px 3px rgba(0,0,0,.7);cursor:pointer;touch-action:none;margin:6px 0}
+.fader2 .riel .lleno{position:absolute;inset:0 auto 0 0;border-radius:3px;background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 50%,#000),var(--accent));transition:width .08s linear}
+.fader2 .riel .perilla{position:absolute;top:-6px;width:14px;height:18px;margin-left:-7px;border-radius:4px;background:linear-gradient(180deg,#f4f6fb,#9aa1b3);border:1px solid #6b7285;box-shadow:inset 0 -2px 0 rgba(0,0,0,.2),0 2px 4px rgba(0,0,0,.55);transition:left .08s linear}
+.fader2.moviendo .riel .lleno,.fader2.moviendo .riel .perilla{transition:none}
+.fader2:focus-visible .riel{box-shadow:0 0 0 2px var(--accent)}
+.fader2 .val{color:var(--muted);font-size:11px;text-align:right;white-space:nowrap}
+/* Transiciones */
+.opc{display:flex;flex-direction:column;gap:5px}
+.opc-b{display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:9px;border:1px solid var(--border);font-size:12px;text-align:left;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(0,0,0,.1)),var(--card2);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 2px 0 rgba(0,0,0,.35)}
+.opc-b.on{border-color:var(--accent);color:var(--accent);font-weight:600;box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 0 10px -2px var(--accent)}
+.dur{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-top:6px}
+.dur-v{margin-left:auto;display:flex;align-items:center;gap:4px}
+.dur-v input{width:74px}
+/* Controles (GO, Pausa, Fundir todo, Parar todo) dentro de su panel */
+.dock #go{min-height:54px;font-size:22px;border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 4px 0 color-mix(in srgb,var(--accent) 45%,#000)}
+.dock #go small{display:none}
+.dock .side-btns{grid-template-columns:1fr;gap:6px}
+.dock .side-btns .tb{min-height:34px;flex-direction:row;justify-content:space-between;padding:6px 10px;border-radius:10px;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 3px 0 rgba(0,0,0,.4)}
+.dock .side-btns .panic{background:linear-gradient(180deg,color-mix(in srgb,var(--err) 85%,#fff),var(--err));color:#fff;border-color:transparent;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 3px 0 color-mix(in srgb,var(--err) 50%,#000),0 0 14px -3px var(--err)}
+/* Multivista */
+.mv-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:11px;color:var(--muted);padding-bottom:6px;border-bottom:1px solid var(--border)}
+.mv-grp{display:flex;align-items:center;gap:5px}
+.seg2{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.seg2 button{border:0;border-right:1px solid var(--border);background:var(--card2);padding:2px 7px;font-size:11px;color:var(--muted)}
+.seg2 button:last-child{border-right:0}
+.seg2 button.on{color:var(--accent);font-weight:700;background:color-mix(in srgb,var(--accent) 14%,var(--card2))}
+.mv-chip{border:1px solid var(--border);border-radius:8px;padding:2px 8px;font-size:11px;background:var(--card2);max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv-chip.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 45%,var(--border))}
+.mv-chip.falta{color:var(--warn)}
+.mv-sel{background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:11px;padding:2px 4px}
+.mv{display:flex;flex-direction:column;gap:8px}
+.mv-grupo{display:flex;flex-direction:column;gap:5px;border-radius:10px;padding:2px}
+.mv-grupo.mv-destino{box-shadow:0 0 0 2px var(--accent)}
+.mv-gh{display:flex;align-items:center;gap:6px}
+.mv-gnom{background:none;border:0;border-bottom:1px dashed transparent;color:var(--muted);font:600 11px var(--font);letter-spacing:.03em;padding:1px 2px;min-width:0;flex:1}
+.mv-gnom:hover,.mv-gnom:focus{border-bottom-color:var(--border);color:var(--text)}
+.mv-gx{border:0;background:none;color:var(--dim);font-size:11px}
+.mv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--mv-ancho,192px),1fr));gap:7px}
+.mv-vacio{grid-column:1/-1;border:1px dashed var(--border);border-radius:9px;padding:10px;text-align:center;color:var(--dim);font-size:11px}
+.mv-tile{position:relative;aspect-ratio:16/9;border-radius:9px;overflow:hidden;background:#000;border:2px solid var(--border);box-shadow:0 3px 8px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08);cursor:pointer;user-select:none;touch-action:none}
+.mv-tile::before{content:"";position:absolute;inset:0;background:linear-gradient(160deg,rgba(255,255,255,.12),transparent 35%);z-index:1;pointer-events:none}
+.mv-tile img.mv-foto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.mv-ic{position:absolute;inset:0;display:grid;place-items:center;color:var(--accent);background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--accent) 18%,#141925),#0b0e14)}
+.mv-ic svg{width:36%;height:36%}
+.mv-tile.prev{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 0 16px -2px var(--accent)}
+.mv-tile.aire{border-color:var(--err);box-shadow:0 0 0 1px var(--err),0 0 16px -2px var(--err)}
+.mv-tile.suena{border-color:color-mix(in srgb,var(--ok) 70%,var(--border))}
+.mv-tile.falla{border-color:#a0403a}
+.mv-tile.levantada{z-index:30;box-shadow:0 0 0 2px var(--accent),0 18px 30px rgba(0,0,0,.75);pointer-events:none}
+.mv-tile.mv-destino.antes{box-shadow:-4px 0 0 var(--accent)}
+.mv-tile.mv-destino.despues{box-shadow:4px 0 0 var(--accent)}
+.mv-tal{position:absolute;top:4px;left:4px;z-index:2;font-size:9px;font-weight:800;letter-spacing:.04em;padding:1px 5px;border-radius:4px;color:#fff;background:var(--accent)}
+.mv-tile.aire .mv-tal{background:var(--err)}
+.mv-x{position:absolute;inset:0;z-index:2;display:grid;place-items:center;color:#ffb3ae;font-size:11px;font-weight:700;background:rgba(40,10,10,.55);text-align:center;padding:4px}
+.mv-acc{position:absolute;top:4px;right:4px;z-index:3;display:flex;gap:3px}
+.mv-b{font-size:10px;line-height:1;padding:3px 5px;border-radius:5px;background:rgba(10,12,18,.72);border:1px solid rgba(255,255,255,.2);color:#E9ECF2}
+.mv-b.on{background:color-mix(in srgb,var(--accent) 85%,#000);border-color:#b8c0ff}
+.mv-b.au{background:var(--ok);color:#05150d;border-color:#b8f0d6}
+.mv-lab{position:absolute;left:0;right:0;bottom:0;z-index:2;display:flex;align-items:center;gap:4px;padding:12px 6px 4px;font-size:11px;font-weight:600;color:#E9ECF2;background:linear-gradient(0deg,rgba(0,0,0,.88),transparent)}
+.mv-lab b{color:#c4cad6}
+.mv-lab .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv-lab .d{color:#aab1c0;font-weight:500}
+.mv-prog{position:absolute;left:0;right:0;bottom:0;height:3px;z-index:3;background:rgba(255,255,255,.15)}
+.mv-prog i{position:absolute;inset:0 auto 0 0;background:var(--err)}
+.mv-leyenda{font-size:10px;color:var(--dim);margin-top:2px}
+/* Editor de atajos y distribuciones */
+.at-juegos{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.at-lista{display:flex;flex-direction:column;gap:4px;max-height:56vh;overflow:auto;padding-right:4px}
+.at-lista h3{margin:10px 0 2px;font-size:13px;color:var(--muted)}
+.at-fila{display:grid;grid-template-columns:minmax(0,1fr) 150px 92px;align-items:center;gap:8px;padding:4px 6px;border-radius:8px;background:var(--card)}
+.at-fila.apagado{opacity:.6}
+.at-fila .at-aviso{grid-column:1/-1;color:var(--warn);font-size:11px}
+.at-fila .at-aviso:empty{display:none}
+.at-nom{display:flex;align-items:center;font-size:13px}
+.at-tecla{font:12px var(--mono);background:var(--card2);border:1px solid var(--border);border-bottom-width:2px;border-radius:7px;padding:3px 8px}
+.at-tecla.esperando{border-color:var(--accent);color:var(--accent)}
+.at-raton{font-size:11px;color:var(--muted)}
+.dist-lista{display:flex;flex-direction:column;gap:5px}
+.dist-f{display:flex;align-items:center;gap:8px}
+.dist-f>span{flex:1}
+.dist-nueva{display:flex;gap:8px;align-items:center}
+.dist-nueva input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:6px 9px;color:var(--text);font:inherit}
+/* Modo cabina: solo monitores, escenas y controles */
+.app.cabina .menubar,.app.cabina .top,.app.cabina .credito,.app.cabina .est-estado{display:none}
+/* Liviano: sin brillos, sombras ni animaciones */
+:root.liviano *,:root.liviano *::before,:root.liviano *::after{animation:none!important;transition:none!important}
+:root.liviano .mon,:root.liviano .dock,:root.liviano .go-t,:root.liviano .mv-tile,:root.liviano .opc-b,:root.liviano .fuente{box-shadow:none!important}
+:root.liviano .mon .pantalla::before,:root.liviano .mv-tile::before{display:none}
+@media (max-width:900px){
+  .est-mon{grid-template-columns:1fr;grid-auto-rows:minmax(180px,auto)}
+  .est-docks{flex-direction:column;overflow:visible}
+  .dock{min-height:200px}
+}
 </style>
 </head>
 <body>
@@ -381,7 +662,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     <div class="mb">
       <button aria-haspopup="true" aria-expanded="false" data-menu data-t="archivo"></button>
       <div class="menu" role="menu" hidden>
-        <button role="menuitem" disabled><span data-t="nuevo_show"></span> <span class="pronto" data-t="proximamente"></span></button>
+        <button role="menuitem" data-orden="nuevo_show" data-edita="si" data-consejo="nuevo_show"><span data-t="nuevo_show"></span> <kbd>Ctrl N</kbd><span class="q" aria-hidden="true">?</span></button>
         <button role="menuitem" data-orden="abrir_show" data-edita="si" data-consejo="abrir_show"><span data-t="abrir"></span> <kbd>Ctrl O</kbd><span class="q" aria-hidden="true">?</span></button>
         <button role="menuitem" disabled><span data-t="abrir_reciente"></span> <span class="pronto" data-t="proximamente"></span></button>
         <div class="sep"></div>
@@ -416,11 +697,19 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
         <button role="menuitemcheckbox" data-tema="dia" data-consejo="modo_dia" aria-checked="false"><span data-t="modo_dia"></span><span class="q" aria-hidden="true">?</span></button>
         <button role="menuitemcheckbox" data-tema="contraste" data-consejo="alto_contraste" aria-checked="false"><span data-t="alto_contraste"></span><span class="q" aria-hidden="true">?</span></button>
         <button role="menuitemcheckbox" data-tema="fresno" data-consejo="modo_fresno" aria-checked="false"><span data-t="modo_fresno"></span><span class="q" aria-hidden="true">?</span></button>
+        <button role="menuitemcheckbox" data-tema="espacio" data-consejo="modo_espacio" aria-checked="false"><span data-t="modo_espacio"></span><span class="q" aria-hidden="true">?</span></button>
         <div class="sep"></div>
         <div class="lbl" data-t="estilo"></div>
         <button role="menuitemradio" data-estilo="lista" data-consejo="estilo_lista" aria-checked="true"><span data-t="estilo_lista"></span><span class="q" aria-hidden="true">?</span></button>
         <button role="menuitemradio" data-estilo="estudio" data-consejo="estilo_estudio" aria-checked="false"><span data-t="estilo_estudio"></span><span class="q" aria-hidden="true">?</span></button>
         <button role="menuitemcheckbox" data-accion="previa_mov" data-consejo="previa_movimiento" aria-checked="true"><span data-t="previa_movimiento"></span><span class="q" aria-hidden="true">?</span></button>
+        <button role="menuitemcheckbox" data-accion="multivista" data-solo-estudio="si" data-consejo="multivista" aria-checked="false"><span data-t="multivista"></span><span class="q" aria-hidden="true">?</span></button>
+        <button role="menuitemcheckbox" data-accion="cabina" data-solo-estudio="si" data-consejo="cabina" aria-checked="false"><span data-t="cabina"></span><span class="q" aria-hidden="true">?</span></button>
+        <button role="menuitem" data-accion="distribuciones" data-solo-estudio="si" data-consejo="distribuciones"><span data-t="distribuciones_menu"></span><span class="q" aria-hidden="true">?</span></button>
+        <div class="sep"></div>
+        <div class="lbl" data-t="rendimiento"></div>
+        <button role="menuitemradio" data-rendimiento="auto" data-consejo="rendimiento_auto" aria-checked="true"><span data-t="rend_auto"></span><span class="q" aria-hidden="true">?</span></button>
+        <button role="menuitemradio" data-rendimiento="liviano" data-consejo="rendimiento_liviano" aria-checked="false"><span data-t="rend_liviano"></span><span class="q" aria-hidden="true">?</span></button>
         <div class="sep"></div>
         <div class="lbl" data-t="botonera"></div>
         <button role="menuitemradio" data-botonera="oculta" data-consejo="botonera_vista" aria-checked="true"><span data-t="bt_oculta"></span><span class="q" aria-hidden="true">?</span></button>
@@ -535,6 +824,8 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     if (vars) for (var v in vars) s = s.split("{" + v + "}").join(vars[v]);
     return s;
   }
+  // Un texto cuyo nombre se arma con un prefijo (así la prueba de textos no lo confunde con un nombre que falta).
+  function Tp(prefijo, k) { return T(prefijo + k); }
   function ayudaDe(k) { return TEXTOS[idioma].ayuda[k]; }
   function aplicarTextos() {
     document.documentElement.lang = idioma;
@@ -607,6 +898,8 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
       b.disabled = funcion || (k === "deshacer" && !e.puede_deshacer) || (k === "rehacer" && !e.puede_rehacer) || (k === "cue" && !e.cues[e.en_espera]);
     });
     $("soltar-texto").textContent = funcion ? T("soltar_funcion") : T("soltar_s");
+    // Multivista, Modo cabina y Distribuciones son de la Vista Estudio.
+    document.querySelectorAll("[data-solo-estudio]").forEach(function (b) { b.disabled = estilo !== "estudio"; });
     actualizarAjustes();
     pintarLuz();
     dibujarBotonera();
@@ -700,7 +993,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
   function dibujarLado(funcion) {
     if (estilo === "estudio") { dibujarEstudio(funcion); return; }
     var lado = $("lado");
-    if (lado.dataset.estilo) { soltarVideos(); lado.textContent = ""; delete lado.dataset.estilo; ladoClave = ""; }
+    desarmarEstudio();
     if (funcion) { ladoClave = ""; dibujarEnVivo(lado); return; }
     dibujarDetalle(lado);
   }
@@ -880,42 +1173,807 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
   }
 
   // ---- Vista Estudio (como el Modo Estudio de OBS) ----
-  // Arriba la vista previa del cue elegido (lo que viene), abajo lo que está al
-  // aire en el proyector; en Edición, debajo, los ajustes del cue elegido.
+  // Arriba: Vista previa | GO de la transición | Programa (al aire). Abajo,
+  // paneles que se mueven (Escenas, Fuentes, Mezclador, Transiciones,
+  // Controles, Botonera, Multivista). La lista, la botonera y los botones de
+  // siempre se mudan a los paneles y vuelven a su lugar al salir del estilo.
   // Las partes con vídeo no se rehacen en cada refresco (el vídeo volvería a empezar).
   var previaClave = "", aireClave = "", previaVideo = null;
-  function caja(cls, ayuda, titulo, consejo) {
-    var c = el("div", "caja " + cls); c.dataset.help = ayuda;
-    var k = el("div", "k"), s = el("span", "", titulo);
-    if (consejo) s.appendChild(botonConsejo(consejo));
-    k.appendChild(s); c.appendChild(k);
-    return c;
+  // [id, título, ancho relativo, ayuda]
+  var PANELES = [
+    ["escenas", "d_escenas", 1.2, "lista"], ["multivista", "d_multivista", 2.4, "multivista"], ["controles", "d_controles", 0.85, "controles"],
+    ["transiciones", "d_transiciones", 0.9, "transiciones"], ["mezclador", "d_mezclador", 1.1, "mezclador"],
+    ["fuentes", "d_fuentes", 1.15, "fuentes"], ["botonera", "botonera", 1.2, "botonera"]];
+  function ordenPaneles() {
+    var g = []; try { g = JSON.parse(leer("ota-paneles", "[]")) || []; } catch (x) { g = []; }
+    var ids = PANELES.map(function (p) { return p[0]; });
+    var orden = g.filter(function (k) { return ids.indexOf(k) >= 0; });
+    ids.forEach(function (k) { if (orden.indexOf(k) < 0) orden.push(k); });
+    return orden;
+  }
+  function guardarOrdenPaneles() {
+    var o = [].map.call(document.querySelectorAll("#estDocks > .dock"), function (d) { return d.dataset.panel; });
+    escribir("ota-paneles", JSON.stringify(o));
+  }
+  function encabezadoMonitor(tally, titulo, sub, derecha) {
+    var k = el("div", "mon-k");
+    k.appendChild(el("span", "tally " + tally));
+    k.appendChild(el("strong", "", titulo));
+    k.appendChild(el("span", "sub", sub));
+    var r = el("span", "r"); if (derecha) r.id = derecha; k.appendChild(r);
+    return k;
+  }
+  function armarEstudio() {
+    if ($("est")) return;
+    soltarVideos(); previaClave = aireClave = ladoClave = fuentesClave = transClave = ""; previaVideo = null; aireVideo = null;
+    var est = el("div", "est"); est.id = "est";
+    var mon = el("div", "est-mon");
+    // Vista previa
+    var cp = el("section", "mon previa"); cp.dataset.help = "previa";
+    cp.appendChild(encabezadoMonitor("p", T("previa_t"), T("previa_sub"), "previaTag"));
+    var pp = el("div", "pantalla"); pp.id = "previaPantalla"; cp.appendChild(pp);
+    var ctl = el("div", "controles"); ctl.id = "previaControles"; cp.appendChild(ctl);
+    var sd = el("div", "salida-desde"); sd.id = "salidaDesde"; cp.appendChild(sd);
+    var inf = el("div", "meta"); inf.id = "previaInfo"; cp.appendChild(inf);
+    mon.appendChild(cp);
+    // Centro: el GO de la transición
+    var ce = el("div", "est-centro"); ce.dataset.help = "est_centro";
+    ce.appendChild(el("div", "flecha", T("previa_a_aire")));
+    var g = el("button", "go-t"); g.type = "button"; g.id = "goT";
+    g.appendChild(document.createTextNode("GO")); g.appendChild(el("small", "", T("transicion")));
+    g.onclick = function () { if (!ayudando) darGo(); };
+    ce.appendChild(g);
+    var tb = el("div", "tbar"); tb.id = "tbarra"; ce.appendChild(tb);
+    var corte = el("button", "corte-rapido", "✂ " + T("corte_rapido")); corte.type = "button"; corte.id = "corteRapido"; corte.dataset.consejo = "corte_rapido";
+    corte.onclick = function () { if (!ayudando) mandar("go", { reemplazar: true, corte: true }); };
+    ce.appendChild(corte);
+    var mt = el("div", "mini-tr"); mt.id = "miniTr"; ce.appendChild(mt);
+    mon.appendChild(ce);
+    // Programa (al aire)
+    var ca = el("section", "mon programa"); ca.dataset.help = "aire";
+    ca.appendChild(encabezadoMonitor("a", T("programa_t"), T("programa_sub"), "aireTag"));
+    var pa = el("div", "pantalla"); pa.id = "airePantalla"; ca.appendChild(pa);
+    var ai = el("div", "meta aire-lista"); ai.id = "aireInfo"; ca.appendChild(ai);
+    mon.appendChild(ca);
+    est.appendChild(mon);
+    // Paneles
+    var docks = el("div", "est-docks"); docks.id = "estDocks";
+    var porId = {};
+    PANELES.forEach(function (p) {
+      var d = el("section", "dock"); d.dataset.panel = p[0]; d.dataset.help = p[3]; d.style.setProperty("--w", p[2]);
+      var h = el("h3");
+      var grip = el("button", "grip", "⋮⋮"); grip.type = "button"; grip.dataset.consejo = "paneles";
+      grip.setAttribute("aria-label", T("mover_panel"));
+      h.appendChild(grip);
+      h.appendChild(el("span", "titulo", T(p[1])));
+      var r = el("span", "r"); r.id = "dockR-" + p[0]; h.appendChild(r);
+      d.appendChild(h);
+      var c = el("div", "dock-c"); c.id = "dock-" + p[0]; d.appendChild(c);
+      porId[p[0]] = d;
+    });
+    ordenPaneles().forEach(function (k) { docks.appendChild(porId[k]); });
+    est.appendChild(docks);
+    // Barra de estado: lo que se está usando de este equipo.
+    var eb = el("div", "est-estado"); eb.id = "estEstado"; est.appendChild(eb);
+    document.querySelector("main.body").appendChild(est);
+    // Lo que ya existía se muda a los paneles.
+    var de = $("dock-escenas"); de.appendChild($("buscar").parentNode); de.appendChild($("lista"));
+    $("dock-botonera").appendChild($("botonera"));
+    var dc = $("dock-controles"); dc.appendChild($("go")); dc.appendChild(document.querySelector(".side-btns"));
+    // Fuentes y propiedades del cue elegido; mezclador; transiciones.
+    var df = $("dock-fuentes"); var fl = el("div", "fuentes"); fl.id = "fuentesLista"; df.appendChild(fl);
+    var det = el("div", "detalle"); det.id = "detalle"; df.appendChild(det);
+    armarMezclador($("dock-mezclador"));
+    armarMultivista($("dock-multivista"));
+    armarPalanca();
+  }
+  // Al salir de la Vista Estudio todo vuelve a su lugar de la Vista Lista.
+  function desarmarEstudio() {
+    var est = $("est");
+    if (!est) return;
+    soltarVideos();
+    var panel = document.querySelector('section[data-help="lista"]');
+    panel.appendChild($("buscar").parentNode); panel.appendChild($("lista"));
+    document.querySelector(".col-izq").appendChild($("botonera"));
+    $("botonera").hidden = vistaBotonera === "oculta";
+    var tr = document.querySelector("footer.transport");
+    tr.insertBefore($("go"), tr.firstChild); tr.appendChild(document.querySelector(".side-btns"));
+    est.remove();
+    previaClave = aireClave = ladoClave = "";
   }
   function dibujarEstudio(funcion) {
-    var lado = $("lado");
-    if (lado.dataset.estilo !== "estudio") {
-      soltarVideos(); lado.textContent = ""; lado.dataset.estilo = "estudio";
-      previaClave = aireClave = ladoClave = ""; previaVideo = null; aireVideo = null;
-      var est = el("div", "estudio");
-      var cp = caja("previa", "previa", T("vista_previa"));
-      var pp = el("div", "pantalla"); pp.id = "previaPantalla"; cp.appendChild(pp);
-      var ctl = el("div", "controles"); ctl.id = "previaControles"; cp.appendChild(ctl);
-      var inf = el("div", "meta"); inf.id = "previaInfo"; cp.appendChild(inf);
-      var sd = el("div", "salida-desde"); sd.id = "salidaDesde"; cp.appendChild(sd);
-      est.appendChild(cp);
-      var ca = caja("aire", "aire", T("al_aire"));
-      var pa = el("div", "pantalla"); pa.id = "airePantalla"; ca.appendChild(pa);
-      var ai = el("div", "meta"); ai.id = "aireInfo"; ca.appendChild(ai);
-      est.appendChild(ca);
-      var det = el("div"); det.id = "detalle"; est.appendChild(det);
-      lado.appendChild(est);
-    }
+    armarEstudio();
     dibujarPrevia();
     dibujarAire();
+    dibujarFuentes(funcion);
+    dibujarTransiciones(funcion);
+    dibujarMezclador();
+    dibujarMultivista();
+    dibujarEstado();
+    dibujarTalis();
+    // La palanca T vuelve arriba cuando el motor terminó o canceló el fundido a mano.
+    if (!e.palanca && !palanca.arrastrando && palanca.pos > 0.02 && Date.now() - palanca.ultimo > 400) { palanca.pos = 0; pintarPalanca(); }
+    $("botonera").hidden = false;
+    $("estDocks").querySelector('[data-panel="multivista"]').hidden = !multivista;
     var dt = $("detalle");
     dt.hidden = funcion;
     if (funcion) ladoClave = "";
     else dibujarDetalle(dt);
+  }
+
+  // Lo de arriba de cada monitor: qué hay en Previa (y si ya está al aire), la
+  // cuenta de lo que falta en Programa (amarilla en los últimos 10 s, roja en
+  // los últimos 3) y un destello cuando algo nuevo sale al aire.
+  var ultimoAire = null;
+  function dibujarTalis() {
+    var aire = (e.sonando || []).filter(function (s) { return s.visual; })[0];
+    var sv = aire || (e.sonando || [])[0];
+    var pt = $("previaTag"), at = $("aireTag");
+    var enAire = (e.sonando || []).some(function (s) { return s.cue === e.en_espera; });
+    pt.textContent = enAire ? T("ya_al_aire") : e.cues[e.en_espera] ? T("tecla_go_sale") : "";
+    pt.className = "r" + (enAire ? " alerta" : "");
+    var t = $("aireTiempo");
+    if (!t) { t = el("span", "t num"); t.id = "aireTiempo"; }
+    var r = sv && sv.restante_s;
+    t.textContent = !sv ? "" : r != null ? "-" + mmss(r) : sv.imagen ? T("imagen_fija") : T("en_bucle");
+    t.className = "t num" + (r != null && r <= 3 ? " rojo" : r != null && r <= 10 ? " amarillo" : "");
+    if (!t.parentNode) $("airePantalla").appendChild(t);
+    at.textContent = sv ? T("tag_aire") : T("proyector_negro");
+    at.className = "r" + (sv ? " vivo" : "");
+    var clave = aire ? aire.id : null;
+    if (clave !== ultimoAire) {
+      ultimoAire = clave;
+      var m = document.querySelector(".mon.programa");
+      if (m && clave != null && !liviano()) { m.classList.remove("destello"); void m.offsetWidth; m.classList.add("destello"); }
+    }
+  }
+
+  // Panel Fuentes: lo que forma el cue elegido (como las fuentes de una escena
+  // de OBS). Cada una con ⚙, que lleva a su ajuste en Propiedades (Edición).
+  var fuentesClave = "";
+  function dibujarFuentes(funcion) {
+    var i = e.en_espera, c = e.cues[i];
+    $("dockR-fuentes").textContent = c ? T("de_cue", { n: c.nombre }) : "";
+    var clave = JSON.stringify([i, c, funcion, idioma]);
+    if (clave === fuentesClave) return;
+    fuentesClave = clave;
+    var fl = $("fuentesLista"); fl.textContent = "";
+    if (!c) { fl.appendChild(el("p", "empty", T("sin_espera"))); return; }
+    function fuente(ic, nombre, detalle, campo) {
+      var f = el("div", "fuente");
+      f.appendChild(el("span", "ic", ic));
+      var t = el("span", "fx"); t.appendChild(el("span", "", nombre)); t.appendChild(el("small", "", detalle)); f.appendChild(t);
+      var b = el("button", "btn chico", "⚙"); b.type = "button"; b.title = funcion ? T("prop_funcion") : T("propiedades");
+      b.disabled = funcion;
+      b.onclick = function () { var x = $(campo) || $("detalle"); if (x) { x.scrollIntoView({ block: "center", behavior: "smooth" }); if (x.focus) x.focus(); } };
+      f.appendChild(b);
+      fl.appendChild(f);
+    }
+    var archivo = c.archivo.split("/").pop();
+    var dur = c.duracion_s != null ? " · " + mmss(c.duracion_s) : "";
+    if (c.tipo === "video") fuente("🎞", archivo, T("video") + dur + (c.bucle ? " · " + T("en_bucle") : ""), "fNombre");
+    if (c.tipo === "imagen") fuente("🖼", archivo, T("imagen"), "fNombre");
+    if (c.tipo === "audio") fuente("♪", archivo, T("audio") + dur + (c.bucle ? " · " + T("en_bucle") : ""), "fNombre");
+    if (c.tipo !== "imagen" && !c.mudo) {
+      fuente("🔊", c.tipo === "video" ? T("f_sonido_video") : T("f_sonido"), salidaTexto(c.salida) + " · " + fmtDb(c.volumen_db) +
+        (c.fundido_entrada_ms ? " · " + T("f_entra", { s: (c.fundido_entrada_ms / 1000).toLocaleString(idioma) }) : ""), "fVol");
+    }
+    if (c.tipo !== "audio" && c.encuadre) {
+      var en = c.encuadre;
+      fuente("▣", T("encuadre_t"), Tp("modo_", en.modo) + " · zoom " + Math.round(en.zoom * 100) + " %", "fModo");
+    }
+    if (c.nota) fuente("✎", T("nota"), "«" + c.nota + "»", "fNota");
+    if (c.error) { var w = el("p", "fuente-error", "⚠ " + c.error); fl.appendChild(w); }
+    if (!funcion) {
+      var ag = el("button", "btn", "+ " + T("agregar_cues")); ag.type = "button"; ag.onclick = dialogoAgregar;
+      var pie = el("div", "pie"); pie.appendChild(ag); fl.appendChild(pie);
+      fl.appendChild(el("div", "sub prop-t", T("propiedades")));
+    }
+  }
+
+  // Panel Transiciones y los botones chicos del centro.
+  var transClave = "";
+  var TRANS = [["corte", "trans_corte", "tr_corte_c"], ["fundido", "trans_fundido", "tr_fundido_c"], ["negro", "trans_negro", "tr_negro_c"]];
+  function iconoTrans(k) {
+    var s = document.createElementNS(SVG, "svg"); s.setAttribute("width", "18"); s.setAttribute("height", "12"); s.setAttribute("aria-hidden", "true");
+    function r(x, w, color) { var q = document.createElementNS(SVG, "rect"); q.setAttribute("x", x); q.setAttribute("y", 1); q.setAttribute("width", w); q.setAttribute("height", 10); q.setAttribute("rx", 1.5); q.setAttribute("fill", color); s.appendChild(q); }
+    if (k === "corte") { r(1, 7, "var(--dim)"); r(10, 7, "var(--accent)"); }
+    else if (k === "fundido") { r(1, 16, "var(--dim)"); r(7, 10, "var(--accent)"); s.lastChild.setAttribute("opacity", ".75"); }
+    else { r(1, 5, "var(--dim)"); r(6, 6, "#000"); r(12, 5, "var(--accent)"); }
+    return s;
+  }
+  function dibujarTransiciones() {
+    var tr = (e.ajustes && e.ajustes.transicion) || { tipo: "corte", ms: 1000 };
+    var clave = JSON.stringify([tr, idioma]);
+    if (clave === transClave) return;
+    transClave = clave;
+    var d = $("dock-transiciones"); d.textContent = "";
+    var op = el("div", "opc");
+    TRANS.forEach(function (x) {
+      var b = el("button", "opc-b" + (tr.tipo === x[0] ? " on" : "")); b.type = "button"; b.dataset.consejo = "transicion";
+      b.setAttribute("aria-pressed", String(tr.tipo === x[0]));
+      b.appendChild(iconoTrans(x[0])); b.appendChild(el("span", "", T(x[1])));
+      b.onclick = function () { mandar("ajustes", { cambios: { transicion_tipo: x[0] } }); };
+      op.appendChild(b);
+    });
+    d.appendChild(op);
+    var f = el("label", "dur"); f.appendChild(el("span", "", T("transicion_dur")));
+    var n = el("input"); n.type = "number"; n.min = 0; n.max = 10000; n.step = 100; n.value = tr.ms; n.className = "num fader-num"; n.id = "trMs";
+    n.dataset.fader = "transicion_ms";
+    n.onchange = function () {
+      var v = Math.round(Number(String(n.value).replace(",", ".")));
+      if (!isFinite(v) || v < 0 || v > 10000) { avisoLocal(T("aj_fuera", { min: 0, max: 10000 })); transClave = ""; dibujarTransiciones(); return; }
+      mandar("ajustes", { cambios: { transicion_ms: v } });
+    };
+    var w = el("span", "dur-v"); w.appendChild(n); w.appendChild(el("span", "aj-unidad", "ms"));
+    f.appendChild(w); f.appendChild(botonConsejo("transicion_dur"));
+    d.appendChild(f);
+    // Centro: los mismos tres, chiquitos, y la duración.
+    var mt = $("miniTr"); mt.textContent = "";
+    TRANS.forEach(function (x) {
+      var b = el("button", tr.tipo === x[0] ? "on" : "", T(x[2])); b.type = "button"; b.dataset.consejo = "transicion";
+      b.onclick = function () { mandar("ajustes", { cambios: { transicion_tipo: x[0] } }); };
+      mt.appendChild(b);
+    });
+    var ms = el("div", "ms num", tr.tipo === "corte" ? "—" : tr.ms + " ms");
+    mt.appendChild(ms);
+  }
+
+  // ---- Multivista (Vista Estudio): todas las escenas en cuadrícula ----
+  // Opcional (Vista → Multivista). Ordenable: Lista (como la lista de cues),
+  // Libre (arrastrando, en grupos con título), por Tipo o por Nombre. Para no
+  // cargar el equipo, las tarjetas «en movimiento» no reproducen el vídeo:
+  // pasan una tira de fotos chicas hecha una vez por archivo (6 fotos).
+  // Se recuerda por show en este equipo.
+  var multivista = leer("ota-multivista", "no") === "si";
+  var mv = null;          // preferencias de la Multivista del show abierto
+  var mvShow = null;      // show al que pertenecen
+  var mvRaton = null;     // id del cue bajo el ratón (movimiento «al pasar el ratón»)
+  var mvPaso = 0;         // foto de la tira que se muestra ahora
+  function mvCargar() {
+    var clave = e && e.show ? e.show : "";
+    if (mv && mvShow === clave) return;
+    mvShow = clave;
+    try { mv = JSON.parse(leer("ota-mv:" + clave, "null")); } catch (x) { mv = null; }
+    if (!mv || typeof mv !== "object") mv = {};
+    if (["lista", "libre", "tipo", "nombre"].indexOf(mv.orden) < 0) mv.orden = "lista";
+    if (["todas", "raton", "ninguna"].indexOf(mv.mov) < 0) mv.mov = "raton";
+    if (!(mv.tam >= 1 && mv.tam <= 5)) mv.tam = 3;
+    if (["todo", "video", "imagen", "audio"].indexOf(mv.filtro) < 0) mv.filtro = "todo";
+    if (!Array.isArray(mv.grupos) || !mv.grupos.length) mv.grupos = [{ nombre: T("mv_grupo_1"), ids: [] }];
+    if (!mv.porCue || typeof mv.porCue !== "object") mv.porCue = {};
+  }
+  function mvGuardar() { if (mv) escribir("ota-mv:" + mvShow, JSON.stringify(mv)); }
+  // Los grupos con los cues de ahora: los que ya no están se quitan; los nuevos van al último grupo.
+  function mvGrupos() {
+    var ids = e.cues.map(function (c) { return c.id; }), vistos = {};
+    mv.grupos.forEach(function (g) { g.ids = (g.ids || []).filter(function (id) { if (ids.indexOf(id) < 0 || vistos[id]) return false; vistos[id] = true; return true; }); });
+    ids.forEach(function (id) { if (!vistos[id]) mv.grupos[mv.grupos.length - 1].ids.push(id); });
+    return mv.grupos;
+  }
+  function indicePorId(id) { for (var i = 0; i < e.cues.length; i++) if (e.cues[i].id === id) return i; return -1; }
+  // El orden en que se ven (las teclas 1 a 9 usan este orden).
+  function ordenMultivista() {
+    if (!e) return [];
+    mvCargar();
+    var idx = e.cues.map(function (c, i) { return i; }).filter(function (i) { return mv.filtro === "todo" || e.cues[i].tipo === mv.filtro; });
+    if (mv.orden === "tipo") { var p = { video: 0, imagen: 1, audio: 2 }; idx.sort(function (a, b) { return (p[e.cues[a].tipo] - p[e.cues[b].tipo]) || a - b; }); }
+    else if (mv.orden === "nombre") idx.sort(function (a, b) { return sinTildes(e.cues[a].nombre).localeCompare(sinTildes(e.cues[b].nombre)) || a - b; });
+    else if (mv.orden === "libre") {
+      var r = [];
+      mvGrupos().forEach(function (g) { g.ids.forEach(function (id) { var i = indicePorId(id); if (i >= 0 && idx.indexOf(i) >= 0) r.push(i); }); });
+      return r;
+    }
+    return idx;
+  }
+  function ponerMultivista(si) {
+    multivista = !!si;
+    escribir("ota-multivista", si ? "si" : "no");
+    var b = document.querySelector('[data-accion="multivista"]'); if (b) b.setAttribute("aria-checked", String(multivista));
+    // El motor solo hace las tiras de fotos con la Multivista abierta.
+    mandar("multivista", { si: multivista && estilo === "estudio" });
+    mvClave = "";
+    if (e) dibujar();
+  }
+  function movimientoDe(c) {
+    if (liviano()) return false;
+    var p = mv.porCue[c.id];
+    if (p && p.mov != null) return p.mov;
+    return mv.mov === "todas" || (mv.mov === "raton" && mvRaton === c.id);
+  }
+  function armarMultivista(c) {
+    var bar = el("div", "mv-bar"); bar.id = "mvBar"; c.appendChild(bar);
+    var cuerpo = el("div", "mv"); cuerpo.id = "mvCuerpo"; c.appendChild(cuerpo);
+    var ley = el("div", "mv-leyenda", T("mv_leyenda")); c.appendChild(ley);
+    // Movimiento: una sola cuenta para todas las tarjetas, solo con la Multivista a la vista.
+    setInterval(function () {
+      if (!multivista || estilo !== "estudio" || !$("est") || document.hidden) return;
+      mvPaso = (mvPaso % 6) + 1;
+      document.querySelectorAll(".mv-tile[data-mueve='si'] img.mv-foto").forEach(function (im) {
+        var n = +im.dataset.tira;
+        if (n > 0) im.src = im.dataset.base + "&k=" + (((mvPaso - 1) % n) + 1);
+      });
+    }, 700);
+  }
+  var mvClave = "";
+  function dibujarMultivista() {
+    if (!multivista || !$("mvCuerpo")) return;
+    mvCargar();
+    var son = sonandoPorCue(), aire = (e.sonando || []).filter(function (s) { return s.visual; })[0];
+    var clave = JSON.stringify([mv, e.cues.map(function (c) { return [c.id, c.nombre, c.numero, c.tipo, c.miniatura, c.tira, c.error, c.duracion_s]; }), e.en_espera, aire && aire.cue, Object.keys(son), e.escucha, mvRaton, idioma, liviano(), e.auriculares, e.equipo && e.equipo.auriculares]);
+    if (clave === mvClave) return;
+    mvClave = clave;
+    dibujarBarraMultivista();
+    var cuerpo = $("mvCuerpo"); cuerpo.textContent = "";
+    cuerpo.style.setProperty("--mv-ancho", (90 + mv.tam * 34) + "px");
+    function tarjeta(i) {
+      var c = e.cues[i], t = el("div", "mv-tile");
+      t.dataset.id = c.id; t.dataset.i = i; t.tabIndex = 0;
+      if (aire && aire.cue === i) t.classList.add("aire");
+      else if (son[i]) t.classList.add("suena");
+      if (i === e.en_espera) t.classList.add("prev");
+      if (c.error) t.classList.add("falla");
+      var mueve = c.tipo === "video" && c.tira > 0 && movimientoDe(c);
+      t.dataset.mueve = mueve ? "si" : "no";
+      if (c.tipo !== "audio" && c.miniatura) {
+        var im = el("img", "mv-foto"); im.alt = ""; im.loading = "lazy"; im.draggable = false;
+        im.src = urlMiniatura(i, c); im.dataset.base = urlMiniatura(i, c); im.dataset.tira = c.tira || 0;
+        t.appendChild(im);
+      } else {
+        var ic = el("div", "mv-ic"); ic.appendChild(icono(c.tipo)); t.appendChild(ic);
+      }
+      if (aire && aire.cue === i) t.appendChild(el("span", "mv-tal", T("tag_aire")));
+      else if (i === e.en_espera) t.appendChild(el("span", "mv-tal", T("tag_previa")));
+      if (c.error) t.appendChild(el("span", "mv-x", "⚠ " + T("no_reproducible")));
+      var acc = el("span", "mv-acc");
+      if (c.tipo === "video") {
+        var bm = el("button", "mv-b" + (mueve ? " on" : ""), mueve ? "⏸" : "▶"); bm.type = "button"; bm.dataset.mv = "mov"; bm.dataset.consejo = "mv_mov_cue";
+        bm.setAttribute("aria-label", T("mv_mov_cue")); acc.appendChild(bm);
+      }
+      if (c.tipo !== "imagen" && !c.mudo) {
+        var be = el("button", "mv-b" + (e.escucha === i ? " au" : ""), "🎧"); be.type = "button"; be.dataset.mv = "oir"; be.dataset.consejo = "escucha";
+        be.setAttribute("aria-label", T("escuchar")); acc.appendChild(be);
+      }
+      t.appendChild(acc);
+      var lab = el("span", "mv-lab");
+      lab.appendChild(el("b", "", c.numero)); lab.appendChild(el("span", "nm", c.nombre));
+      lab.appendChild(el("span", "d num", c.tipo === "imagen" ? T("imagen") : c.duracion_s != null ? mmss(c.duracion_s) : ""));
+      t.appendChild(lab);
+      var sv = son[i];
+      if (sv && sv.progreso != null) { var pr = el("span", "mv-prog"), pi = el("i"); pi.style.width = (sv.progreso * 100) + "%"; pr.appendChild(pi); t.appendChild(pr); }
+      return t;
+    }
+    if (!e.cues.length) { cuerpo.appendChild(el("p", "empty", T("vacio"))); return; }
+    if (mv.orden === "libre") {
+      var orden = ordenMultivista();
+      mvGrupos().forEach(function (g, gi) {
+        var gr = el("div", "mv-grupo"); gr.dataset.g = gi;
+        var h = el("div", "mv-gh");
+        var nom = el("input"); nom.type = "text"; nom.value = g.nombre; nom.maxLength = 40; nom.className = "mv-gnom"; nom.setAttribute("aria-label", T("mv_grupo_nombre"));
+        nom.onchange = function () { g.nombre = nom.value.trim() || T("mv_grupo_1"); mvGuardar(); mvClave = ""; };
+        h.appendChild(nom);
+        if (mv.grupos.length > 1) {
+          var x = el("button", "mv-gx", "✕"); x.type = "button"; x.title = T("mv_grupo_quitar");
+          x.onclick = function () { var dest = mv.grupos[gi === 0 ? 1 : gi - 1]; dest.ids = dest.ids.concat(g.ids); mv.grupos.splice(gi, 1); mvGuardar(); mvClave = ""; dibujarMultivista(); };
+          h.appendChild(x);
+        }
+        gr.appendChild(h);
+        var grid = el("div", "mv-grid");
+        g.ids.forEach(function (id) { var i = indicePorId(id); if (i >= 0 && orden.indexOf(i) >= 0) grid.appendChild(tarjeta(i)); });
+        if (!grid.children.length) grid.appendChild(el("div", "mv-vacio", T("mv_grupo_vacio")));
+        gr.appendChild(grid);
+        cuerpo.appendChild(gr);
+      });
+    } else {
+      var grid = el("div", "mv-grid");
+      ordenMultivista().forEach(function (i) { grid.appendChild(tarjeta(i)); });
+      cuerpo.appendChild(grid);
+    }
+  }
+  function segmento(nombre, opciones, actual, consejo, cambio) {
+    var w = el("span", "mv-grp"); w.appendChild(el("span", "", T(nombre)));
+    var s = el("span", "seg2");
+    opciones.forEach(function (o) {
+      var b = el("button", o[0] === actual ? "on" : "", T(o[1])); b.type = "button"; b.setAttribute("aria-pressed", String(o[0] === actual));
+      b.onclick = function () { cambio(o[0]); }; s.appendChild(b);
+    });
+    w.appendChild(s); if (consejo) w.appendChild(botonConsejo(consejo));
+    return w;
+  }
+  function dibujarBarraMultivista() {
+    var bar = $("mvBar"); bar.textContent = "";
+    function cambio(k) { return function (v) { mv[k] = v; mvGuardar(); mvClave = ""; dibujarMultivista(); }; }
+    bar.appendChild(segmento("mv_orden", [["lista", "mv_o_lista"], ["libre", "mv_o_libre"], ["tipo", "mv_o_tipo"], ["nombre", "mv_o_nombre"]], mv.orden, "mv_orden", cambio("orden")));
+    bar.appendChild(segmento("mv_movimiento", [["todas", "mv_m_todas"], ["raton", "mv_m_raton"], ["ninguna", "mv_m_ninguna"]], mv.mov, "mv_movimiento", function (v) { mv.porCue = {}; cambio("mov")(v); }));
+    // Por dónde sale la escucha de prueba: siempre Auriculares, nunca la sala.
+    var au = el("span", "mv-grp");
+    au.appendChild(el("span", "", T("mv_escucha_por")));
+    var a = e.equipo && e.equipo.auriculares;
+    var chip = el("button", "mv-chip" + (a ? " ok" : " falta"), a ? "🎧 " + a.nombre + " · " + T("mv_nunca_sala") : "🎧 " + T("mv_sin_auris"));
+    chip.type = "button"; chip.onclick = function () { dialogoAjustes(); };
+    au.appendChild(chip); au.appendChild(botonConsejo("mv_escucha"));
+    bar.appendChild(au);
+    var tm = el("label", "mv-grp"); tm.appendChild(el("span", "", T("mv_tamano")));
+    var r = el("input"); r.type = "range"; r.min = 1; r.max = 5; r.step = 1; r.value = mv.tam;
+    r.oninput = function () { mv.tam = +r.value; $("mvCuerpo").style.setProperty("--mv-ancho", (90 + mv.tam * 34) + "px"); };
+    r.onchange = function () { mvGuardar(); };
+    tm.appendChild(r); tm.appendChild(botonConsejo("mv_tamano")); bar.appendChild(tm);
+    var fl = el("select", "mv-sel");
+    [["todo", "mv_f_todo"], ["video", "video"], ["imagen", "imagen"], ["audio", "audio"]].forEach(function (o) { var op = el("option", "", T(o[1])); op.value = o[0]; op.selected = mv.filtro === o[0]; fl.appendChild(op); });
+    fl.onchange = function () { cambio("filtro")(fl.value); };
+    fl.setAttribute("aria-label", T("mv_filtro"));
+    var fw = el("span", "mv-grp"); fw.appendChild(fl); fw.appendChild(botonConsejo("mv_filtro")); bar.appendChild(fw);
+    if (mv.orden === "libre") {
+      var ng = el("button", "btn chico", "+ " + T("mv_grupo_nuevo")); ng.type = "button"; ng.dataset.consejo = "mv_grupos";
+      ng.onclick = function () { mv.grupos.push({ nombre: T("mv_grupo_n", { n: mv.grupos.length + 1 }), ids: [] }); mvGuardar(); mvClave = ""; dibujarMultivista(); };
+      bar.appendChild(ng);
+    }
+  }
+  // Clic = a la Vista previa; doble clic = GO; ▶/⏸ y 🎧 de cada tarjeta;
+  // arrastrar = ordenar (en orden Libre, también entre grupos).
+  var mvArr = null;
+  document.addEventListener("pointerdown", function (ev) {
+    var t = ev.target.closest && ev.target.closest(".mv-tile");
+    if (!t || ayudando || ev.button !== 0) return;
+    var b = ev.target.closest("[data-mv]");
+    var id = +t.dataset.id, i = +t.dataset.i, c = e.cues[i];
+    if (b) {
+      ev.preventDefault();
+      if (b.dataset.mv === "mov") { var actual = movimientoDe(c); mv.porCue[id] = { mov: !actual }; mvGuardar(); mvClave = ""; dibujarMultivista(); }
+      else mandar("ver_antes", { cue: i });
+      return;
+    }
+    mvArr = { t: t, id: id, i: i, x: ev.clientX, y: ev.clientY, mueve: false };
+  });
+  document.addEventListener("pointermove", function (ev) {
+    if (mvArr) {
+      if (!mvArr.mueve && Math.abs(ev.clientX - mvArr.x) + Math.abs(ev.clientY - mvArr.y) > 8 && mv.orden === "libre" && puedeOrdenarMv()) {
+        mvArr.mueve = true; mvArr.t.classList.add("levantada"); document.body.classList.add("moviendo");
+      }
+      if (mvArr.mueve) {
+        mvArr.t.style.transform = "translate(" + (ev.clientX - mvArr.x) + "px," + (ev.clientY - mvArr.y) + "px) rotate(-3deg) scale(1.05)";
+        document.querySelectorAll(".mv-destino").forEach(function (x) { x.classList.remove("mv-destino", "antes", "despues"); });
+        var d = destinoMv(ev); if (d && d.t) { d.t.classList.add("mv-destino", d.antes ? "antes" : "despues"); } else if (d && d.g) d.g.classList.add("mv-destino");
+      }
+      return;
+    }
+    var t = ev.target.closest && ev.target.closest(".mv-tile");
+    var id = t ? +t.dataset.id : null;
+    if (id !== mvRaton && mv && mv.mov === "raton") { mvRaton = id; mvClave = ""; dibujarMultivista(); }
+  });
+  function puedeOrdenarMv() { return true; }   // ordenar la Multivista no cambia el show: vale también en Función
+  function destinoMv(ev) {
+    mvArr.t.style.visibility = "hidden";
+    var x = document.elementFromPoint(ev.clientX, ev.clientY);
+    mvArr.t.style.visibility = "";
+    if (!x) return null;
+    var t = x.closest(".mv-tile");
+    if (t && t !== mvArr.t) { var r = t.getBoundingClientRect(); return { t: t, antes: ev.clientX < r.left + r.width / 2 }; }
+    var g = x.closest(".mv-grupo");
+    return g ? { g: g } : null;
+  }
+  document.addEventListener("pointerup", function (ev) {
+    if (!mvArr) return;
+    var a = mvArr; mvArr = null;
+    document.body.classList.remove("moviendo");
+    if (!a.mueve) {
+      // Un clic: esa escena a la Vista previa (nunca dispara).
+      mandar("ir_a", { cue: a.i });
+      return;
+    }
+    var d = destinoMv(ev);
+    a.t.classList.remove("levantada"); a.t.style.transform = "";
+    document.querySelectorAll(".mv-destino").forEach(function (x) { x.classList.remove("mv-destino", "antes", "despues"); });
+    if (!d) return;
+    mvGrupos().forEach(function (g) { var k = g.ids.indexOf(a.id); if (k >= 0) g.ids.splice(k, 1); });
+    if (d.t) {
+      var otro = +d.t.dataset.id;
+      mv.grupos.some(function (g) { var k = g.ids.indexOf(otro); if (k < 0) return false; g.ids.splice(d.antes ? k : k + 1, 0, a.id); return true; });
+    } else mv.grupos[+d.g.dataset.g].ids.push(a.id);
+    mvGuardar(); mvClave = ""; dibujarMultivista();
+  });
+  document.addEventListener("dblclick", function (ev) {
+    var t = ev.target.closest && ev.target.closest(".mv-tile");
+    if (!t || ayudando || ev.target.closest("[data-mv]")) return;
+    // Doble clic = GO de esa escena (con la transición elegida).
+    mandar("ir_a", { cue: +t.dataset.i });
+    setTimeout(darGo, 60);
+  });
+
+  // ---- Palanca T (fundido a mano) ----
+  // Arrastrarla hacia abajo mezcla lo nuevo con lo que está al aire; puede
+  // quedar a medio camino; al llegar abajo termina como un GO y vuelve arriba.
+  var palanca = { pos: 0, ultimo: 0, pendiente: null, arrastrando: false };
+  function armarPalanca() {
+    var tb = $("tbarra"); if (!tb || tb.firstChild) return;
+    tb.dataset.consejo = "palanca";
+    tb.appendChild(el("span", "lbl", T("palanca_t")));
+    var riel = el("div", "riel"); riel.tabIndex = 0; riel.setAttribute("role", "slider"); riel.setAttribute("aria-label", T("palanca_t"));
+    riel.setAttribute("aria-valuemin", 0); riel.setAttribute("aria-valuemax", 100);
+    var p = el("i"); riel.appendChild(p); tb.appendChild(riel);
+    tb.appendChild(el("span", "lbl", T("palanca_aire")));
+    function desde(ev) { var r = riel.getBoundingClientRect(); return Math.max(0, Math.min(1, (ev.clientY - r.top) / r.height)); }
+    riel.addEventListener("pointerdown", function (ev) { if (ayudando) return; ev.preventDefault(); palanca.arrastrando = true; riel.setPointerCapture(ev.pointerId); ponerPalanca(desde(ev)); });
+    riel.addEventListener("pointermove", function (ev) { if (palanca.arrastrando) ponerPalanca(desde(ev)); });
+    riel.addEventListener("pointerup", function () { palanca.arrastrando = false; });
+    riel.addEventListener("wheel", function (ev) { if (ayudando || !atajoActivo("fader_rueda")) return; ev.preventDefault(); moverPalanca(ev.deltaY > 0 ? 0.05 : -0.05); }, { passive: false });
+    riel.addEventListener("keydown", function (ev) {
+      var d = { ArrowDown: 0.05, ArrowUp: -0.05 }[ev.key];
+      if (d) { ev.preventDefault(); ev.stopPropagation(); moverPalanca(d); }
+    });
+  }
+  function pintarPalanca() {
+    var r = document.querySelector("#tbarra .riel"); if (!r) return;
+    r.firstChild.style.top = "calc(" + (palanca.pos * 100) + "% - 9px)";
+    r.setAttribute("aria-valuenow", Math.round(palanca.pos * 100));
+    r.parentNode.classList.toggle("activa", palanca.pos > 0.02);
+  }
+  function ponerPalanca(x) {
+    if (estilo !== "estudio") return;
+    palanca.pos = Math.max(0, Math.min(1, x));
+    pintarPalanca();
+    var ahora = Date.now(), v = palanca.pos;
+    clearTimeout(palanca.pendiente);
+    var enviar = function () { palanca.ultimo = Date.now(); mandar("tbar", { pos: v }); if (v >= 0.98) { palanca.arrastrando = false; setTimeout(function () { palanca.pos = 0; pintarPalanca(); }, 250); } };
+    if (ahora - palanca.ultimo >= 40 || v >= 0.98 || v <= 0.02) enviar(); else palanca.pendiente = setTimeout(enviar, 40);
+  }
+  function moverPalanca(d) { ponerPalanca(palanca.pos + d); }
+
+  // ---- Modo cabina: solo monitores, escenas y controles, a pantalla completa ----
+  var cabina = false;
+  function ponerCabina(si) {
+    cabina = !!si;
+    $("app").classList.toggle("cabina", cabina);
+    var b = document.querySelector('[data-accion="cabina"]'); if (b) b.setAttribute("aria-checked", String(cabina));
+    try {
+      if (cabina && !document.fullscreenElement) document.documentElement.requestFullscreen().catch(function () {});
+      if (!cabina && document.fullscreenElement) document.exitFullscreen().catch(function () {});
+    } catch (x) {}
+  }
+  document.addEventListener("fullscreenchange", function () { if (!document.fullscreenElement && cabina) ponerCabina(false); });
+
+  // ---- Rendimiento: Automático / Liviano ----
+  // Liviano = sin animaciones, brillos ni movimiento en la Multivista. En
+  // Automático la ventana pasa sola a Liviano (y avisa) si nota que se traba:
+  // varios cuadros de dibujo de más de 120 ms en 10 s.
+  var rendimiento = leer("ota-rendimiento", "auto") === "liviano" ? "liviano" : "auto";
+  var autoLiviano = false;
+  function liviano() { return rendimiento === "liviano" || autoLiviano; }
+  function ponerRendimiento(r) {
+    rendimiento = r === "liviano" ? "liviano" : "auto";
+    escribir("ota-rendimiento", rendimiento);
+    autoLiviano = false;
+    document.querySelectorAll("[data-rendimiento]").forEach(function (b) { b.setAttribute("aria-checked", String(b.dataset.rendimiento === rendimiento)); });
+    document.documentElement.classList.toggle("liviano", liviano());
+    mvClave = "";
+    if (e) dibujar();
+  }
+  (function vigilarTirones() {
+    var antes = performance.now(), tirones = 0, desde = antes;
+    function cuadro(t) {
+      if (t - antes > 120 && !document.hidden) tirones++;
+      antes = t;
+      if (t - desde > 10000) {
+        if (rendimiento === "auto" && !autoLiviano && tirones >= 5 && estilo === "estudio") {
+          autoLiviano = true; document.documentElement.classList.add("liviano"); avisoLocal(T("liviano_auto")); mvClave = "";
+        }
+        tirones = 0; desde = t;
+      }
+      requestAnimationFrame(cuadro);
+    }
+    requestAnimationFrame(cuadro);
+  })();
+
+  // ---- Distribuciones de paneles guardables («Mi gala», «Mi obra») ----
+  function distribuciones() { try { return JSON.parse(leer("ota-distribuciones", "{}")) || {}; } catch (x) { return {}; } }
+  function dialogoDistribuciones() {
+    dialogo(T("distribuciones"), function (d) {
+      d.appendChild(el("p", "note-small", T("dist_s")));
+      var lista = el("div", "dist-lista"); d.appendChild(lista);
+      function pintar() {
+        lista.textContent = "";
+        var ds = distribuciones(), nombres = Object.keys(ds);
+        if (!nombres.length) lista.appendChild(el("p", "empty", T("dist_nada")));
+        nombres.forEach(function (n) {
+          var f = el("div", "dist-f"); f.appendChild(el("span", "", n));
+          var usar = el("button", "btn chico", T("dist_usar")); usar.type = "button";
+          usar.onclick = function () {
+            var x = distribuciones()[n]; if (!x) return;
+            escribir("ota-paneles", JSON.stringify(x.paneles || []));
+            ponerBotonera(x.botonera || "oculta"); ponerMultivista(!!x.multivista);
+            desarmarEstudio(); if (e) dibujar(); cerrarDialogo();
+          };
+          var bo = el("button", "btn chico", T("dist_borrar")); bo.type = "button";
+          bo.onclick = function () { var x = distribuciones(); delete x[n]; escribir("ota-distribuciones", JSON.stringify(x)); pintar(); };
+          f.appendChild(usar); f.appendChild(bo); lista.appendChild(f);
+        });
+      }
+      pintar();
+      var nueva = el("div", "dist-nueva");
+      var inp = el("input"); inp.type = "text"; inp.maxLength = 40; inp.placeholder = T("dist_ph"); inp.setAttribute("aria-label", T("dist_ph"));
+      var g = el("button", "btn", T("dist_guardar")); g.type = "button";
+      g.onclick = function () {
+        var n = inp.value.trim(); if (!n) { inp.focus(); return; }
+        var x = distribuciones(); x[n] = { paneles: ordenPaneles(), botonera: vistaBotonera, multivista: multivista };
+        escribir("ota-distribuciones", JSON.stringify(x)); inp.value = ""; pintar();
+      };
+      nueva.appendChild(inp); nueva.appendChild(g); nueva.appendChild(botonConsejo("distribuciones"));
+      d.appendChild(nueva);
+    });
+  }
+
+  // ---- Mover paneles: arrastrando el agarre ⋮⋮, o con él elegido, ← y → ----
+  var arrPanel = null;
+  document.addEventListener("pointerdown", function (ev) {
+    var g = ev.target.closest && ev.target.closest(".dock .grip");
+    if (!g || ayudando) return;
+    ev.preventDefault();
+    var d = g.closest(".dock");
+    arrPanel = { d: d, x: ev.clientX, y: ev.clientY };
+    d.classList.add("levantado"); document.body.classList.add("moviendo");
+  });
+  document.addEventListener("pointermove", function (ev) {
+    if (!arrPanel) return;
+    var a = arrPanel;
+    a.d.style.transform = "translate(" + (ev.clientX - a.x) + "px," + (ev.clientY - a.y) + "px) rotate(-1.5deg)";
+    document.querySelectorAll(".dock.destino").forEach(function (x) { x.classList.remove("destino", "antes", "despues"); });
+    var o = panelBajo(ev); if (o) o.d.classList.add("destino", o.antes ? "antes" : "despues");
+  });
+  function panelBajo(ev) {
+    arrPanel.d.style.visibility = "hidden";
+    var x = document.elementFromPoint(ev.clientX, ev.clientY);
+    arrPanel.d.style.visibility = "";
+    var d = x && x.closest(".dock");
+    if (!d || d === arrPanel.d) return null;
+    var r = d.getBoundingClientRect();
+    return { d: d, antes: ev.clientX < r.left + r.width / 2 };
+  }
+  document.addEventListener("pointerup", function (ev) {
+    if (!arrPanel) return;
+    var o = panelBajo(ev), a = arrPanel; arrPanel = null;
+    a.d.classList.remove("levantado"); a.d.style.transform = ""; document.body.classList.remove("moviendo");
+    document.querySelectorAll(".dock.destino").forEach(function (x) { x.classList.remove("destino", "antes", "despues"); });
+    if (o) { o.d.parentNode.insertBefore(a.d, o.antes ? o.d : o.d.nextSibling); guardarOrdenPaneles(); }
+  });
+  document.addEventListener("keydown", function (ev) {
+    var g = ev.target.closest && ev.target.closest(".dock .grip");
+    if (!g || (ev.key !== "ArrowLeft" && ev.key !== "ArrowRight")) return;
+    ev.preventDefault(); ev.stopPropagation();
+    var d = g.closest(".dock"), otro = ev.key === "ArrowLeft" ? d.previousElementSibling : d.nextElementSibling;
+    while (otro && otro.hidden) otro = ev.key === "ArrowLeft" ? otro.previousElementSibling : otro.nextElementSibling;
+    if (!otro) return;
+    d.parentNode.insertBefore(d, ev.key === "ArrowLeft" ? otro : otro.nextSibling);
+    guardarOrdenPaneles(); g.focus();
+  }, true);
+
+  // ---- Fader (parte 5: atajos) ----
+  // Una perilla sobre una ranura. Se mueve arrastrando, con la rueda del ratón
+  // (0,5 por paso; Mayús = 0,1; Ctrl = 3), con las flechas, Re Pág / Av Pág
+  // (3) e Inicio o doble clic (valor normal). El dibujo se desliza hasta el valor
+  // nuevo y los cambios se mandan como mucho cada 40 ms: el motor ya los suaviza
+  // con su rampa de volumen, así que no se oye ningún escalón.
+  // o: {min, max, valor, normal, texto(v), cambio(v) (al mover), fin(v) (al soltar), consejo, etiqueta}
+  function fader(o) {
+    var w = el("div", "fader2"), riel = el("div", "riel"), lleno = el("i", "lleno"), perilla = el("b", "perilla");
+    riel.appendChild(lleno); riel.appendChild(perilla); w.appendChild(riel);
+    var val = el("span", "val num"); w.appendChild(val);
+    w.tabIndex = 0; w.setAttribute("role", "slider");
+    w.setAttribute("aria-valuemin", o.min); w.setAttribute("aria-valuemax", o.max);
+    if (o.etiqueta) w.setAttribute("aria-label", o.etiqueta);
+    if (o.consejo) w.dataset.consejo = o.consejo;
+    var v = o.valor, ultimo = 0, pendiente = null, arrastrando = false;
+    function pintar() {
+      var p = (v - o.min) / (o.max - o.min) * 100;
+      lleno.style.width = p + "%"; perilla.style.left = p + "%";
+      val.textContent = o.texto(v); w.setAttribute("aria-valuenow", v.toFixed(1));
+    }
+    function poner(x, final) {
+      v = Math.max(o.min, Math.min(o.max, Math.round(x * 10) / 10));
+      pintar();
+      // Se manda como mucho cada 40 ms; el último valor siempre llega.
+      var ahora = Date.now();
+      clearTimeout(pendiente);
+      if (ahora - ultimo >= 40) { ultimo = ahora; if (o.cambio) o.cambio(v); }
+      else pendiente = setTimeout(function () { ultimo = Date.now(); if (o.cambio) o.cambio(v); }, 40);
+      if (final && o.fin) o.fin(v);
+    }
+    w.ponerValor = function (x) { if (!arrastrando && document.activeElement !== w && Math.abs(x - v) > 0.05) { v = x; pintar(); } };
+    function desdePuntero(ev) { var r = riel.getBoundingClientRect(); return o.min + Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width)) * (o.max - o.min); }
+    riel.addEventListener("pointerdown", function (ev) {
+      if (ayudando) return;
+      ev.preventDefault(); arrastrando = true; w.focus(); w.classList.add("moviendo");
+      riel.setPointerCapture(ev.pointerId); poner(desdePuntero(ev));
+    });
+    riel.addEventListener("pointermove", function (ev) { if (arrastrando) poner(desdePuntero(ev)); });
+    riel.addEventListener("pointerup", function () { if (!arrastrando) return; arrastrando = false; w.classList.remove("moviendo"); poner(v, true); });
+    w.addEventListener("wheel", function (ev) {
+      if (ayudando || !atajoActivo("fader_rueda")) return;
+      ev.preventDefault();
+      var paso = ev.shiftKey ? 0.1 : ev.ctrlKey ? 3 : 0.5;
+      poner(v + (ev.deltaY < 0 ? paso : -paso), true);
+    }, { passive: false });
+    w.addEventListener("keydown", function (ev) {
+      if (!atajoActivo("fader_teclas")) return;
+      var d = { ArrowUp: 0.5, ArrowRight: 0.5, ArrowDown: -0.5, ArrowLeft: -0.5, PageUp: 3, PageDown: -3 }[ev.key];
+      if (ev.shiftKey && d) d = d > 0 ? 0.1 : -0.1;
+      if (d) { ev.preventDefault(); ev.stopPropagation(); poner(v + d, true); }
+      else if (ev.key === "Home") { ev.preventDefault(); ev.stopPropagation(); poner(o.normal, true); }
+    });
+    w.addEventListener("dblclick", function () { if (!ayudando) poner(o.normal, true); });
+    pintar();
+    return w;
+  }
+
+  // ---- Panel Mezclador ----
+  // Medidores tipo LED de Sala y Auriculares (con pico retenido), un fader por
+  // cada cosa que suena (cambia su volumen en vivo, no el del show) y el maestro.
+  var mz = null;
+  function armarMezclador(c) {
+    mz = { voces: {}, med: {} };
+    [["principal", "med_sala"], ["auriculares", "med_auris"]].forEach(function (x) {
+      var f = el("div", "canal"); f.appendChild(el("span", "k", T(x[1] === "med_sala" ? "est_sala" : "est_auris")));
+      var leds = el("div", "leds"), b1 = el("div", "led"), b2 = el("div", "led");
+      b1.appendChild(el("i")); b1.appendChild(el("b")); b2.appendChild(el("i")); b2.appendChild(el("b"));
+      leds.appendChild(b1); leds.appendChild(b2); f.appendChild(leds);
+      var v = el("span", "val num", "—"); f.appendChild(v);
+      c.appendChild(f);
+      mz.med[x[0]] = { fila: f, barras: [b1, b2], val: v };
+    });
+    var esc = el("div", "escala"); ["−60", "−40", "−18", "−6", "0"].forEach(function (t) { esc.appendChild(el("span", "", t)); }); c.appendChild(esc);
+    c.appendChild(el("div", "sep"));
+    var vs = el("div", "mz-voces"); vs.id = "mzVoces"; c.appendChild(vs);
+    c.appendChild(el("div", "sep"));
+    var fm = el("div", "canal maestro"); fm.appendChild(el("span", "k", T("mz_maestro")));
+    mz.maestro = fader({ min: -60, max: 12, valor: e && e.ajustes ? e.ajustes.volumen_maestro_db : 0, normal: 0, texto: fmtDb, consejo: "volumen_maestro", etiqueta: T("volumen_maestro"),
+      cambio: function (x) { mandar("ajustes", { cambios: { volumen_maestro_db: x } }); } });
+    fm.appendChild(mz.maestro); c.appendChild(fm);
+  }
+  function dibujarMezclador() {
+    if (!mz) return;
+    if (e.ajustes) mz.maestro.ponerValor(e.ajustes.volumen_maestro_db);
+    mz.med.auriculares.fila.hidden = !e.auriculares;
+    // Un fader por cada cosa que suena con voz (se rehace solo si cambia la lista).
+    var lista = (e.sonando || []).filter(function (s) { return s.voz !== false; });
+    var vistos = {};
+    var vs = $("mzVoces");
+    lista.forEach(function (s) {
+      vistos[s.id] = true;
+      if (mz.voces[s.id]) { mz.voces[s.id].f.ponerValor(s.volumen_db != null ? s.volumen_db : 0); return; }
+      var fila = el("div", "canal voz");
+      fila.appendChild(el("span", "k", (s.visual ? "🎞 " : "♪ ") + s.nombre));
+      var fd = fader({ min: -60, max: 12, valor: s.volumen_db != null ? s.volumen_db : 0, normal: s.volumen_cue_db != null ? s.volumen_cue_db : 0, texto: fmtDb, consejo: "volumen_vivo", etiqueta: s.nombre,
+        cambio: function (x) { mandar("volumen_vivo", { id: s.id, db: x }); } });
+      fila.appendChild(fd);
+      vs.appendChild(fila);
+      mz.voces[s.id] = { fila: fila, f: fd };
+    });
+    Object.keys(mz.voces).forEach(function (id) { if (!vistos[id]) { mz.voces[id].fila.remove(); delete mz.voces[id]; } });
+    if (!lista.length && !vs.querySelector(".empty")) vs.appendChild(el("p", "empty", T("mz_nada")));
+    if (lista.length) { var em = vs.querySelector(".empty"); if (em) em.remove(); }
+  }
+  // Lo llama el medidor de la cabecera con sus valores (caída suave y pico retenido).
+  function pintarMezclador() {
+    if (!mz || !$("est")) return;
+    ["principal", "auriculares"].forEach(function (k) {
+      var m = medidor[k], x = mz.med[k];
+      if (!x) return;
+      for (var j = 0; j < 2; j++) {
+        x.barras[j].firstChild.style.width = (m ? pct(m.nivel[j]) : 0) + "%";
+        x.barras[j].lastChild.style.left = "calc(" + (m ? pct(m.pico[j]) : 0) + "% - 2px)";
+        x.barras[j].lastChild.style.display = m && m.pico[j] > -60 ? "" : "none";
+      }
+      x.val.textContent = m && Math.max(m.nivel[0], m.nivel[1]) > -60 ? Math.round(Math.max(m.nivel[0], m.nivel[1])) + " dB" : "—";
+    });
+  }
+
+  // Barra de estado: proyector, sala y auriculares que se están usando.
+  function dibujarEstado() {
+    var eq = e.equipo || {}, b = $("estEstado"); b.textContent = "";
+    function item(k, v) { var s = el("span"); s.appendChild(document.createTextNode(T(k) + ": ")); s.appendChild(el("b", "", v)); b.appendChild(s); }
+    var p = eq.pantalla || {};
+    item("est_proyector", !e.con_proyeccion ? T("sin_proyeccion") : p.vista ? T("pantalla_vista") : (p.nombre || "—") + (p.ancho ? " · " + p.ancho + " × " + p.alto : ""));
+    item("est_sala", eq.principal ? eq.principal.nombre + (eq.principal.hz ? " · " + (eq.principal.hz / 1000).toLocaleString(idioma) + " kHz" : "") : T("sin_sonido"));
+    item("est_auris", eq.auriculares ? eq.auriculares.nombre : T("sin_usar"));
   }
 
   function dibujarPrevia() {
@@ -1128,7 +2186,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
   // ---- Conexión con el motor ----
   function conectar() {
     ws = new WebSocket("ws://" + location.host + "/ws?t=" + encodeURIComponent(token));
-    ws.onopen = function () { abierto = true; avisoConexion(T("conectado"), "on"); mandar("idioma", { idioma: idioma }); };
+    ws.onopen = function () { abierto = true; avisoConexion(T("conectado"), "on"); mandar("idioma", { idioma: idioma }); mandar("multivista", { si: multivista && estilo === "estudio" }); };
     ws.onmessage = function (m) {
       var d; try { d = JSON.parse(m.data); } catch (x) { return; }
       if (d.tipo === "medios") { dibujarMedios(d.lista || []); if (btEd) { btEd.medios = d.lista || []; pintarEditor(); } return; }
@@ -1167,7 +2225,11 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
       else if (it.dataset.idioma) ponerIdioma(it.dataset.idioma);
       else if (it.dataset.estilo) ponerEstilo(it.dataset.estilo);
       else if (it.dataset.accion === "previa_mov") ponerPreviaMov(!previaMov);
-      else if (it.dataset.accion === "restaurar") ponerTema("");
+      else if (it.dataset.accion === "restaurar") { ponerTema(""); escribir("ota-paneles", "[]"); ponerRendimiento("auto"); desarmarEstudio(); if (e) dibujar(); }
+      else if (it.dataset.accion === "multivista") ponerMultivista(!multivista);
+      else if (it.dataset.accion === "cabina") ponerCabina(!cabina);
+      else if (it.dataset.rendimiento) ponerRendimiento(it.dataset.rendimiento);
+      else if (it.dataset.accion === "distribuciones") dialogoDistribuciones();
       else if (it.dataset.accion === "modo_ayuda") ponerAyuda(!ayudando);
       else if (it.dataset.accion === "pasos") primerosPasos(0);
       else if (it.dataset.accion === "consejos") ponerConsejos(!consejos);
@@ -1196,7 +2258,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     idioma = i === "en" ? "en" : "es";
     escribir("ota-idioma", idioma);
     mandar("idioma", { idioma: idioma });
-    delete $("lado").dataset.estilo; // la Vista Estudio se rearma con los textos nuevos
+    desarmarEstudio(); // la Vista Estudio se rearma con los textos nuevos
     aplicarTextos();
   }
   // Estilo de trabajo (Vista → Estilo): Lista (como QLab) o Estudio (como OBS).
@@ -1205,6 +2267,10 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     escribir("ota-estilo", estilo);
     document.querySelectorAll("[data-estilo]").forEach(function (b) { b.setAttribute("aria-checked", String(b.dataset.estilo === estilo)); });
     $("app").classList.toggle("estudio", estilo === "estudio");
+    // La botonera es un panel más en la Vista Estudio; las tiras solo con la Multivista a la vista.
+    $("botonera").hidden = vistaBotonera === "oculta" && estilo !== "estudio";
+    if (abierto) mandar("multivista", { si: multivista && estilo === "estudio" });
+    if (estilo !== "estudio") { desarmarEstudio(); if (cabina) ponerCabina(false); }
     if (e) dibujar();
   }
   function ponerPreviaMov(si) {
@@ -1324,13 +2390,72 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     document.body.appendChild(velo);
     var f = d.querySelector("button"); if (f) f.focus();
   }
+  // Ayuda → Atajos de teclado: el editor (parte 5). Cada atajo se enciende o
+  // apaga y se le cambia la tecla; avisa si dos chocan o si la usa un botón de
+  // la botonera; juegos recomendados de un clic. Se guarda en este equipo.
+  function aplicarJuego(k) {
+    atajosUsuario = {};
+    if (JUEGOS[k]) ATAJOS.forEach(function (a) { if (!a[4] || a[4] === "grupo" || a[4] === "raton") atajosUsuario[a[0]] = { on: JUEGOS[k].indexOf(a[0]) >= 0 }; });
+    guardarAtajos();
+  }
   function dialogoAtajos() {
     dialogo(T("atajos"), function (d) {
-      var t = el("table");
-      [[T("tecla_espacio"), "atajo_go"], ["Esc", "atajo_esc"], ["P", "atajo_p"], ["F", "atajo_f"], [T("tecla_mayus") + " + F", "atajo_mf"], ["↑  ↓", "atajo_flechas"], ["Tab", "atajo_tab"], ["H", "atajo_h"], ["Ctrl + F", "atajo_buscar"], ["Ctrl + S", "atajo_s"], ["Ctrl + Z", "atajo_deshacer"], ["Ctrl + Y", "atajo_rehacer"], ["Ctrl + I", "atajo_agregar"], [T("tecla_supr"), "atajo_supr"], ["Alt + ↑  ↓", "atajo_mover"], ["Ctrl + O", "atajo_abrir"]]
-        .forEach(function (f) { var tr = el("tr"), a = el("td"); a.appendChild(el("kbd", "", f[0])); tr.appendChild(a); tr.appendChild(el("td", "", T(f[1]))); t.appendChild(tr); });
-      d.appendChild(t);
+      d.classList.add("ancho");
+      d.appendChild(el("p", "note-small", T("at_intro")));
+      var jg = el("div", "at-juegos");
+      jg.appendChild(el("span", "k", T("at_juegos")));
+      [["minimo", "at_j_minimo"], ["recomendado", "at_j_recomendado"], ["completo", "at_j_completo"]].forEach(function (x) {
+        var b = el("button", "btn", T(x[1])); b.type = "button"; b.dataset.consejo = "at_juego_" + x[0];
+        b.onclick = function () { aplicarJuego(x[0]); pintar(); };
+        jg.appendChild(b);
+      });
+      d.appendChild(jg);
+      var cuerpo = el("div", "at-lista"); d.appendChild(cuerpo);
+      function pintar() {
+        cuerpo.textContent = "";
+        var ch = choques();
+        ["g_funcion", "g_estudio", "g_edicion", "g_ventana", "g_faders"].forEach(function (g) {
+          cuerpo.appendChild(el("h3", "", T(g)));
+          ATAJOS.filter(function (a) { return a[1] === g; }).forEach(function (a) {
+            var id = a[0], fila = el("div", "at-fila"), on = atajoActivo(id);
+            var nom = el("span", "at-nom"); nom.appendChild(document.createTextNode(Tp("at_", id))); nom.appendChild(botonConsejo(["at", id].join("_")));
+            fila.appendChild(nom);
+            var tecla;
+            if (a[4] === "raton") tecla = el("span", "at-raton", Tp("at_raton_", id));
+            else if (a[4] === "grupo") tecla = el("kbd", "", "1 … 9");
+            else {
+              tecla = el("button", "at-tecla", nombreTecla(teclaAtajo(id))); tecla.type = "button";
+              if (a[4] === "siempre") { tecla.disabled = true; tecla.title = T("at_fijo"); }
+              else tecla.onclick = function () {
+                tecla.textContent = T("at_pulsa"); tecla.classList.add("esperando");
+                capturando = function (t) {
+                  if (t === "Escape") { pintar(); return; }
+                  atajosUsuario[id] = atajosUsuario[id] || {}; atajosUsuario[id].tecla = t; guardarAtajos(); pintar();
+                };
+              };
+            }
+            fila.appendChild(tecla);
+            var sw = el("label", "toggle at-sw"), cb = el("input"); cb.type = "checkbox"; cb.checked = on;
+            cb.disabled = a[4] === "siempre" || a[4] === "tecla";
+            if (cb.disabled) sw.title = T("at_no_se_apaga");
+            cb.onchange = function () { atajosUsuario[id] = atajosUsuario[id] || {}; atajosUsuario[id].on = cb.checked; guardarAtajos(); pintar(); };
+            sw.appendChild(cb); sw.appendChild(document.createTextNode(on ? T("at_on") : T("at_off")));
+            fila.appendChild(sw);
+            var avisos = el("span", "at-aviso");
+            if (on && ch.atajos[id]) avisos.textContent = "⚠ " + T("at_choca", { n: Tp("at_", ch.atajos[id]) });
+            else if (on && a[4] !== "raton" && ch.botonera[teclaAtajo(id)]) avisos.textContent = "⚠ " + T("at_choca_bt", { n: ch.botonera[teclaAtajo(id)] });
+            else if (id === "escenas_numero" && on && Object.keys(ch.botonera).some(function (k) { return /^[1-9]$/.test(k); })) avisos.textContent = "⚠ " + T("at_numeros_bt");
+            fila.appendChild(avisos);
+            if (!on) fila.classList.add("apagado");
+            cuerpo.appendChild(fila);
+          });
+        });
+        var r = el("button", "btn", T("at_restaurar")); r.type = "button"; r.onclick = function () { aplicarJuego("recomendado"); pintar(); };
+        cuerpo.appendChild(r);
+      }
+      pintar();
     });
+    alCerrarDialogo = function () { capturando = null; };
   }
   function dialogoAcerca() {
     dialogo(T("acerca"), function (d) {
@@ -1775,11 +2900,14 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
   function ponerBotonera(v) {
     vistaBotonera = v; escribir("ota-botonera", v);
     document.querySelectorAll("[data-botonera]").forEach(function (b) { b.setAttribute("aria-checked", String(b.dataset.botonera === v)); });
-    $("botonera").hidden = v === "oculta";
+    $("botonera").hidden = v === "oculta" && estilo !== "estudio";
     if (e) dibujarBotonera();
   }
+  // En la Vista Estudio la botonera es siempre un panel más (pedido del usuario):
+  // si en Vista está «Oculta», ahí se ve en cuadrícula.
+  function vistaBtEfectiva() { return estilo === "estudio" && vistaBotonera === "oculta" ? "cuadricula" : vistaBotonera; }
   function dibujarBotonera() {
-    if (vistaBotonera === "oculta") return;
+    if (vistaBtEfectiva() === "oculta") return;
     var pags = e.botonera || [];
     paginaBt = Math.min(paginaBt, Math.max(0, pags.length - 1));
     var ps = $("bt-paginas"); ps.textContent = "";
@@ -1790,7 +2918,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     var cu = $("bt-cuerpo"); cu.textContent = "";
     var pag = pags[paginaBt];
     if (!pag || !pag.botones.length) { cu.appendChild(el("p", "bt-vacia", e.modo === "funcion" ? T("bt_vacia_funcion") : T("bt_vacia"))); return; }
-    var cont = el("div", vistaBotonera === "lista" ? "bt-lista" : "bt-cuadricula");
+    var cont = el("div", vistaBtEfectiva() === "lista" ? "bt-lista" : "bt-cuadricula");
     pag.botones.forEach(function (bt, k) {
       var b = el("button", "bt" + (bt.sonando ? " sonando" : "") + (bt.preparacion === "error" ? " error" : ""));
       b.type = "button"; b.dataset.pagina = paginaBt; b.dataset.boton = k;
@@ -2073,6 +3201,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
       if (dato.limitando) m.limHasta = ahora + 1000;
       m.lim.classList.toggle("on", ahora < m.limHasta);
     });
+    pintarMezclador();
   }
 
   // ---- Botones ----
@@ -2105,37 +3234,121 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
   });
 
   // ---- Teclado (también funciona en el Modo Ayuda: GO y Parar todo nunca se bloquean) ----
+  // ---- Atajos (parte 5) ----
+  // Todos los atajos del programa, con su tecla de fábrica, si vienen
+  // encendidos y qué hacen. El usuario los enciende, apaga o cambia de tecla
+  // (Ayuda → Atajos de teclado); se guarda en este equipo. Esc = Parar todo
+  // es fijo (pánico, siempre); GO se puede cambiar de tecla pero no apagar.
+  // [id, grupo, tecla de fábrica, encendido de fábrica, fijo, acción]
+  // fijo: "siempre" = no se apaga ni se cambia; "tecla" = se cambia de tecla, no se apaga.
+  var ATAJOS = [
+    ["go", "g_funcion", "Space", true, "tecla", function () { cerrarDialogo(); cerrarMenus(); cerrarBurbuja(); darGo(); }],
+    ["parar_todo", "g_funcion", "Escape", true, "siempre", null],
+    ["pausa", "g_funcion", "P", true, "", function () { mandar("pausa"); }],
+    ["fundir_todo", "g_funcion", "F", true, "", function () { mandar("fundir_todo"); }],
+    ["fundir_ultimo", "g_funcion", "Shift+F", true, "", function () { mandar("fundir_ultimo"); }],
+    ["espera_arriba", "g_funcion", "ArrowUp", true, "", function () { mandar("espera_arriba"); }],
+    ["espera_abajo", "g_funcion", "ArrowDown", true, "", function () { mandar("espera_abajo"); }],
+    ["modo", "g_funcion", "Tab", true, "", function () { if (e) mandar(e.modo === "funcion" ? "modo_edicion" : "modo_funcion"); }],
+    ["guardar", "g_funcion", "Ctrl+S", true, "", function () { mandar("guardar"); }],
+    ["corte_rapido", "g_estudio", "Shift+Space", true, "", function () { if (estilo === "estudio") mandar("go", { reemplazar: true, corte: true }); }],
+    ["tbar_mas", "g_estudio", "PageDown", false, "", function () { moverPalanca(0.1); }],
+    ["tbar_menos", "g_estudio", "PageUp", false, "", function () { moverPalanca(-0.1); }],
+    ["escenas_numero", "g_estudio", "1…9", false, "grupo", null],
+    ["multivista", "g_estudio", "M", false, "", function () { ponerMultivista(!multivista); }],
+    ["cabina", "g_estudio", "F11", true, "", function () { ponerCabina(!cabina); }],
+    ["nuevo", "g_edicion", "Ctrl+N", true, "", function () { if (puedeEditar()) mandar("nuevo_show"); else avisoLocal(T("abrir_funcion")); }],
+    ["abrir", "g_edicion", "Ctrl+O", true, "", function () { if (puedeEditar()) mandar("abrir_show"); else avisoLocal(T("abrir_funcion")); }],
+    ["deshacer", "g_edicion", "Ctrl+Z", true, "", function () { if (puedeEditar()) mandar("deshacer"); }],
+    ["rehacer", "g_edicion", "Ctrl+Y", true, "", function () { if (puedeEditar()) mandar("rehacer"); }],
+    ["agregar", "g_edicion", "Ctrl+I", true, "", function () { dialogoAgregar(); }],
+    ["eliminar", "g_edicion", "Delete", true, "", function () { eliminarCue(); }],
+    ["subir", "g_edicion", "Alt+ArrowUp", true, "", function () { moverCue(-1); }],
+    ["bajar", "g_edicion", "Alt+ArrowDown", true, "", function () { moverCue(1); }],
+    ["buscar", "g_ventana", "Ctrl+F", true, "", function () { $("buscar").focus(); $("buscar").select(); }],
+    ["buscar2", "g_ventana", "/", true, "", function () { $("buscar").focus(); $("buscar").select(); }],
+    ["ayuda", "g_ventana", "H", true, "", function () { ponerAyuda(!ayudando); }],
+    ["fader_rueda", "g_faders", "—", true, "raton", null],
+    ["fader_teclas", "g_faders", "—", true, "raton", null]];
+  // Juegos recomendados: qué atajos quedan encendidos.
+  var JUEGOS = {
+    minimo: ["go", "parar_todo", "pausa", "fundir_todo", "guardar", "fader_rueda", "fader_teclas"],
+    completo: ATAJOS.map(function (a) { return a[0]; })
+  };
+  var atajosUsuario = {};
+  try { atajosUsuario = JSON.parse(leer("ota-atajos", "{}")) || {}; } catch (x) { atajosUsuario = {}; }
+  function atajoDe(id) { return ATAJOS.filter(function (a) { return a[0] === id; })[0]; }
+  function teclaAtajo(id) { var a = atajoDe(id), u = atajosUsuario[id]; return (u && u.tecla) || a[2]; }
+  function atajoActivo(id) {
+    var a = atajoDe(id), u = atajosUsuario[id];
+    if (!a) return false;
+    if (a[4] === "siempre" || a[4] === "tecla") return true;
+    return u && u.on != null ? !!u.on : a[3];
+  }
+  function guardarAtajos() { escribir("ota-atajos", JSON.stringify(atajosUsuario)); }
+  // La tecla de un evento como texto: «Ctrl+Shift+F», «Space», «ArrowUp», «1».
+  function teclaDe(ev) {
+    var k = ev.key === " " ? "Space" : ev.key.length === 1 ? ev.key.toUpperCase() : ev.key;
+    if (k === "Control" || k === "Shift" || k === "Alt" || k === "Meta") return "";
+    var m = [];
+    if (ev.ctrlKey || ev.metaKey) m.push("Ctrl");
+    if (ev.altKey) m.push("Alt");
+    // Mayús solo cuenta en teclas que no son un signo (así «?» o «/» valen en cualquier teclado).
+    if (ev.shiftKey && (k.length > 1 || /[A-Z0-9]/.test(k))) m.push("Shift");
+    m.push(k);
+    return m.join("+");
+  }
+  function nombreTecla(t) {
+    var n = { Space: T("tecla_espacio"), Escape: "Esc", ArrowUp: "↑", ArrowDown: "↓", ArrowLeft: "←", ArrowRight: "→", Delete: T("tecla_supr"),
+      PageUp: T("tecla_repag"), PageDown: T("tecla_avpag"), Tab: "Tab", Shift: T("tecla_mayus") };
+    return String(t).split("+").map(function (p) { return n[p] || p; }).join(" + ");
+  }
+  // Qué tecla choca con qué (entre atajos encendidos y con la botonera).
+  function choques() {
+    var usadas = {}, malos = {};
+    ATAJOS.forEach(function (a) {
+      if (!atajoActivo(a[0]) || a[4] === "raton" || a[4] === "grupo") return;
+      var t = teclaAtajo(a[0]);
+      if (usadas[t]) { malos[a[0]] = usadas[t]; malos[usadas[t]] = a[0]; } else usadas[t] = a[0];
+    });
+    var bt = {};
+    ((e && e.botonera) || []).forEach(function (p) { (p.botones || []).forEach(function (b) { if (b.tecla) bt[String(b.tecla).toUpperCase()] = b.nombre; }); });
+    return { atajos: malos, botonera: bt };
+  }
+  var capturando = null;   // atajo al que se le está eligiendo tecla (editor)
   document.addEventListener("keydown", function (ev) {
     // Esc para todo SIEMPRE (pánico): nunca se retrasa por un menú, una ventanita o la ayuda.
-    if (ev.key === "Escape") { ev.preventDefault(); mandar("parar_todo"); cerrarMenus(); cerrarDialogo(); cerrarBurbuja(); ponerAyuda(false); return; }
+    if (ev.key === "Escape") { ev.preventDefault(); capturando = null; mandar("parar_todo"); cerrarMenus(); cerrarDialogo(); cerrarBurbuja(); ponerAyuda(false); return; }
+    // Editor de atajos esperando una tecla: esa tecla es para él.
+    if (capturando) { var t0 = teclaDe(ev); if (!t0) return; ev.preventDefault(); ev.stopPropagation(); capturando(t0); capturando = null; return; }
     var escribiendo = ev.target.matches && ev.target.matches("input[type=text],input[type=number],textarea,select");
-    if ((ev.ctrlKey || ev.metaKey) && (ev.key === "s" || ev.key === "S")) { ev.preventDefault(); mandar("guardar"); return; }
-    // Buscar un cue: Ctrl+F, o la tecla / (si no se está escribiendo).
-    if ((ev.ctrlKey || ev.metaKey) && (ev.key === "f" || ev.key === "F")) { ev.preventDefault(); $("buscar").focus(); $("buscar").select(); return; }
-    if (ev.key === "/" && !escribiendo) { ev.preventDefault(); $("buscar").focus(); $("buscar").select(); return; }
-    // Editar la lista (etapa 5A). Ctrl+Z dentro de un campo deshace lo escrito, no el show.
-    if ((ev.ctrlKey || ev.metaKey) && !escribiendo && !velo) {
-      var k = ev.key.toLowerCase();
-      if (k === "z" && !ev.shiftKey) { ev.preventDefault(); if (puedeEditar()) mandar("deshacer"); return; }
-      if (k === "y" || (k === "z" && ev.shiftKey)) { ev.preventDefault(); if (puedeEditar()) mandar("rehacer"); return; }
-      if (k === "i") { ev.preventDefault(); dialogoAgregar(); return; }
-      if (k === "o") { ev.preventDefault(); if (puedeEditar()) mandar("abrir_show"); else avisoLocal(T("abrir_funcion")); return; }
+    var tecla = teclaDe(ev);
+    if (!tecla) return;
+    var conCtrl = ev.ctrlKey || ev.metaKey;
+    // Escribiendo en un campo, las teclas sueltas no disparan nada (Tab pasa de
+    // campo, Ctrl+Z deshace lo escrito); solo Ctrl+S, Ctrl+F y Ctrl+O/N/I.
+    if (escribiendo && (!conCtrl || /^Ctrl\+(Z|Y|Shift\+Z)$/.test(tecla))) return;
+    if (mapeo && !conCtrl && teclaMapeo(ev)) { ev.preventDefault(); return; }
+    // Con una ventanita abierta solo valen el GO y lo que lleva Ctrl.
+    var go = teclaAtajo("go");
+    if (velo && tecla !== go && !conCtrl) return;
+    // La botonera gana a los atajos de número de la Vista Estudio (también en Función).
+    if (!conCtrl && !ev.altKey && teclaDeBoton(ev.key) && tecla !== go) { ev.preventDefault(); mandar("boton_tecla", { tecla: ev.key.length === 1 ? ev.key.toUpperCase() : ev.key }); return; }
+    for (var j = 0; j < ATAJOS.length; j++) {
+      var a = ATAJOS[j];
+      if (!a[5] || !atajoActivo(a[0]) || teclaAtajo(a[0]) !== tecla) continue;
+      if (velo && a[0] !== "go" && !/^(guardar|buscar)$/.test(a[0])) return;
+      ev.preventDefault();
+      a[5]();
+      return;
     }
-    if (ev.altKey && !escribiendo && !velo && (ev.key === "ArrowUp" || ev.key === "ArrowDown")) { ev.preventDefault(); moverCue(ev.key === "ArrowUp" ? -1 : 1); return; }
-    if (ev.key === "Delete" && !escribiendo && !velo) { ev.preventDefault(); eliminarCue(); return; }
-    if (escribiendo || ev.ctrlKey || ev.metaKey || ev.altKey) return;   // con foco en un campo, Tab pasa de campo
-    if (ev.key === " ") { ev.preventDefault(); cerrarDialogo(); cerrarMenus(); cerrarBurbuja(); darGo(); return; }
-    if (mapeo && teclaMapeo(ev)) { ev.preventDefault(); return; }
-    if (velo) return;
-    // Tecla de un botón de la botonera (también en Función).
-    if (teclaDeBoton(ev.key)) { ev.preventDefault(); mandar("boton_tecla", { tecla: ev.key.length === 1 ? ev.key.toUpperCase() : ev.key }); return; }
-    if (ev.key === "Tab") { ev.preventDefault(); if (e) mandar(e.modo === "funcion" ? "modo_edicion" : "modo_funcion"); }
-    else if (ev.key === "h" || ev.key === "H") ponerAyuda(!ayudando);
-    else if (ev.key === "p" || ev.key === "P") mandar("pausa");
-    else if ((ev.key === "f" || ev.key === "F") && ev.shiftKey) mandar("fundir_ultimo");
-    else if (ev.key === "f" || ev.key === "F") mandar("fundir_todo");
-    else if (ev.key === "ArrowUp") { ev.preventDefault(); mandar("espera_arriba"); }
-    else if (ev.key === "ArrowDown") { ev.preventDefault(); mandar("espera_abajo"); }
+    // Teclas 1 a 9 de la Vista Estudio: esa escena a la Vista previa (nunca dispara).
+    if (estilo === "estudio" && atajoActivo("escenas_numero") && /^[1-9]$/.test(tecla) && e && e.cues.length) {
+      ev.preventDefault();
+      var n = +tecla - 1, orden = ordenMultivista();
+      var i = orden.length > n ? orden[n] : n;
+      if (e.cues[i]) mandar("ir_a", { cue: i });
+    }
   });
 
   // ---- Reloj ----
@@ -2149,6 +3362,8 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
   ponerEstilo(estilo);
   ponerPreviaMov(previaMov);
   ponerBotonera(vistaBotonera);
+  ponerRendimiento(rendimiento);
+  (function () { var b = document.querySelector('[data-accion="multivista"]'); if (b) b.setAttribute("aria-checked", String(multivista)); })();
   ponerConsejos(consejos);
   aplicarTextos();
   reloj(); setInterval(reloj, 1000);

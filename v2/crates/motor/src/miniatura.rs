@@ -14,7 +14,8 @@ use otaconvert_video::mpv::{ruta_junto_al_exe, Evento, Libmpv, Reproductor};
 pub const ANCHO: u32 = 320;
 const LIMITE: Duration = Duration::from_secs(15);
 
-pub fn ejecutar(archivo: &Path, salida: &Path, inicio_s: f64) -> Result<bool, String> {
+/// `inicio`: segundos («12.500») o porcentaje del vídeo («40.0%», lo acepta la opción `start` de mpv).
+pub fn ejecutar(archivo: &Path, salida: &Path, inicio: &str) -> Result<bool, String> {
     if !archivo.is_absolute() || !archivo.is_file() {
         return Err("archivo no encontrado".into());
     }
@@ -26,7 +27,7 @@ pub fn ejecutar(archivo: &Path, salida: &Path, inicio_s: f64) -> Result<bool, St
     let r = (|| -> Result<(), String> {
         let lib = Libmpv::cargar(&ruta_junto_al_exe()?)?;
         let tmp_s = tmp.to_string_lossy().into_owned();
-        let inicio = format!("{:.3}", inicio_s.max(0.0));
+
         let filtro = format!("scale=w={ANCHO}:h=-2");
         let rep = Reproductor::sin_ventana(
             lib,
@@ -37,7 +38,7 @@ pub fn ejecutar(archivo: &Path, salida: &Path, inicio_s: f64) -> Result<bool, St
                 ("vo-image-outdir", &tmp_s),
                 ("frames", "1"),
                 ("vf", &filtro),
-                ("start", &inicio),
+                ("start", inicio),
                 ("image-display-duration", "0"),
             ],
         )?;

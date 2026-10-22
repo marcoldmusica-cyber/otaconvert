@@ -34,6 +34,9 @@ enum Visual {
 /// Cuántos cues desde el que está en espera se preparan de antemano.
 pub const PREPARAR_ADELANTE: usize = 3;
 
+/// Multivista: cuántas fotos chicas por vídeo (la tarjeta «se mueve» pasándolas).
+pub const TIRA: usize = 6;
+
 struct Sonando {
     id: u32,
     cue: usize,
@@ -52,6 +55,20 @@ struct Sonando {
     /// Vídeo o imagen al aire: la duración que dio la proyección al precargarlo
     /// (para volver a darle GO mientras se ve: vuelve a empezar).
     duracion_visual: Option<f64>,
+    /// Volumen en vivo (fader del Mezclador de la Vista Estudio), en dB. Empieza
+    /// en el del cue; cambiarlo no toca el show.
+    volumen_db: f32,
+}
+
+/// Palanca T (Vista Estudio): lo que había y lo que entra, para mezclarlos a
+/// mano y, si se vuelve al principio, dejar todo como estaba.
+struct Manual {
+    /// (voz, salida, volumen en dB, tiene voz, es imagen).
+    viejos: Vec<(u32, Destino, f32, bool, bool)>,
+    nuevos: Vec<(u32, Destino, f32, bool, bool)>,
+    visual_nuevo: bool,
+    en_espera_antes: usize,
+    ultimo_antes: Option<usize>,
 }
 
 /// Edición prepara el show; Función es para la función de verdad: el motor
@@ -119,6 +136,10 @@ pub struct Sesion {
     mudos: std::collections::HashSet<usize>,
     /// Fotos que no se pudieron hacer (no se reintentan en esta sesión).
     miniaturas_fallidas: std::collections::HashSet<usize>,
+    /// Multivista: fotos de la tira hechas por cue, las que fallaron y si la ventana las quiere.
+    tiras_hechas: HashMap<usize, usize>,
+    tiras_fallidas: std::collections::HashSet<usize>,
+    tiras_pedidas: bool,
     /// Fotos ya hechas: cue → versión (nombre del archivo de la foto).
     miniaturas_hechas: HashMap<usize, String>,
     /// "Salir desde aquí" (Vista Estudio): cue en espera y segundo del archivo
@@ -131,6 +152,11 @@ pub struct Sesion {
     /// Para la próxima voz que se dispare con un GO de la Vista Estudio: cuánto
     /// espera y con qué fundido mínimo entra (ms).
     entrada_voz: Option<(u64, u64)>,
+    /// Palanca T en curso (fundido a mano de la Vista Estudio).
+    manual: Option<Manual>,
+    /// Mientras se dispara el cue de la palanca T: no se reemplaza nada todavía
+    /// y su sonido arranca en silencio.
+    en_manual: bool,
     /// Patrón de prueba a la vista en el proyector (para encajar las esquinas).
     patron: bool,
     /// Deshacer y rehacer (etapa 5A): cómo era el show antes de cada cambio.
@@ -232,11 +258,16 @@ impl Sesion {
             remostrar: None,
             mudos: std::collections::HashSet::new(),
             miniaturas_fallidas: std::collections::HashSet::new(),
+            tiras_hechas: HashMap::new(),
+            tiras_fallidas: std::collections::HashSet::new(),
+            tiras_pedidas: false,
             miniaturas_hechas: HashMap::new(),
             desde_elegido: None,
             reemplazo: None,
             pendientes: Vec::new(),
             entrada_voz: None,
+            manual: None,
+            en_manual: false,
             patron: false,
             equipo: serde_json::Value::Null,
             salidas_respondidas: 0,
@@ -377,6 +408,9 @@ impl Sesion {
         self.errores = mover(std::mem::take(&mut self.errores), &m);
         self.visuales = mover(std::mem::take(&mut self.visuales), &m);
         self.miniaturas_hechas = mover(std::mem::take(&mut self.miniaturas_hechas), &m);
+        self.tiras_hechas = mover(std::mem::take(&mut self.tiras_hechas), &m);
+        // Las que fallaron se vuelven a intentar (pocas y en segundo plano).
+        self.tiras_fallidas.clear();
         self.mudos = self.mudos.iter().filter_map(|&k| m(k)).collect();
         self.miniaturas_fallidas = self.miniaturas_fallidas.iter().filter_map(|&k| m(k)).collect();
         if self.preparando.take().is_some() {
@@ -622,8 +656,13 @@ impl Sesion {
     /// doble GO, duración de Fundir todo y volumen maestro. Valida todo antes
     /// de cambiar nada; se aplica en vivo y se puede deshacer.
     pub fn cambiar_ajustes(&mut self, cambios: &serde_json::Value) -> Result<(), Texto> {
-        self.solo_en_edicion()?;
         let obj = cambios.as_object().ok_or_else(|| t("Ajustes no válidos.", "Invalid settings."))?;
+        // El volumen maestro y la transición de la Vista Estudio son controles de
+        // la función (como en una mesa o en OBS): valen también en Función.
+        const EN_VIVO: [&str; 3] = ["volumen_maestro_db", "transicion_tipo", "transicion_ms"];
+        if !obj.keys().all(|k| EN_VIVO.contains(&k.as_str())) {
+            self.solo_en_edicion()?;
+        }
         let mut a = self.show.ajustes.clone();
         for (k, v) in obj {
             let n = v.as_f64().filter(|x| x.is_finite());
@@ -739,11 +778,151 @@ impl Sesion {
     /// todo lo que suena y se ve, con la transición de Ajustes del show. La
     /// botonera y la escucha por auriculares no se tocan.
     pub fn go_con(&mut self, reemplazar: bool) -> bool {
+        // Un GO con la palanca T a medio camino termina antes esa transición.
+        self.terminar_manual();
         self.reemplazo = reemplazar.then_some(self.show.ajustes.transicion);
         let r = self.go_interno();
         self.reemplazo = None;
         self.entrada_voz = None;
         r
+    }
+
+    /// Corte rápido (Vista Estudio): un GO que reemplaza lo anterior con
+    /// cuchilla, aunque la transición elegida sea otra (emergencias, golpes de efecto).
+    pub fn go_corte(&mut self) -> bool {
+        self.terminar_manual();
+        self.reemplazo = Some(otaconvert_show::Transicion { tipo: TipoTransicion::Corte, ms: 0 });
+        let r = self.go_interno();
+        self.reemplazo = None;
+        self.entrada_voz = None;
+        if r {
+            self.registro.anotar("TRANSICION", "corte rápido");
+        }
+        r
+    }
+
+    /// Palanca T (Vista Estudio): fundido a mano. `pos` de 0 (todo lo de antes)
+    /// a 1 (todo lo nuevo). Al moverla por primera vez se dispara el cue en
+    /// espera en silencio y transparente; en el medio se ven y oyen los dos
+    /// mezclados (y puede quedar así); al llegar a 1 termina como un GO; si
+    /// vuelve a 0, todo queda como estaba y el cue sigue en espera.
+    pub fn tbar(&mut self, pos: f32) {
+        let pos = if pos.is_finite() { pos.clamp(0.0, 1.0) } else { return };
+        if self.manual.is_none() {
+            if pos < 0.02 {
+                return;
+            }
+            let viejos: Vec<_> = self.sonando.iter().map(|s| (s.id, s.destino, s.volumen_db, s.voz, s.visual)).collect();
+            let (espera, ultimo) = (self.en_espera, self.ultimo_disparado);
+            self.en_manual = true;
+            self.reemplazo = Some(otaconvert_show::Transicion { tipo: TipoTransicion::Fundido, ms: 0 });
+            let ok = self.go_interno();
+            self.en_manual = false;
+            self.reemplazo = None;
+            self.entrada_voz = None;
+            if !ok {
+                return;
+            }
+            let antes: Vec<u32> = viejos.iter().map(|v| v.0).collect();
+            let nuevos: Vec<_> = self.sonando.iter().filter(|s| !antes.contains(&s.id)).map(|s| (s.id, s.destino, s.volumen_db, s.voz, s.visual)).collect();
+            let visual_nuevo = nuevos.iter().any(|n| n.4);
+            self.manual = Some(Manual { viejos, nuevos, visual_nuevo, en_espera_antes: espera, ultimo_antes: ultimo });
+        }
+        let cuadros = self.cuadros(50) as u32;
+        let Some(m) = self.manual.as_ref() else { return };
+        let mut ordenes = Vec::new();
+        for &(id, destino, db, voz, _) in &m.viejos {
+            if voz {
+                ordenes.push((destino, Comando::Volumen { id, volumen: db_a_lineal(db) * (1.0 - pos), cuadros }));
+            }
+        }
+        for &(id, destino, db, voz, _) in &m.nuevos {
+            if voz {
+                ordenes.push((destino, Comando::Volumen { id, volumen: db_a_lineal(db) * pos, cuadros }));
+            }
+        }
+        let visual_nuevo = m.visual_nuevo;
+        if let Some(son) = self.sonido.as_mut() {
+            for (d, c) in ordenes {
+                let _ = son.enviar(d, c);
+            }
+        }
+        if visual_nuevo {
+            self.al_proyector(OrdenProyector::Alfa(pos));
+        }
+        if pos >= 0.98 {
+            self.terminar_manual();
+        } else if pos <= 0.02 {
+            self.cancelar_manual();
+        }
+    }
+
+    /// La palanca T llegó al final (o hubo otro GO, Pausa o Fundir todo): lo
+    /// nuevo queda entero y lo de antes se va.
+    fn terminar_manual(&mut self) {
+        let Some(m) = self.manual.take() else { return };
+        let parada = self.cuadros(30) as u32;
+        let cuadros = self.cuadros(50) as u32;
+        if let Some(son) = self.sonido.as_mut() {
+            for &(id, destino, _, voz, _) in &m.viejos {
+                if voz {
+                    let _ = son.enviar(destino, Comando::Parar { id, fundido: parada });
+                }
+            }
+            for &(id, destino, db, voz, _) in &m.nuevos {
+                if voz {
+                    let _ = son.enviar(destino, Comando::Volumen { id, volumen: db_a_lineal(db), cuadros });
+                }
+            }
+        }
+        let viejo_visual = m.viejos.iter().any(|v| v.4);
+        if m.visual_nuevo {
+            self.al_proyector(OrdenProyector::ManualFin);
+        } else if viejo_visual {
+            // Lo nuevo es solo sonido: la imagen de antes se va a negro.
+            self.al_proyector(OrdenProyector::Fundir { ms: 300 });
+        }
+        let ids: Vec<u32> = m.viejos.iter().map(|v| v.0).collect();
+        self.sonando.retain(|s| !ids.contains(&s.id));
+        self.registro.anotar("TRANSICION", "palanca T: terminada");
+    }
+
+    /// La palanca T volvió al principio: lo nuevo se va (queda precargado y en
+    /// espera otra vez) y lo de antes sigue como estaba.
+    fn cancelar_manual(&mut self) {
+        let Some(m) = self.manual.take() else { return };
+        let parada = self.cuadros(30) as u32;
+        let cuadros = self.cuadros(50) as u32;
+        if let Some(son) = self.sonido.as_mut() {
+            for &(id, destino, _, voz, _) in &m.nuevos {
+                if voz {
+                    let _ = son.enviar(destino, Comando::Parar { id, fundido: parada });
+                }
+            }
+            for &(id, destino, db, voz, _) in &m.viejos {
+                if voz {
+                    let _ = son.enviar(destino, Comando::Volumen { id, volumen: db_a_lineal(db), cuadros });
+                }
+            }
+        }
+        if m.visual_nuevo {
+            self.al_proyector(OrdenProyector::ManualCancelar);
+        }
+        let ids: Vec<u32> = m.nuevos.iter().map(|v| v.0).collect();
+        self.sonando.retain(|s| !ids.contains(&s.id));
+        // El cue vuelve a quedar en espera; su imagen se vuelve a pedir (la
+        // proyección contesta enseguida «listo»: quedó precargada).
+        if let Some(i) = self.show.cues.get(m.en_espera_antes).map(|_| m.en_espera_antes) {
+            self.visuales.remove(&i);
+        }
+        self.en_espera = m.en_espera_antes;
+        self.ultimo_disparado = m.ultimo_antes;
+        self.registro.anotar("TRANSICION", "palanca T: vuelta atrás, el cue sigue en espera");
+    }
+
+    /// ¿La palanca T está a medio camino? (para la ventana).
+    pub fn palanca_en_curso(&self) -> bool {
+        self.manual.is_some()
     }
 
     /// Lo que se hace al disparar el cue `i` con un GO de la Vista Estudio:
@@ -753,6 +932,9 @@ impl Sesion {
     /// mínimo entra (ms): fundido = entra mientras lo anterior baja; blackout =
     /// entra cuando lo anterior ya se apagó.
     fn reemplazar_anteriores(&mut self, i: usize, nuevo_visual: bool) -> (u64, u64) {
+        if self.en_manual {
+            return (0, 0);
+        }
         let Some(t) = self.reemplazo else { return (0, 0) };
         let entrada = match t.tipo {
             TipoTransicion::Corte => (0, 0),
@@ -985,19 +1167,23 @@ impl Sesion {
         self.entrada_voz = self.reemplazo.map(|_| entrada);
         let id_cue = self.show.cues[i].id;
         match self.reemplazo {
+            _ if self.en_manual => self.al_proyector(OrdenProyector::MostrarManual { id: id_cue }),
             Some(t) if t.tipo != TipoTransicion::Corte && t.ms > 0 => self.al_proyector(OrdenProyector::MostrarCon { id: id_cue, transicion: t }),
             _ => self.al_proyector(OrdenProyector::Mostrar { id: id_cue }),
         }
         // Una sola superficie (Proyector) por ahora: lo que se veía deja de verse,
         // y si tenía sonido, su sonido se para (con la rampa de parada).
         // (Con un GO de la Vista Estudio ya lo hizo `reemplazar_anteriores`, con su transición.)
-        let viejas: Vec<(u32, Destino)> = self.sonando.iter().filter(|s| s.visual && s.voz && self.reemplazo.is_none()).map(|s| (s.id, s.destino)).collect();
+        // (Con la palanca T lo de antes sigue hasta que la palanca llegue al final.)
+        let viejas: Vec<(u32, Destino)> = self.sonando.iter().filter(|s| s.visual && s.voz && self.reemplazo.is_none() && !self.en_manual).map(|s| (s.id, s.destino)).collect();
         for (id, destino) in viejas {
             if let Some(son) = self.sonido.as_mut() {
                 let _ = son.enviar(destino, Comando::Parar { id, fundido: 0 });
             }
         }
-        self.sonando.retain(|s| !s.visual);
+        if !self.en_manual {
+            self.sonando.retain(|s| !s.visual);
+        }
         // Ya no está precargado: está a la vista (si se vuelve a él, se precarga de nuevo).
         self.visuales.remove(&i);
         // Lo que dura una vuelta del vídeo, con su inicio y su fin.
@@ -1048,6 +1234,7 @@ impl Sesion {
             visual: true,
             voz: voz.is_some(),
             duracion_visual: duracion,
+            volumen_db: c.volumen_db,
         });
     }
 
@@ -1165,6 +1352,7 @@ impl Sesion {
                 visual: false,
                 voz: true,
                 duracion_visual: None,
+                volumen_db: c.volumen_db,
             });
         }
     }
@@ -1197,7 +1385,8 @@ impl Sesion {
         let comando = Comando::IniciarCue {
             id,
             pista,
-            volumen: db_a_lineal(c.volumen_db),
+            // Palanca T: arranca en silencio y la palanca lo va subiendo.
+            volumen: if self.en_manual { 0.0 } else { db_a_lineal(c.volumen_db) },
             inicio,
             // Salir desde un punto (dentro del cue): el bucle vuelve igual a `inicio`.
             desde: desde_s.map(|s| ((s * pista_fs) as usize).clamp(inicio, fin.saturating_sub(1))).unwrap_or(inicio),
@@ -1516,6 +1705,7 @@ impl Sesion {
     }
 
     pub fn parar_todo(&mut self) {
+        self.manual = None;
         self.pendientes.clear();
         self.a_todas(|| Comando::PararTodo { fundido: 0 });
         // La proyección a negro al instante (telón), como el sonido.
@@ -1532,6 +1722,7 @@ impl Sesion {
 
     /// Fundir todo (F): baja todo en `fundir_todo_ms`.
     pub fn fundir_todo(&mut self) {
+        self.terminar_manual();
         // Lo que todavía no empezó (blackout a medias) ya no empieza.
         self.pendientes.clear();
         let f = self.cuadros(self.show.ajustes.fundir_todo_ms as u64) as u32;
@@ -1593,6 +1784,24 @@ impl Sesion {
         }
     }
 
+    /// Mezclador de la Vista Estudio: volumen en vivo de una cosa que suena (no
+    /// cambia el show). Usa la orden de volumen del mezclador con una rampa de
+    /// 50 ms: los cambios seguidos del fader se oyen como un movimiento continuo.
+    /// Vale también en Función: es un control de la función.
+    pub fn volumen_vivo(&mut self, id: u32, db: f32) -> Result<(), Texto> {
+        if !db.is_finite() || !(-60.0..=12.0).contains(&db) {
+            return Err(t("Volumen: de −60 a +12 dB.", "Volume: from −60 to +12 dB."));
+        }
+        let Some(s) = self.sonando.iter_mut().find(|s| s.id == id && s.voz) else { return Ok(()) };
+        s.volumen_db = db;
+        let destino = s.destino;
+        let cuadros = self.cuadros(50) as u32;
+        if let Some(son) = self.sonido.as_mut() {
+            let _ = son.enviar(destino, Comando::Volumen { id, volumen: db_a_lineal(db), cuadros });
+        }
+        Ok(())
+    }
+
     /// Panel Sonando (etapa 5C): para solo lo que suena con este `id`, con la
     /// rampa de parada (sin clic). Si es la imagen o el vídeo que se ve, el
     /// proyector queda en negro. Vale también en Función.
@@ -1616,6 +1825,7 @@ impl Sesion {
 
     /// Pausa general (P): la primera vez pausa todo, la segunda lo reanuda.
     pub fn pausa(&mut self) {
+        self.terminar_manual();
         if self.pausado {
             self.a_todas(|| Comando::ReanudarTodo);
             self.al_proyector(OrdenProyector::Pausa(false));
@@ -1875,6 +2085,63 @@ impl Sesion {
         faltan
     }
 
+    /// Multivista: la foto `k` (1 a `TIRA`) de la tira de un vídeo, junto a su miniatura.
+    pub fn ruta_tira(&self, i: usize, k: usize) -> Option<PathBuf> {
+        let m = self.ruta_miniatura(i)?;
+        let stem = m.file_stem()?.to_string_lossy().into_owned();
+        Some(m.with_file_name(format!("{stem}-{k}.jpg")))
+    }
+
+    /// La foto `k` de la tira, si ya está hecha.
+    pub fn tira_lista(&self, i: usize, k: usize) -> Option<PathBuf> {
+        if !(1..=TIRA).contains(&k) {
+            return None;
+        }
+        self.ruta_tira(i, k).filter(|p| p.is_file())
+    }
+
+    /// La ventana abrió o cerró la Multivista: las tiras se hacen solo si hace falta.
+    pub fn pedir_tiras(&mut self, si: bool) {
+        self.tiras_pedidas = si;
+    }
+
+    /// La próxima foto de tira que falta (de a una, cuando ya no faltan
+    /// miniaturas): (cue, foto, archivo, destino, porcentaje).
+    pub fn tira_pendiente(&mut self) -> Option<(usize, usize, PathBuf, PathBuf, f64)> {
+        if !self.tiras_pedidas {
+            return None;
+        }
+        for i in 0..self.show.cues.len() {
+            if self.show.cues[i].tipo != TipoCue::Video || !self.miniaturas_hechas.contains_key(&i) || self.tiras_fallidas.contains(&i) {
+                continue;
+            }
+            if self.tiras_hechas.get(&i).copied().unwrap_or(0) >= TIRA {
+                continue;
+            }
+            let Some(archivo) = self.medio_visual(i) else { continue };
+            for k in 1..=TIRA {
+                let Some(destino) = self.ruta_tira(i, k) else { continue };
+                if destino.is_file() {
+                    continue;
+                }
+                // Repartidas entre el 8 % y el 92 % del vídeo.
+                let pct = 8.0 + (k as f64 - 1.0) * 84.0 / (TIRA as f64 - 1.0);
+                return Some((i, k, archivo, destino, pct));
+            }
+            self.tiras_hechas.insert(i, TIRA);
+        }
+        None
+    }
+
+    pub fn tira_hecha(&mut self, i: usize, ok: bool) {
+        if ok {
+            let n = (1..=TIRA).filter(|&k| self.ruta_tira(i, k).is_some_and(|p| p.is_file())).count();
+            self.tiras_hechas.insert(i, n);
+        } else {
+            self.tiras_fallidas.insert(i);
+        }
+    }
+
     pub fn miniatura_hecha(&mut self, i: usize, ruta: &Path) {
         if let Some(v) = ruta.file_stem() {
             self.miniaturas_hechas.insert(i, v.to_string_lossy().into_owned());
@@ -1950,6 +2217,8 @@ impl Sesion {
                     _ => self.errores.get(&i).map(|e| e.en_idioma(self.idioma)),
                 };
                 json!({
+                    // Para que la ventana recuerde a cada cue aunque cambie de lugar (Multivista).
+                    "id": c.id,
                     "numero": if c.numero.is_empty() { (i + 1).to_string() } else { c.numero.clone() },
                     "nombre": c.nombre,
                     "tipo": match c.tipo { TipoCue::Audio => "audio", TipoCue::Video => "video", TipoCue::Imagen => "imagen" },
@@ -1971,6 +2240,8 @@ impl Sesion {
                     "mudo": self.mudos.contains(&i),
                     // Foto chica lista (la ventana la pide por /miniatura?cue=N; la versión cambia con el archivo).
                     "miniatura": self.miniaturas_hechas.get(&i),
+                    // Multivista: cuántas fotos de la tira hay (la tarjeta las pasa en «movimiento»).
+                    "tira": self.tiras_hechas.get(&i).copied().unwrap_or(0),
                     "encuadre": c.encuadre,
                 })
             })
@@ -2005,6 +2276,9 @@ impl Sesion {
                     "pos_s": c.map(|c| c.inicio_ms as f64 / 1000.0).unwrap_or(0.0) + if largo > 0.0 { pasado % largo } else { pasado },
                     "fundiendo": s.fundiendo,
                     "salida": if s.destino == Destino::Auriculares { "Auriculares" } else { "Principal" },
+                    "voz": s.voz,
+                    "volumen_db": s.volumen_db,
+                    "volumen_cue_db": c.map(|c| c.volumen_db).unwrap_or(0.0),
                 })
             })
             .collect();
@@ -2033,6 +2307,7 @@ impl Sesion {
             "puede_rehacer": !self.rehechos.is_empty(),
             // Edición → Ajustes del show (etapa 5B).
             "ajustes": self.show.ajustes,
+            "palanca": self.manual.is_some(),
             "equipo": self.equipo,
             "salidas_respondidas": self.salidas_respondidas,
             "comprobacion": self.comprobacion.as_ref().map(|(p, h)| crate::comprobar::a_json(p, self.idioma, h)),

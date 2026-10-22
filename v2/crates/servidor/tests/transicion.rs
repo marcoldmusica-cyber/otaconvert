@@ -202,6 +202,12 @@ fn la_transicion_se_elige_en_ajustes_del_show() {
     s.cambiar_ajustes(&serde_json::json!({ "transicion_tipo": "negro", "transicion_ms": 2000 })).unwrap();
     let e: serde_json::Value = serde_json::from_str(&s.estado_json()).unwrap();
     assert_eq!(e["ajustes"]["transicion"], serde_json::json!({ "tipo": "negro", "ms": 2000 }));
+    // En Función: la transición y el maestro sí (son controles de la función); lo demás no.
+    s.cambiar_modo(otaconvert_servidor::Modo::Funcion);
+    s.cambiar_ajustes(&serde_json::json!({ "transicion_tipo": "corte", "volumen_maestro_db": -3.0 })).unwrap();
+    assert!(s.cambiar_ajustes(&serde_json::json!({ "rampa_inicio": 5 })).is_err());
+    assert!(s.cambiar_ajustes(&serde_json::json!({ "transicion_ms": 500, "rampa_inicio": 5 })).is_err(), "mezclado con otro ajuste: no");
+    assert_eq!(s.show.ajustes.transicion.tipo, TipoTransicion::Corte);
     // Los shows viejos (sin el ajuste) abren con la cuchilla.
     let viejo: Show = serde_json::from_str(r#"{"version_formato":1,"nombre":"x","cues":[],"ajustes":{"fundir_todo_ms":3000}}"#).unwrap();
     assert_eq!(viejo.ajustes.transicion, Transicion { tipo: TipoTransicion::Corte, ms: 1000 });
@@ -213,4 +219,67 @@ fn preparar(s: &mut Sesion) {
         let r = t.hacer();
         s.resultado_preparar(t.cue, r);
     }
+}
+
+fn volumenes(c: &[Comando]) -> Vec<(u32, f32)> {
+    c.iter().filter_map(|x| if let Comando::Volumen { id, volumen, .. } = x { Some((*id, *volumen)) } else { None }).collect()
+}
+
+#[test]
+fn la_palanca_t_mezcla_termina_y_vuelve_atras() {
+    let (mut s, son, _) = abrir(Transicion::default());
+    assert!(s.go_con(true));
+    let viejo = inicios(&son.tomar())[0].0;
+    // A mitad: lo nuevo arranca en silencio y los dos quedan a la mitad.
+    s.tbar(0.5);
+    let c = son.tomar();
+    let nuevo = inicios(&c)[0].0;
+    assert!(c.iter().any(|x| matches!(x, Comando::IniciarCue { volumen, .. } if *volumen == 0.0)), "lo nuevo arranca en silencio");
+    let v = volumenes(&c);
+    assert!(v.contains(&(viejo, 0.5)) && v.contains(&(nuevo, 0.5)), "{v:?}");
+    assert!(paradas(&c).is_empty(), "a mitad no se para nada");
+    assert!(s.palanca_en_curso());
+    assert_eq!(sonando(&s), 2);
+    // Abajo del todo: termina como un GO (lo de antes se va).
+    s.tbar(1.0);
+    let c = son.tomar();
+    assert_eq!(paradas(&c).iter().map(|p| p.0).collect::<Vec<_>>(), vec![viejo]);
+    assert!(volumenes(&c).contains(&(nuevo, 1.0)));
+    assert!(!s.palanca_en_curso());
+    assert_eq!(sonando(&s), 1);
+    // Otra vez, pero de vuelta arriba: lo nuevo se va y el cue sigue en espera.
+    s.en_espera = 0;
+    preparar(&mut s);
+    son.tomar();
+    let espera = s.en_espera;
+    s.tbar(0.4);
+    let c = son.tomar();
+    let tercero = inicios(&c)[0].0;
+    s.tbar(0.0);
+    let c = son.tomar();
+    assert_eq!(paradas(&c).iter().map(|p| p.0).collect::<Vec<_>>(), vec![tercero]);
+    assert!(volumenes(&c).contains(&(nuevo, 1.0)), "lo de antes vuelve a su volumen");
+    assert_eq!(s.en_espera, espera, "el cue sigue en espera");
+    assert_eq!(sonando(&s), 1);
+    // Parar todo en plena palanca: no queda nada a medias.
+    s.tbar(0.5);
+    s.parar_todo();
+    assert!(!s.palanca_en_curso());
+}
+
+#[test]
+fn el_volumen_en_vivo_no_cambia_el_show() {
+    let (mut s, son, _) = abrir(Transicion::default());
+    assert!(s.go());
+    let id = inicios(&son.tomar())[0].0;
+    s.volumen_vivo(id, -6.0).unwrap();
+    let v = volumenes(&son.tomar());
+    assert_eq!(v.len(), 1);
+    assert!((v[0].1 - 0.501).abs() < 0.01, "{v:?}");
+    assert_eq!(s.show.cues[0].volumen_db, 0.0, "el show no cambia");
+    assert!(s.volumen_vivo(id, 40.0).is_err());
+    // En Función también vale.
+    s.cambiar_modo(otaconvert_servidor::Modo::Funcion);
+    s.volumen_vivo(id, -3.0).unwrap();
+    assert_eq!(volumenes(&son.tomar()).len(), 1);
 }

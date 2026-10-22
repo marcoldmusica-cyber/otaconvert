@@ -252,7 +252,7 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
 <section class="card" id="primer-show">
   <h2>Tu primer show en 5 pasos</h2>
   <ol class="pasos">
-    <li><div><strong>Archivo → Nuevo show</strong> y elige la carpeta de tu obra.</div></li>
+    <li><div><strong>Archivo → Nuevo show</strong> (<kbd>Ctrl</kbd> <kbd>N</kbd>): escribe el nombre del show y elige una carpeta vacía (en esa misma ventana puedes crear una carpeta nueva). El programa se abre vacío, listo para cargar todo desde cero. El «Show de ejemplo» sigue ahí para practicar.</div></li>
     <li><div>Arrastra tus archivos desde el Explorador de Windows a la ventana (o usa <strong>Edición → Agregar cues…</strong>). Cada archivo se convierte en un cue.</div></li>
     <li><div>Ordénalos como van en la obra arrastrando cada fila. Si quieres, ponles el mismo número que en el libreto (1, 1.5, 2A…) y una nota para acordarte de cuándo van.</div></li>
     <li><div>Toca un cue y ajusta en el panel derecho: volumen, si aparece despacito (fundido), si se repite (bucle).</div></li>
@@ -343,6 +343,15 @@ footer{text-align:center;color:var(--dim);font-size:13px;padding:8px 0 24px}
     <li><strong>Blackout:</strong> lo anterior se funde a negro y a silencio y lo nuevo aparece desde negro. La mitad del tiempo baja y la otra mitad sube.</li>
   </ul>
   <p>Con 0 ms, el fundido y el blackout son un corte. Si das otro GO en plena transición, la transición termina al instante y sale el nuevo; <kbd>Esc</kbd> para todo, como siempre. En la Vista Lista nada de esto se usa: los cues se superponen.</p>
+  <h3>La Vista Estudio como OBS <span class="estado ya">Ya funciona</span></h3>
+  <p>Arriba ves la <strong>Vista previa</strong> (lo que viene, borde azul) y el <strong>Programa</strong> (lo que está al aire, borde rojo). En el medio, el <strong>GO</strong> de la transición, la <strong>palanca T</strong> para fundir a mano (bájala despacio: lo nuevo aparece; si la subes de nuevo, todo vuelve atrás) y el <strong>Corte rápido</strong> (saca la Previa de golpe, aunque la transición sea un fundido). En los últimos 10 segundos la cuenta del Programa se pone amarilla y en los últimos 3, roja.</p>
+  <p>Abajo hay <strong>paneles</strong> que puedes acomodar como quieras arrastrando su agarre <strong>⋮⋮</strong>: Escenas, Multivista, Controles (GO, Pausa, Fundir todo y Parar todo: se mueven, pero nunca se esconden), Transiciones, Mezclador (medidores y un fader por cada cosa que suena, para subirla o bajarla en el momento sin cambiar el show), Fuentes (las partes de la escena elegida) y la Botonera. <strong>Vista → Restaurar vista</strong> los deja como venían; <strong>Vista → Distribuciones de paneles</strong> guarda tus arreglos con un nombre.</p>
+  <p><strong>Multivista</strong> (Vista → Multivista): todas las escenas como fichas. Un clic la manda a la Previa; doble clic, al aire. Ordénalas por lista, libre (arrastrando, en grupos como «Acto 1»), por tipo o por nombre. Cada ficha tiene ▶/⏸ para verla en movimiento y 🎧 para escucharla <strong>solo por tus auriculares</strong> (el programa nunca deja que eso suene en la sala). Para no cargar el equipo, el movimiento son unas fotos chicas, no el vídeo.</p>
+  <p><strong>Modo cabina</strong> (F11): pantalla completa con solo lo necesario. <strong>Vista → Rendimiento → Liviano</strong>: sin brillos ni animaciones, para equipos justos (en Automático pasa solo si nota que la ventana se traba).</p>
+  <h3>Atajos de teclado a tu gusto <span class="estado ya">Ya funciona</span></h3>
+  <p>En <strong>Ayuda → Atajos de teclado</strong> enciendes, apagas o cambias la tecla de cada atajo (toca la tecla y pulsa la nueva). Hay juegos de un clic: <strong>Mínimo y seguro</strong>, <strong>Recomendado</strong> y <strong>Completo</strong>. Te avisa si dos atajos chocan o si una tecla la usa la botonera. <kbd>Esc</kbd> siempre para todo y no se puede cambiar. Sobre cualquier fader, la <strong>rueda del ratón</strong> lo mueve de a 0,5 dB (con Mayús, de a 0,1; con Ctrl, de a 3), sin escalones en el sonido; doble clic lo vuelve a su valor.</p>
+  <h3>Tema Espacio exterior <span class="estado ya">Ya funciona</span></h3>
+  <p>En <strong>Vista → Espacio exterior</strong>: estrellas, nebulosas y paneles como el tablero de una nave. Solo cambia cómo se ve.</p>
   <p>En la vista previa de un vídeo:</p>
   <ul>
     <li>Ves su <strong>primer cuadro</strong>. Con <strong>▶</strong> se reproduce ahí mismo, sin sonido y sin que lo vea el público; con la barra lo recorres.</li>

@@ -34,6 +34,12 @@ pub enum OrdenProyector {
     /// Como `Mostrar`, con la transición de la Vista Estudio (fundido cruzado o
     /// blackout) en lugar del corte.
     MostrarCon { id: u64, transicion: otaconvert_show::Transicion },
+    /// Palanca T: sube lo nuevo transparente; `Alfa` dice cuánto se ve; se
+    /// termina con `ManualFin` o se vuelve atrás con `ManualCancelar`.
+    MostrarManual { id: u64 },
+    Alfa(f32),
+    ManualFin,
+    ManualCancelar,
     /// Parar todo: telón negro al instante.
     Negro,
     /// Fundir a negro en `ms`.

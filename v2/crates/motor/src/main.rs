@@ -189,8 +189,14 @@ fn main() -> ExitCode {
         Some("--miniatura") => match (args.get(1), args.get(2)) {
             (Some(a), Some(s)) => {
                 vigilante::sin_ventanas_de_error();
-                let inicio = args.get(3).and_then(|x| x.parse::<f64>().ok()).unwrap_or(0.0);
-                miniatura::ejecutar(std::path::Path::new(a), std::path::Path::new(s), inicio)
+                // En segundos, o «N%» del vídeo (las fotos de la tira de la Multivista).
+                let inicio = match args.get(3) {
+                    Some(x) if x.ends_with('%') => x.trim_end_matches('%').parse::<f64>().ok().filter(|p| (0.0..=100.0).contains(p)).map(|p| format!("{p:.1}%")),
+                    Some(x) => x.parse::<f64>().ok().map(|s| format!("{:.3}", s.max(0.0))),
+                    None => None,
+                }
+                .unwrap_or_else(|| "0".into());
+                miniatura::ejecutar(std::path::Path::new(a), std::path::Path::new(s), &inicio)
             }
             _ => Err("uso: --miniatura <archivo> <salida.jpg> [inicio_s]".into()),
         },

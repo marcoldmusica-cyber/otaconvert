@@ -56,41 +56,58 @@ fn generar_miniaturas(sesion: Arc<Mutex<Sesion>>) {
     const PRIORIDAD_BAJA: u32 = 0x0000_4000; // BELOW_NORMAL_PRIORITY_CLASS
     const SIN_VENTANA: u32 = 0x0800_0000; // CREATE_NO_WINDOW
     let Ok(exe) = std::env::current_exe() else { return };
+    // Una foto en un proceso aparte, con prioridad baja, sin ventana y con límite de tiempo.
+    let foto = |archivo: &Path, destino: &Path, punto: &str| -> bool {
+        destino.parent().is_some_and(|d| std::fs::create_dir_all(d).is_ok())
+            && std::process::Command::new(&exe)
+                .arg("--miniatura")
+                .arg(archivo)
+                .arg(destino)
+                .arg(punto)
+                .stdin(std::process::Stdio::null())
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .creation_flags(PRIORIDAD_BAJA | SIN_VENTANA)
+                .spawn()
+                .ok()
+                .and_then(|mut h| {
+                    let fin = std::time::Instant::now() + std::time::Duration::from_secs(20);
+                    loop {
+                        match h.try_wait() {
+                            Ok(Some(e)) => return Some(e.success()),
+                            Ok(None) if std::time::Instant::now() < fin => std::thread::sleep(std::time::Duration::from_millis(50)),
+                            _ => {
+                                let _ = h.kill();
+                                let _ = h.wait();
+                                return Some(false);
+                            }
+                        }
+                    }
+                })
+                .unwrap_or(false)
+            && destino.is_file()
+    };
     loop {
         let pendientes = sesion.lock().map(|mut s| s.miniaturas_pendientes()).unwrap_or_default();
         if pendientes.is_empty() {
-            std::thread::sleep(std::time::Duration::from_secs(2));
+            // Sin miniaturas que hacer: de a una, las fotos de las tiras de la
+            // Multivista (solo con la Multivista abierta), con una pausa entre
+            // foto y foto para no cargar el equipo.
+            let tira = sesion.lock().ok().and_then(|mut s| s.tira_pendiente());
+            match tira {
+                Some((i, _k, archivo, destino, pct)) => {
+                    let ok = foto(&archivo, &destino, &format!("{pct:.1}%"));
+                    if let Ok(mut s) = sesion.lock() {
+                        s.tira_hecha(i, ok);
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(300));
+                }
+                None => std::thread::sleep(std::time::Duration::from_secs(2)),
+            }
             continue;
         }
         for (i, archivo, destino, inicio) in pendientes {
-            let ok = destino.parent().is_some_and(|d| std::fs::create_dir_all(d).is_ok())
-                && std::process::Command::new(&exe)
-                    .arg("--miniatura")
-                    .arg(&archivo)
-                    .arg(&destino)
-                    .arg(format!("{inicio:.3}"))
-                    .stdin(std::process::Stdio::null())
-                    .stdout(std::process::Stdio::null())
-                    .stderr(std::process::Stdio::null())
-                    .creation_flags(PRIORIDAD_BAJA | SIN_VENTANA)
-                    .spawn()
-                    .ok()
-                    .and_then(|mut h| {
-                        let fin = std::time::Instant::now() + std::time::Duration::from_secs(20);
-                        loop {
-                            match h.try_wait() {
-                                Ok(Some(e)) => return Some(e.success()),
-                                Ok(None) if std::time::Instant::now() < fin => std::thread::sleep(std::time::Duration::from_millis(50)),
-                                _ => {
-                                    let _ = h.kill();
-                                    let _ = h.wait();
-                                    return Some(false);
-                                }
-                            }
-                        }
-                    })
-                    .unwrap_or(false)
-                && destino.is_file();
+            let ok = foto(&archivo, &destino, &format!("{inicio:.3}"));
             if let Ok(mut s) = sesion.lock() {
                 if ok {
                     s.miniatura_hecha(i, &destino);
@@ -375,9 +392,9 @@ pub fn abrir(
     let (tx_pedidos, rx_pedidos) = std::sync::mpsc::channel::<(String, Option<String>, std::sync::mpsc::Sender<Result<(), Texto>>)>();
     // Archivo → Abrir…: el diálogo de Windows, en el idioma del programa.
     let s_idioma2 = sesion.clone();
-    srv.al_abrir_show(Arc::new(move || {
+    srv.al_abrir_show(Arc::new(move |nuevo: bool| {
         let ingles = s_idioma2.lock().map(|s| s.idioma == otaconvert_servidor::Idioma::En).unwrap_or(false);
-        crate::dialogo::elegir_show(ingles)
+        if nuevo { crate::dialogo::nuevo_show(ingles) } else { crate::dialogo::elegir_show(ingles) }
     }));
     // Luz verde: lo que se revisa de este equipo, además del show.
     srv.al_comprobar_equipo(Arc::new(crate::equipo_salidas::comprobar_equipo));
@@ -417,8 +434,9 @@ pub fn abrir(
         if let Ok((que, id, resp)) = rx_pedidos.recv_timeout(std::time::Duration::from_millis(500)) {
             // Archivo → Abrir…: se guarda este show y un motor nuevo abre el otro
             // (mismo programa, misma salida de mensajes); este termina.
-            if que == "abrir_show" {
-                let r = abrir_otro_show(&sesion, id.as_deref());
+            if que == "abrir_show" || que == "nuevo_show" {
+                // Show nuevo: se crea vacío (con su carpeta Medios) y se abre igual que Abrir….
+                let r = if que == "nuevo_show" { crear_show_vacio(id.as_deref()) } else { Ok(()) }.and_then(|_| abrir_otro_show(&sesion, id.as_deref()));
                 let ok = r.is_ok();
                 let _ = resp.send(r);
                 if ok {
@@ -534,6 +552,14 @@ fn cambiar_salida(
         "principal" => (id.clone(), actual_aur),
         _ => (Some(abiertas.0.id.clone()), id.clone()),
     };
+    // Auriculares nunca puede ser la misma tarjeta que la sala: lo que se escucha
+    // de prueba (Ver antes, Multivista) sonaría para el público.
+    if p_id.is_some() && p_id == a_id {
+        return Err(Texto::nuevo(
+            "Auriculares no puede ser la misma tarjeta que la sala (Principal): lo que escuchas de prueba lo oiría el público. Elige otra tarjeta o «Sin usar».",
+            "Headphones can't be the same card as the house (Main): what you listen to would be heard by the audience. Choose another card or \"Not used\".",
+        ));
+    }
     let (nuevo, aviso) = crate::equipo_salidas::abrir_sonido(p_id.as_deref(), a_id.as_deref(), margen_ms).map_err(|e| {
         Texto::nuevo(format!("No se pudo abrir esa tarjeta: {e}. Sigue sonando por la que estaba."), format!("That card could not be opened: {e}. Sound stays on the previous one."))
     })?;
@@ -650,4 +676,46 @@ fn abrir_otro_show(sesion: &Arc<Mutex<Sesion>>, ruta: Option<&str>) -> Result<()
         .map_err(|e| Texto::nuevo(format!("No se pudo abrir el otro show: {e}"), format!("The other show could not be opened: {e}")))?;
     s.anotar("CERRAR", &format!("Se abre otro show: {}", ruta.display()));
     Ok(())
+}
+
+/// Archivo → Nuevo show…: un show vacío en el archivo elegido, con su carpeta
+/// `Medios` al lado. Nunca pisa un show que ya existe.
+fn crear_show_vacio(ruta: Option<&str>) -> Result<(), otaconvert_servidor::Texto> {
+    use otaconvert_servidor::Texto;
+    let mut ruta = std::path::PathBuf::from(ruta.ok_or_else(|| Texto::nuevo("Falta el nombre del show.", "The show name is missing."))?);
+    if ruta.extension().map(|x| x.to_string_lossy().to_lowercase()) != Some(otaconvert_show::EXTENSION.into()) {
+        ruta.set_extension(otaconvert_show::EXTENSION);
+    }
+    if ruta.exists() {
+        return Err(Texto::nuevo("Ya hay un show con ese nombre en esa carpeta: elige otro nombre o ábrelo con Archivo → Abrir….", "There is already a show with that name in that folder: choose another name or open it with File → Open…."));
+    }
+    let carpeta = ruta.parent().ok_or_else(|| Texto::nuevo("Carpeta no válida.", "Invalid folder."))?;
+    let nombre = ruta.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| "Show".into());
+    let show = otaconvert_show::Show { nombre, ..Default::default() };
+    otaconvert_show::guardar(&show, &ruta, &otaconvert_show::marca_de_tiempo())
+        .map_err(|e| Texto::nuevo(format!("No se pudo crear el show: {e}"), format!("The show could not be created: {e}")))?;
+    let _ = std::fs::create_dir_all(carpeta.join("Medios"));
+    Ok(())
+}
+
+#[cfg(test)]
+mod prueba_show_nuevo {
+    #[test]
+    fn un_show_nuevo_se_crea_vacio_y_no_pisa_otro() {
+        let d = std::env::temp_dir().join(format!("otaconvert-show-nuevo-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        // Sin extensión: se le pone .otashow.
+        let ruta = d.join("Mi obra");
+        super::crear_show_vacio(Some(&ruta.to_string_lossy())).unwrap();
+        let archivo = d.join("Mi obra.otashow");
+        assert!(archivo.is_file());
+        assert!(d.join("Medios").is_dir(), "con su carpeta Medios");
+        let s = otaconvert_servidor::Sesion::abrir(&archivo).unwrap();
+        assert!(s.show.cues.is_empty());
+        assert_eq!(s.show.nombre, "Mi obra");
+        // Nunca pisa uno que ya existe.
+        assert!(super::crear_show_vacio(Some(&archivo.to_string_lossy())).is_err());
+        let _ = std::fs::remove_dir_all(&d);
+    }
 }

@@ -122,6 +122,10 @@ pub fn abrir_sonido(principal: Option<&str>, auriculares: Option<&str>, margen_m
     let mut control_aur = None;
     if let Some(a) = auriculares {
         match crate::sonido_cpal::abrir_salida(Some(a), margen_ms) {
+            // La misma tarjeta que la sala: lo que se escucha de prueba lo oiría el público.
+            Ok(s) if s.id == p.id => {
+                aviso = Some(format!("Auriculares ({}) es la misma tarjeta que la sala (Principal): queda sin usar para que lo que escuchas de prueba no lo oiga el público.", s.nombre))
+            }
             Ok(s) if s.frecuencia == frecuencia => {
                 control_aur = Some(s.control);
                 aur = Some(Abierta { stream: s.stream, id: s.id, nombre: s.nombre, errores: s.errores, tardias: s.tardias, intervalo_max_us: s.intervalo_max_us });
