@@ -1206,3 +1206,4 @@ Pedido del usuario: "Sí, sigue con la etapa 5." Repartida en cuatro partes que 
   2. palanca T, Corte rápido, avisos y teclas 1–9;
   3. Multivista;
   4. mezclador con volumen por cue (toca el motor de audio: **avisar antes**).
+- **Pedido del usuario (22/10/2026):** los atajos deben ser **opcionales**. Las teclas 1–9 que mandan una escena a la Previa se encienden y apagan en el menú Vista, con su consejo, y vienen **apagadas**. Motivo extra: la botonera ya puede usar números como teclas; si se encienden las dos cosas, se avisa qué tecla choca y gana la botonera.
