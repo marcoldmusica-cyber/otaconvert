@@ -1207,3 +1207,18 @@ Pedido del usuario: "Sí, sigue con la etapa 5." Repartida en cuatro partes que 
   3. Multivista;
   4. mezclador con volumen por cue (toca el motor de audio: **avisar antes**).
 - **Pedido del usuario (22/10/2026):** los atajos deben ser **opcionales**. Las teclas 1–9 que mandan una escena a la Previa se encienden y apagan en el menú Vista, con su consejo, y vienen **apagadas**. Motivo extra: la botonera ya puede usar números como teclas; si se encienden las dos cosas, se avisa qué tecla choca y gana la botonera.
+- **Pedido del usuario (22/10/2026): «un gran apartado de atajos de todo tipo, incluyendo recomendaciones»**, con atajos para **mover todos los faders**, también con la **rueda del ratón**, **sin que se note el paso a paso**. Lo resuelve Claude así (parte nueva **5: Atajos**):
+  - **Faders con la rueda:**
+    - Sobre cualquier fader (volumen del cue, maestro, volumen por cue del mezclador, palanca T, duración de la transición), la rueda mueve **0,5 dB por paso**; con **Mayús**, 0,1 dB (fino); con **Ctrl**, 3 dB.
+    - El dibujo del fader se **desliza** hasta el valor nuevo (sin saltos) y el motor ya cambia el volumen con su rampa (`Ajustes.volumen`, 5 ms como mínimo), así que no se oye ningún escalón.
+    - Los pasos rápidos de la rueda se juntan y se mandan como mucho cada 40 ms.
+    - **Doble clic** en un fader = vuelve a su valor normal (0 dB o el de fábrica).
+    - Con el foco en un fader, también **↑ ↓ ← →**, **Re Pág / Av Pág** (3 dB) e **Inicio** (valor normal).
+  - **Editor de atajos** (Ayuda → Atajos de teclado pasa a ser editable):
+    - Por grupos: Función, Edición, Vista Estudio, Botonera, Faders, Ventana.
+    - Cada atajo se puede **encender o apagar** y **cambiar de tecla**; avisa si dos chocan.
+    - Cada uno con su **consejo**: para qué sirve, cuándo conviene y un ejemplo de escena.
+    - **Juegos recomendados** de un clic: «Mínimo y seguro» (solo GO, Esc, P, F), «Recomendado» (el de fábrica) y «Completo (como QLab/OBS)».
+    - «Restaurar los recomendados» siempre a mano.
+    - Se guarda en el equipo; más adelante, en los perfiles de operador.
+  - **Reglas que no cambian:** **Esc = Parar todo** y **Espacio = GO** se pueden cambiar de tecla pero **nunca apagar**. Escribiendo en un campo, las teclas sueltas no disparan nada (Esc sí).
