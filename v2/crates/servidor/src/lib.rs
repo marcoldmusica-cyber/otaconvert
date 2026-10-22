@@ -812,6 +812,10 @@ fn ejecutar(ctx: &Arc<Contexto>, texto: &str) {
                     s.aviso = Some(e);
                 }
             }
+            Some("silenciar_vivo") => {
+                let id = v.get("id").and_then(|x| x.as_u64()).unwrap_or(0) as u32;
+                s.silenciar_vivo(id, v.get("si").and_then(|x| x.as_bool()).unwrap_or(false));
+            }
             Some("parar_todo") => s.parar_todo(),
             Some("pausa") => s.pausa(),
             Some("fundir_todo") => s.fundir_todo(),

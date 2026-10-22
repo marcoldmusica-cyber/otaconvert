@@ -268,6 +268,7 @@
       "ctx_salida_video": "Salida de vídeo (proyector)",
       "ctx_salida_bloqueada": "Para cambiarla: modo Edición y nada sonando (Esc).",
       "ctx_pista": "Clic derecho: elegir la salida de vídeo",
+      "silenciar": "Silenciar / volver a sonar",
       "ocultar_panel": "Ocultar este panel (vuelve desde el menú Paneles)",
       "bloquear_paneles": "Bloquear paneles",
       "restablecer_paneles": "Restablecer paneles",
@@ -440,6 +441,14 @@
         "ejemplo_activar": "Ej.: empiezas a preparar la nueva obra de la compañía.",
         "desactivar": "Si solo quieres seguir trabajando un show que ya existe, usa Abrir.",
         "ejemplo_desactivar": "Ej.: retomas el show de ayer para corregir dos cues."
+      },
+      "silenciar": {
+        "titulo": "Silenciar este canal",
+        "que_hace": "El botón del altavoz silencia solo este sonido, como en OBS. Sigue avanzando en silencio y el show no cambia.",
+        "activar": "Para sacar un sonido un momento sin que pierda su lugar.",
+        "ejemplo_activar": "Ej.: la lluvia debe callar durante un parlamento y volver por donde iba.",
+        "desactivar": "Para terminarlo del todo, mejor Parar o Fundir ese sonido.",
+        "ejemplo_desactivar": "Ej.: terminó la música de la fiesta: fúndela, no la dejes silenciada."
       },
       "menu_paneles": {
         "titulo": "Mostrar u ocultar paneles",
@@ -1477,6 +1486,7 @@
       "ctx_salida_video": "Video output (projector)",
       "ctx_salida_bloqueada": "To change it: Edit mode and nothing playing (Esc).",
       "ctx_pista": "Right-click: choose the video output",
+      "silenciar": "Mute / unmute",
       "ocultar_panel": "Hide this panel (bring it back from the Docks menu)",
       "bloquear_paneles": "Lock docks",
       "restablecer_paneles": "Reset docks",
@@ -1673,6 +1683,14 @@
         "ejemplo_activar": "E.g.: you start preparing the company's new play.",
         "desactivar": "If you just want to keep working on an existing show, use Open.",
         "ejemplo_desactivar": "E.g.: you pick up yesterday's show to fix two cues."
+      },
+      "silenciar": {
+        "titulo": "Mute this channel",
+        "que_hace": "The speaker button mutes only this sound, like in OBS. It keeps playing silently and the show is not changed.",
+        "activar": "To take a sound out for a moment without losing its place.",
+        "ejemplo_activar": "E.g.: the rain must stop during a line and come back where it was.",
+        "desactivar": "To end it for good, use Stop or Fade on that sound instead.",
+        "ejemplo_desactivar": "E.g.: the party music is over: fade it out, don't just mute it."
       },
       "menu_paneles": {
         "titulo": "Show or hide panels",

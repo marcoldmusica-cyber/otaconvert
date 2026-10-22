@@ -58,6 +58,8 @@ struct Sonando {
     /// Volumen en vivo (fader del Mezclador de la Vista Estudio), en dB. Empieza
     /// en el del cue; cambiarlo no toca el show.
     volumen_db: f32,
+    /// Silenciado desde el Mezclador (botón del altavoz, como en OBS). No toca el show.
+    silenciado: bool,
 }
 
 /// Palanca T (Vista Estudio): lo que había y lo que entra, para mezclarlos a
@@ -812,7 +814,7 @@ impl Sesion {
             if pos < 0.02 {
                 return;
             }
-            let viejos: Vec<_> = self.sonando.iter().map(|s| (s.id, s.destino, s.volumen_db, s.voz, s.visual)).collect();
+            let viejos: Vec<_> = self.sonando.iter().map(|s| (s.id, s.destino, if s.silenciado { f32::NEG_INFINITY } else { s.volumen_db }, s.voz, s.visual)).collect();
             let (espera, ultimo) = (self.en_espera, self.ultimo_disparado);
             self.en_manual = true;
             self.reemplazo = Some(otaconvert_show::Transicion { tipo: TipoTransicion::Fundido, ms: 0 });
@@ -824,7 +826,7 @@ impl Sesion {
                 return;
             }
             let antes: Vec<u32> = viejos.iter().map(|v| v.0).collect();
-            let nuevos: Vec<_> = self.sonando.iter().filter(|s| !antes.contains(&s.id)).map(|s| (s.id, s.destino, s.volumen_db, s.voz, s.visual)).collect();
+            let nuevos: Vec<_> = self.sonando.iter().filter(|s| !antes.contains(&s.id)).map(|s| (s.id, s.destino, if s.silenciado { f32::NEG_INFINITY } else { s.volumen_db }, s.voz, s.visual)).collect();
             let visual_nuevo = nuevos.iter().any(|n| n.4);
             self.manual = Some(Manual { viejos, nuevos, visual_nuevo, en_espera_antes: espera, ultimo_antes: ultimo });
         }
@@ -1235,6 +1237,7 @@ impl Sesion {
             voz: voz.is_some(),
             duracion_visual: duracion,
             volumen_db: c.volumen_db,
+            silenciado: false,
         });
     }
 
@@ -1353,6 +1356,7 @@ impl Sesion {
                 voz: true,
                 duracion_visual: None,
                 volumen_db: c.volumen_db,
+                silenciado: false,
             });
         }
     }
@@ -1794,12 +1798,36 @@ impl Sesion {
         }
         let Some(s) = self.sonando.iter_mut().find(|s| s.id == id && s.voz) else { return Ok(()) };
         s.volumen_db = db;
+        // Silenciado: se recuerda el volumen nuevo, pero sigue sin sonar.
+        if s.silenciado {
+            return Ok(());
+        }
         let destino = s.destino;
         let cuadros = self.cuadros(50) as u32;
         if let Some(son) = self.sonido.as_mut() {
             let _ = son.enviar(destino, Comando::Volumen { id, volumen: db_a_lineal(db), cuadros });
         }
         Ok(())
+    }
+
+    /// Mezclador (Vista Estudio): silencia o vuelve a dejar sonar una sola cosa
+    /// que suena, con la rampa de 50 ms (sin clic), como el botón del altavoz de
+    /// OBS. Sigue sonando por debajo (no se para ni pierde su lugar) y no toca
+    /// el show. Vale también en Función.
+    pub fn silenciar_vivo(&mut self, id: u32, si: bool) {
+        let Some(s) = self.sonando.iter_mut().find(|s| s.id == id && s.voz) else { return };
+        if s.silenciado == si {
+            return;
+        }
+        s.silenciado = si;
+        let (destino, volumen) = (s.destino, if si { 0.0 } else { db_a_lineal(s.volumen_db) });
+        let cue = s.cue;
+        let cuadros = self.cuadros(50) as u32;
+        if let Some(son) = self.sonido.as_mut() {
+            let _ = son.enviar(destino, Comando::Volumen { id, volumen, cuadros });
+        }
+        let nombre = self.show.cues.get(cue).map(|c| c.nombre.clone()).unwrap_or_default();
+        self.registro.anotar("SILENCIO", &format!("{} {nombre}", if si { "silencia" } else { "vuelve a sonar" }));
     }
 
     /// Panel Sonando (etapa 5C): para solo lo que suena con este `id`, con la
@@ -2278,6 +2306,7 @@ impl Sesion {
                     "salida": if s.destino == Destino::Auriculares { "Auriculares" } else { "Principal" },
                     "voz": s.voz,
                     "volumen_db": s.volumen_db,
+                    "silenciado": s.silenciado,
                     "volumen_cue_db": c.map(|c| c.volumen_db).unwrap_or(0.0),
                 })
             })

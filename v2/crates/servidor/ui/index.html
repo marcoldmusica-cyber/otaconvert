@@ -555,6 +555,15 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
 .canal .k{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .canal.maestro .k{color:var(--text);font-weight:700}
 .canal .fader2{grid-column:2/4;display:grid;grid-template-columns:minmax(0,1fr) 58px;align-items:center;gap:6px}
+.canal.voz{grid-template-columns:minmax(0,1fr)}.canal.voz .fader2{grid-column:1}
+.voz-cab{display:flex;align-items:center;gap:6px;min-width:0}.voz-cab .k{flex:1;min-width:0}
+.mute{border:1px solid var(--border);background:var(--card);border-radius:6px;padding:0 6px;font-size:12px;line-height:20px;cursor:pointer}
+.mute[aria-pressed="true"]{border-color:var(--err);background:color-mix(in srgb,var(--err) 18%,transparent)}
+.canal.silenciado .fader2{opacity:.45}
+.dock-barra{display:flex;gap:4px;padding-top:6px;border-top:1px solid var(--border);margin-top:6px}
+.dock-b{flex:none;width:30px;height:24px;border:1px solid var(--border);background:var(--card);border-radius:6px;font-size:15px;line-height:1;cursor:pointer;color:var(--text)}
+.dock-b:hover:not(:disabled){background:var(--hover)}.dock-b:disabled{opacity:.4;cursor:default}
+.tr-sel{min-width:0;flex:1}
 .leds{display:flex;flex-direction:column;gap:2px}
 .led{position:relative;height:6px;border-radius:2px;background:rgba(0,0,0,.35);overflow:hidden}
 .led i{position:absolute;inset:0 auto 0 0;width:0;background:repeating-linear-gradient(90deg,transparent 0 3px,rgba(0,0,0,.55) 3px 4px),linear-gradient(90deg,var(--ok) 0 70%,var(--warn) 70% 90%,var(--err) 90%);background-size:100% 100%,var(--ancho-led,100%) 100%}
@@ -1316,6 +1325,17 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     document.querySelector("main.body").appendChild(est);
     // Lo que ya existía se muda a los paneles.
     var de = $("dock-escenas"); de.appendChild($("buscar").parentNode); de.appendChild($("lista"));
+    // Abajo, como en OBS: + agregar, − quitar, ↑ ↓ cambiar el orden.
+    var bar = el("div", "dock-barra"); bar.id = "escenasBarra";
+    [["+", "agregar_cues", function () { dialogoAgregar(); }, "agregar"],
+     ["−", "eliminar_cue", function () { eliminarCue(); }, ""],
+     ["↑", "subir_cue", function () { moverCue(-1); }, ""],
+     ["↓", "bajar_cue", function () { moverCue(1); }, ""]].forEach(function (x) {
+      var b = el("button", "dock-b", x[0]); b.type = "button"; b.title = T(x[1]); b.setAttribute("aria-label", T(x[1]));
+      b.onclick = function () { if (!ayudando) x[2](); };
+      bar.appendChild(b);
+    });
+    de.appendChild(bar);
     $("dock-botonera").appendChild($("botonera"));
     var dc = $("dock-controles"); dc.appendChild($("go")); dc.appendChild(document.querySelector(".side-btns"));
     // Fuentes y propiedades del cue elegido; mezclador; transiciones.
@@ -1341,6 +1361,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
   }
   function dibujarEstudio(funcion) {
     armarEstudio();
+    [].forEach.call($("escenasBarra").children, function (b, k) { b.disabled = !puedeEditar() || (k > 0 && !e.cues[e.en_espera]); });
     dibujarPrevia();
     dibujarAire();
     dibujarFuentes(funcion);
@@ -1447,15 +1468,14 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     if (clave === transClave) return;
     transClave = clave;
     var d = $("dock-transiciones"); d.textContent = "";
-    var op = el("div", "opc");
-    TRANS.forEach(function (x) {
-      var b = el("button", "opc-b" + (tr.tipo === x[0] ? " on" : "")); b.type = "button"; b.dataset.consejo = "transicion";
-      b.setAttribute("aria-pressed", String(tr.tipo === x[0]));
-      b.appendChild(iconoTrans(x[0])); b.appendChild(el("span", "", T(x[1])));
-      b.onclick = function () { mandar("ajustes", { cambios: { transicion_tipo: x[0] } }); };
-      op.appendChild(b);
-    });
-    d.appendChild(op);
+    // Como el panel «Transiciones de escena» de OBS: una lista desplegable con la
+    // transición activa y debajo su duración.
+    var fs = el("label", "dur"); fs.appendChild(el("span", "", T("transicion")));
+    var sel = el("select", "tr-sel"); sel.id = "trSel";
+    TRANS.forEach(function (x) { var o = el("option", "", T(x[1])); o.value = x[0]; o.selected = tr.tipo === x[0]; sel.appendChild(o); });
+    sel.onchange = function () { mandar("ajustes", { cambios: { transicion_tipo: sel.value } }); };
+    fs.appendChild(sel); fs.appendChild(botonConsejo("transicion"));
+    d.appendChild(fs);
     var f = el("label", "dur"); f.appendChild(el("span", "", T("transicion_dur")));
     var n = el("input"); n.type = "number"; n.min = 0; n.max = 10000; n.step = 100; n.value = tr.ms; n.className = "num fader-num"; n.id = "trMs";
     n.dataset.fader = "transicion_ms";
@@ -2000,14 +2020,30 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     var vs = $("mzVoces");
     lista.forEach(function (s) {
       vistos[s.id] = true;
-      if (mz.voces[s.id]) { mz.voces[s.id].f.ponerValor(s.volumen_db != null ? s.volumen_db : 0); return; }
+      if (mz.voces[s.id]) {
+        var vz = mz.voces[s.id];
+        vz.f.ponerValor(s.volumen_db != null ? s.volumen_db : 0);
+        vz.mute.setAttribute("aria-pressed", String(!!s.silenciado)); vz.mute.textContent = s.silenciado ? "🔇" : "🔊";
+        vz.fila.classList.toggle("silenciado", !!s.silenciado);
+        return;
+      }
+      // Como cada canal del Mezclador de audio de OBS: nombre, nivel en dB,
+      // fader y el altavoz para silenciar (sigue sonando por debajo).
       var fila = el("div", "canal voz");
-      fila.appendChild(el("span", "k", (s.visual ? "🎞 " : "♪ ") + s.nombre));
+      var cab = el("div", "voz-cab");
+      cab.appendChild(el("span", "k", (s.visual ? "🎞 " : "♪ ") + s.nombre));
+      var mute = el("button", "mute", s.silenciado ? "🔇" : "🔊"); mute.type = "button";
+      mute.setAttribute("aria-pressed", String(!!s.silenciado)); mute.dataset.consejo = "silenciar";
+      mute.title = T("silenciar"); mute.setAttribute("aria-label", T("silenciar"));
+      mute.onclick = function () { if (!ayudando) mandar("silenciar_vivo", { id: s.id, si: mute.getAttribute("aria-pressed") !== "true" }); };
+      cab.appendChild(mute);
+      fila.appendChild(cab);
       var fd = fader({ min: -60, max: 12, valor: s.volumen_db != null ? s.volumen_db : 0, normal: s.volumen_cue_db != null ? s.volumen_cue_db : 0, texto: fmtDb, consejo: "volumen_vivo", etiqueta: s.nombre,
         cambio: function (x) { mandar("volumen_vivo", { id: s.id, db: x }); } });
       fila.appendChild(fd);
+      fila.classList.toggle("silenciado", !!s.silenciado);
       vs.appendChild(fila);
-      mz.voces[s.id] = { fila: fila, f: fd };
+      mz.voces[s.id] = { fila: fila, f: fd, mute: mute };
     });
     Object.keys(mz.voces).forEach(function (id) { if (!vistos[id]) { mz.voces[id].fila.remove(); delete mz.voces[id]; } });
     if (!lista.length && !vs.querySelector(".empty")) vs.appendChild(el("p", "empty", T("mz_nada")));
@@ -2055,11 +2091,9 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     if (previaVideo) { previaVideo.pause(); previaVideo.removeAttribute("src"); previaVideo.load(); previaVideo = null; }
     pp.textContent = ""; ctl.textContent = ""; sd.textContent = "";
     if (!c) { pp.appendChild(el("span", "", T("fin_lista"))); return; }
-    if (c.tipo === "audio") {
-      var ic = icono("audio"); ic.style.width = "48px"; ic.style.height = "48px";
-      pp.appendChild(ic); pp.appendChild(el("span", "rotulo", T("solo_sonido") + " · " + c.nombre));
-      return;
-    }
+    // Solo lo que se ve: un audio no tiene imagen, y en la Vista Estudio su GO
+    // deja el proyector en negro. (Su nombre y datos siguen debajo.)
+    if (c.tipo === "audio") { pp.appendChild(el("span", "", T("proyector_negro"))); return; }
     if (c.tipo === "imagen") {
       var im = el("img"); im.alt = ""; im.src = urlMedio(i); pp.appendChild(im);
       return;

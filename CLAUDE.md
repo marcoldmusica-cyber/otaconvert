@@ -1291,3 +1291,24 @@ Pedido del usuario: "Sí, sigue con la etapa 5." Repartida en cuatro partes que 
 - **140 pruebas en verde.**
 - **Sin probar:** la prueba de rendimiento con la Multivista abierta durante una función simulada; la palanca T oyendo el sonido.
 - **Clic derecho en el monitor «Programa» = elegir la salida de vídeo** (pedido del usuario, «tal cual como se hace en OBS»): menú con las pantallas que ve Windows (nombre, tamaño, «la de este programa») y «Vista previa en una ventana», con la elegida marcada. Manda la misma orden `elegir_salida {que: "pantalla"}` que Ajustes del show; en Función o con algo sonando las opciones quedan en gris con «Para cambiarla: modo Edición y nada sonando (Esc)», y el motor lo vuelve a comprobar. Vale también en la caja «al aire» de la Vista Lista. Pista al pasar el ratón: «Clic derecho: elegir la salida de vídeo». Textos `ctx_*` es/en. Probado en el panel del navegador: el menú lista el monitor del usuario y la vista previa marcada (no se eligió el monitor para no taparle la pantalla).
+
+### Paneles con los mismos parámetros que OBS (22/10/2026)
+- **Pedido del usuario:** que los paneles parecidos a los de OBS tengan exactamente sus parámetros. Verificado en la guía oficial de OBS (obsproject.com/kb: overview y audio mixer guide).
+- **Escenas:** abajo, como en OBS, **+** (Agregar cues…), **−** (Eliminar cue), **↑ ↓** (orden). En gris en Función o sin cue elegido.
+- **Transiciones:** como «Transiciones de escena» de OBS: **lista desplegable** con la transición activa (Cuchilla / Fundido cruzado / Blackout) y debajo la **Duración** en ms.
+- **Mezclador de audio:** cada canal como en OBS: nombre, nivel en dB, fader y **botón del altavoz para silenciar** (🔊/🔇). Silenciar = volumen 0 con rampa de 50 ms; el sonido sigue avanzando, no toca el show y vale en Función (`Sesion::silenciar_vivo`, orden `silenciar_vivo {id, si}`, estado `silenciado`, registro SILENCIO; la palanca T lo respeta). Prueba `silenciar_desde_el_mezclador_no_para_ni_cambia_el_show`. Consejo `silenciar` es/en.
+- **Vista previa:** solo muestra lo visual (vídeo o imagen); un audio se ve en «Negro», como quedará el proyector en la Vista Estudio.
+- **Controles:** el de OBS es para transmitir y grabar; no hay equivalente (el nuestro es GO, Pausa, Fundir todo y Parar todo).
+- **141 pruebas en verde.**
+- **Falta para igualar OBS** (no hecho; necesita cambios de motor):
+  - **medidor por canal** en el Mezclador (hoy solo Sala y Auriculares);
+  - **botón de monitoreo** por canal (oír ese mismo sonido por Auriculares a la vez).
+
+### Pedido grande pendiente: escenas con varias fuentes (22/10/2026) — **avisar antes de hacerlo**
+- **Pedido del usuario:** cada escena compuesta por varias fuentes (imágenes, vídeos, sonidos) listadas en el panel **Fuentes**; lo de más arriba se ve por encima (como OBS); **ojito** para ocultar una fuente; **opacidad** por fuente y por escena (una escena al 50 % sale al 50 % al transicionar).
+- **Por qué no se hizo todavía:** cambia el **formato del show** (un cue pasa a tener una lista de fuentes) y la **proyección** (varias capas a la vez, una encima de otra, con su transparencia). Es un cambio riesgoso: se avisa y se pide aprobación antes (regla de la sección 0).
+- **Plan propuesto:**
+  1. Experimento en la proyección: varias capas de mpv a la vez con opacidad (`WS_EX_LAYERED`, ya probado para el fundido); medir cuadros perdidos con 2–3 vídeos juntos.
+  2. Limitación a verificar: una ventana en capas solo tiene transparencia **pareja**. Un PNG con partes transparentes encima de un vídeo necesita componer dentro de una sola mpv (filtro `overlay` de lavfi o `overlay-add`). Hay que verificarlo en la documentación de mpv.
+  3. Formato del show v2 compatible (un cue viejo = escena con una fuente).
+  4. Panel Fuentes con orden, ojito, opacidad, + − ↑ ↓ ⚙, y opacidad de escena en Escenas.

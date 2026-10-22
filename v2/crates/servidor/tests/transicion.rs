@@ -283,3 +283,24 @@ fn el_volumen_en_vivo_no_cambia_el_show() {
     s.volumen_vivo(id, -3.0).unwrap();
     assert_eq!(volumenes(&son.tomar()).len(), 1);
 }
+
+#[test]
+fn silenciar_desde_el_mezclador_no_para_ni_cambia_el_show() {
+    let (mut s, son, _) = abrir(Transicion::default());
+    assert!(s.go());
+    let id = inicios(&son.tomar())[0].0;
+    s.silenciar_vivo(id, true);
+    let v = volumenes(&son.tomar());
+    assert_eq!(v.len(), 1);
+    assert_eq!(v[0].1, 0.0, "silenciado = volumen 0 con rampa");
+    // Mover el fader silenciado no lo hace sonar.
+    s.volumen_vivo(id, -6.0).unwrap();
+    assert!(volumenes(&son.tomar()).is_empty());
+    // Volver a sonar: con el volumen nuevo.
+    s.silenciar_vivo(id, false);
+    let v = volumenes(&son.tomar());
+    assert!((v[0].1 - 0.501).abs() < 0.01, "{v:?}");
+    assert_eq!(s.show.cues[0].volumen_db, 0.0, "el show no cambia");
+    let est: serde_json::Value = serde_json::from_str(&s.estado_json()).unwrap();
+    assert_eq!(est["sonando"][0]["silenciado"], false);
+}
