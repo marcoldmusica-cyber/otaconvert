@@ -81,9 +81,9 @@
     radial-gradient(ellipse 210px 34px at 94% 104%,transparent 62%,rgba(160,210,255,.45) 64%,rgba(160,210,255,.12) 72%,transparent 74%),
     radial-gradient(circle 120px at 94% 104%,#4b3fa8 0%,#2a1f6b 45%,#120c33 70%,transparent 71%),
     linear-gradient(118deg,transparent 30%,rgba(140,120,255,.10) 42%,rgba(200,180,255,.16) 48%,rgba(120,200,255,.10) 54%,transparent 66%),
-    radial-gradient(45% 40% at 85% 12%,rgba(180,80,255,.38),transparent 70%),
-    radial-gradient(40% 35% at 70% 22%,rgba(255,70,160,.20),transparent 70%),
-    radial-gradient(45% 45% at 8% 80%,rgba(30,200,255,.26),transparent 70%),
+    radial-gradient(45% 40% at 85% 12%,rgba(180,80,255,.28),transparent 70%),
+    radial-gradient(40% 35% at 70% 22%,rgba(255,70,160,.13),transparent 70%),
+    radial-gradient(45% 45% at 8% 80%,rgba(30,200,255,.18),transparent 70%),
     radial-gradient(35% 30% at 30% 60%,rgba(60,90,255,.14),transparent 70%),
     radial-gradient(1px 1px at 20px 30px,#fff 98%,transparent),radial-gradient(1px 1px at 140px 90px,#cfe8ff 98%,transparent),
     radial-gradient(1px 1px at 90px 170px,#fff 98%,transparent),radial-gradient(1.5px 1.5px at 180px 20px,#fff 98%,transparent),
@@ -107,35 +107,36 @@
     linear-gradient(var(--radar),var(--radar)) bottom right/18px 2px no-repeat,linear-gradient(var(--radar),var(--radar)) bottom right/2px 18px no-repeat;
   filter:drop-shadow(0 0 4px var(--radar));
 }
-:root[data-tema="espacio"] .mon.programa{--radar:#FF4F7B;border-color:rgba(255,79,123,.45);box-shadow:inset 0 0 30px rgba(255,79,123,.08),0 0 26px -4px rgba(255,79,123,.6),0 14px 30px -12px #000}
-:root[data-tema="espacio"] .mon.previa{box-shadow:inset 0 0 30px rgba(60,230,255,.08),0 0 26px -4px rgba(60,230,255,.6),0 14px 30px -12px #000}
+:root[data-tema="espacio"] .mon.programa{--radar:#FF4F7B;border-color:rgba(255,79,123,.45);box-shadow:inset 0 0 30px rgba(255,79,123,.08),0 0 18px -6px rgba(255,79,123,.4),0 14px 30px -12px #000}
+:root[data-tema="espacio"] .mon.previa{box-shadow:inset 0 0 30px rgba(60,230,255,.08),0 0 18px -6px rgba(60,230,255,.4),0 14px 30px -12px #000}
 :root[data-tema="espacio"] .mon-k strong,:root[data-tema="espacio"] .dock h3 .titulo,:root[data-tema="espacio"] .panel-h strong,:root[data-tema="espacio"] #nombre{text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:600}
-:root[data-tema="espacio"] .dock h3{background:linear-gradient(90deg,rgba(60,230,255,.16),transparent 70%);border-bottom-color:rgba(60,230,255,.25)}
-:root[data-tema="espacio"] .mon .pantalla{border:1px solid rgba(60,230,255,.35);border-radius:3px;box-shadow:0 0 14px -2px rgba(60,230,255,.4)}
+:root[data-tema="espacio"] .dock h3{background:linear-gradient(90deg,rgba(60,230,255,.10),transparent 70%);border-bottom-color:rgba(60,230,255,.25)}
+:root[data-tema="espacio"] .mon .pantalla{border:1px solid rgba(60,230,255,.35);border-radius:3px;box-shadow:0 0 10px -4px rgba(60,230,255,.3)}
 :root[data-tema="espacio"] .mon .pantalla::before{background:repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px),linear-gradient(160deg,rgba(255,255,255,.10),transparent 30%)}
 :root[data-tema="espacio"] .est-centro .flecha{background:linear-gradient(90deg,#3CE6FF,#B46BFF,#FF4F7B);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:.2em}
 :root[data-tema="espacio"] .go-t{border-radius:50%;width:88px;height:88px;flex:none;margin:0 auto;padding:0;display:grid;place-content:center;transform:none;
-  background:radial-gradient(circle at 50% 35%,#d8fbff 0%,#3CE6FF 35%,#0b6f8f 75%);border:2px solid #b8f6ff;color:#02121A;
-  box-shadow:0 0 0 6px rgba(60,230,255,.12),0 0 0 7px rgba(60,230,255,.45),0 0 40px rgba(60,230,255,.85),inset 0 -8px 16px rgba(0,40,60,.5)}
+  background:radial-gradient(circle at 50% 30%,#1d3a52 0%,#0d1c2e 60%,#070e1a 100%);border:1.5px solid rgba(60,230,255,.65);color:#9CF1FF;
+  box-shadow:0 0 0 5px rgba(60,230,255,.06),0 0 14px -4px rgba(60,230,255,.45),inset 0 1px 0 rgba(255,255,255,.10),inset 0 -6px 12px rgba(0,0,0,.45)}
+:root[data-tema="espacio"] .go-t:hover{border-color:#3CE6FF;color:#d8fbff}
 :root[data-tema="espacio"] .corte-rapido,:root[data-tema="espacio"] .opc-b,:root[data-tema="espacio"] .fuente,:root[data-tema="espacio"] .aire-linea,
 :root[data-tema="espacio"] .btn,:root[data-tema="espacio"] .dock .side-btns .tb{border-radius:4px;border-color:rgba(60,230,255,.25);background:linear-gradient(180deg,rgba(60,230,255,.08),rgba(10,15,36,.6))}
-:root[data-tema="espacio"] .dock #go{border-radius:4px;background:linear-gradient(90deg,#0b6f8f,#3CE6FF);color:#02121A;box-shadow:0 0 20px -2px rgba(60,230,255,.8);letter-spacing:.15em}
-:root[data-tema="espacio"] .dock .side-btns .panic{background:linear-gradient(90deg,#8f1131,#FF4F7B);color:#fff;box-shadow:0 0 20px -2px rgba(255,79,123,.85);text-transform:uppercase;letter-spacing:.12em}
+:root[data-tema="espacio"] .dock #go{border-radius:4px;background:linear-gradient(180deg,#123049,#0a1a2b);border:1px solid rgba(60,230,255,.6);color:#9CF1FF;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 0 10px -4px rgba(60,230,255,.5);letter-spacing:.15em}
+:root[data-tema="espacio"] .dock .side-btns .panic{background:linear-gradient(180deg,#3a1220,#220a13);border:1px solid rgba(255,79,123,.65);color:#FFC2D0;box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 0 10px -4px rgba(255,79,123,.5);text-transform:uppercase;letter-spacing:.12em}
 :root[data-tema="espacio"] .tbar .riel{border-radius:3px;border-color:rgba(60,230,255,.35);background:repeating-linear-gradient(0deg,rgba(60,230,255,.10) 0 1px,transparent 1px 8px),#04070f}
-:root[data-tema="espacio"] .tbar .riel::before{background:linear-gradient(180deg,#3CE6FF,#B46BFF,#FF4F7B);opacity:.9}
-:root[data-tema="espacio"] .tbar .riel i,:root[data-tema="espacio"] .fader2 .riel .perilla{background:linear-gradient(180deg,#e8fbff,#7fe9ff);box-shadow:0 0 12px #3CE6FF;border-radius:2px}
-:root[data-tema="espacio"] .fader2 .riel .lleno{background:linear-gradient(90deg,#B46BFF,#3CE6FF);box-shadow:0 0 10px #3CE6FF}
+:root[data-tema="espacio"] .tbar .riel::before{background:linear-gradient(180deg,#3CE6FF,#B46BFF,#FF4F7B);opacity:.65}
+:root[data-tema="espacio"] .tbar .riel i,:root[data-tema="espacio"] .fader2 .riel .perilla{background:linear-gradient(180deg,#c9d3df,#7d8a9a);border:1px solid rgba(60,230,255,.5);box-shadow:0 1px 3px rgba(0,0,0,.6);border-radius:2px}
+:root[data-tema="espacio"] .fader2 .riel .lleno{background:linear-gradient(90deg,rgba(180,107,255,.7),rgba(60,230,255,.75));box-shadow:none}
 :root[data-tema="espacio"] .mv-tile{border-radius:4px;border-color:rgba(60,230,255,.22)}
-:root[data-tema="espacio"] .mv-tile.prev{border-color:#3CE6FF;box-shadow:0 0 0 1px #3CE6FF,0 0 18px -1px #3CE6FF}
+:root[data-tema="espacio"] .mv-tile.prev{border-color:#3CE6FF;box-shadow:0 0 0 1px #3CE6FF,0 0 10px -3px rgba(60,230,255,.6)}
 :root[data-tema="espacio"] .mv-tile.prev .mv-tal{color:#02121A}
-:root[data-tema="espacio"] .mv-tile.aire{border-color:#FF4F7B;box-shadow:0 0 0 1px #FF4F7B,0 0 18px -1px #FF4F7B}
+:root[data-tema="espacio"] .mv-tile.aire{border-color:#FF4F7B;box-shadow:0 0 0 1px #FF4F7B,0 0 10px -3px rgba(255,79,123,.6)}
 :root[data-tema="espacio"] .mv-lab{text-transform:uppercase;letter-spacing:.06em;font-size:10px}
-:root[data-tema="espacio"] .seg2 button.on,:root[data-tema="espacio"] .mini-tr button.on{color:#02121A;background:#3CE6FF;box-shadow:0 0 10px #3CE6FF}
+:root[data-tema="espacio"] .seg2 button.on,:root[data-tema="espacio"] .mini-tr button.on{color:#BFF6FF;background:rgba(60,230,255,.16);box-shadow:inset 0 0 0 1px rgba(60,230,255,.6)}
 :root[data-tema="espacio"] .mv-gnom{color:#3CE6FF;letter-spacing:.18em}
 :root[data-tema="espacio"] .fuente .ic{border-radius:3px;background:linear-gradient(135deg,#B46BFF,#3CE6FF)}
-:root[data-tema="espacio"] .seg button[aria-pressed="true"]{background:#3CE6FF;color:#02121A;box-shadow:0 0 12px #3CE6FF}
-:root[data-tema="espacio"] .clock{color:#3CE6FF;text-shadow:0 0 10px rgba(60,230,255,.7);letter-spacing:.1em}
-:root[data-tema="espacio"] .bars i{background:#3CE6FF;box-shadow:0 0 10px #3CE6FF}
+:root[data-tema="espacio"] .seg button[aria-pressed="true"]{background:rgba(60,230,255,.16);color:#BFF6FF;box-shadow:inset 0 0 0 1px rgba(60,230,255,.6)}
+:root[data-tema="espacio"] .clock{color:#3CE6FF;text-shadow:0 0 6px rgba(60,230,255,.35);letter-spacing:.1em}
+:root[data-tema="espacio"] .bars i{background:#3CE6FF;box-shadow:0 0 5px rgba(60,230,255,.5)}
 :root[data-tema="espacio"] .dlg{background:linear-gradient(180deg,rgba(60,230,255,.08),rgba(5,8,20,.97) 25%),#05081A}
 :root.liviano[data-tema="espacio"] .mon::after,:root.liviano[data-tema="espacio"] .dock::after,:root.liviano[data-tema="espacio"] .panel::after{filter:none}
 *{box-sizing:border-box}
@@ -442,6 +443,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
 .caja .k{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:13px}
 .pantalla{position:relative;aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden;display:grid;place-items:center;color:#9098A8}
 .pantalla video,.pantalla img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.pantalla .capa-aire{position:absolute;inset:0;opacity:0;display:grid;place-items:center}
 .pantalla .rotulo{position:absolute;left:8px;bottom:6px;right:8px;color:#E9ECF2;font-size:13px;text-shadow:0 1px 2px #000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .aire .pantalla{max-height:150px;aspect-ratio:auto;height:150px}
 .controles{display:flex;align-items:center;gap:8px}
@@ -519,6 +521,9 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
 .dock h3{margin:0;display:flex;align-items:center;gap:6px;padding:6px 10px 6px 4px;font-size:13px;font-weight:600;border-bottom:1px solid var(--border);background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,0))}
 .dock h3 .titulo{white-space:nowrap}
 .dock h3 .r{margin-left:auto;color:var(--muted);font-weight:400;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cerrar-panel{border:0;background:none;color:var(--dim);font-size:15px;line-height:1;padding:0 4px;margin-left:4px;cursor:pointer;border-radius:6px}
+.cerrar-panel:hover{color:var(--text);background:var(--hover)}
+.paneles-bloqueados .grip{visibility:hidden}
 .grip{border:0;background:none;color:var(--dim);font-size:13px;letter-spacing:-2px;padding:0 5px;cursor:grab;touch-action:none;border-radius:6px}
 .grip:hover,.grip:focus-visible{color:var(--accent)}
 .dock-c{flex:1;min-height:0;overflow:auto;padding:6px;display:flex;flex-direction:column;gap:5px}
@@ -703,7 +708,6 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
         <button role="menuitemradio" data-estilo="lista" data-consejo="estilo_lista" aria-checked="true"><span data-t="estilo_lista"></span><span class="q" aria-hidden="true">?</span></button>
         <button role="menuitemradio" data-estilo="estudio" data-consejo="estilo_estudio" aria-checked="false"><span data-t="estilo_estudio"></span><span class="q" aria-hidden="true">?</span></button>
         <button role="menuitemcheckbox" data-accion="previa_mov" data-consejo="previa_movimiento" aria-checked="true"><span data-t="previa_movimiento"></span><span class="q" aria-hidden="true">?</span></button>
-        <button role="menuitemcheckbox" data-accion="multivista" data-solo-estudio="si" data-consejo="multivista" aria-checked="false"><span data-t="multivista"></span><span class="q" aria-hidden="true">?</span></button>
         <button role="menuitemcheckbox" data-accion="cabina" data-solo-estudio="si" data-consejo="cabina" aria-checked="false"><span data-t="cabina"></span><span class="q" aria-hidden="true">?</span></button>
         <button role="menuitem" data-accion="distribuciones" data-solo-estudio="si" data-consejo="distribuciones"><span data-t="distribuciones_menu"></span><span class="q" aria-hidden="true">?</span></button>
         <div class="sep"></div>
@@ -723,6 +727,23 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
         <button role="menuitemradio" data-idioma="en" aria-checked="false">English</button>
         <div class="sep"></div>
         <button role="menuitem" data-accion="restaurar" data-t="restaurar_vista"></button>
+      </div>
+    </div>
+    <!-- Paneles (como el menú «Paneles» de OBS): mostrar u ocultar cada panel de la Vista Estudio. -->
+    <div class="mb">
+      <button aria-haspopup="true" aria-expanded="false" data-menu data-t="paneles_menu"></button>
+      <div class="menu" role="menu" hidden>
+        <button role="menuitemcheckbox" data-panel-vis="escenas" data-solo-estudio="si" data-consejo="menu_paneles" aria-checked="true"><span data-t="d_escenas"></span><span class="q" aria-hidden="true">?</span></button>
+        <button role="menuitemcheckbox" data-panel-vis="multivista" data-solo-estudio="si" data-consejo="multivista" aria-checked="false"><span data-t="d_multivista"></span><span class="q" aria-hidden="true">?</span></button>
+        <button role="menuitemcheckbox" data-panel-vis="fuentes" data-solo-estudio="si" aria-checked="true"><span data-t="d_fuentes"></span></button>
+        <button role="menuitemcheckbox" data-panel-vis="mezclador" data-solo-estudio="si" aria-checked="true"><span data-t="d_mezclador"></span></button>
+        <button role="menuitemcheckbox" data-panel-vis="transiciones" data-solo-estudio="si" aria-checked="true"><span data-t="d_transiciones"></span></button>
+        <button role="menuitemcheckbox" data-panel-vis="botonera" data-solo-estudio="si" aria-checked="true"><span data-t="botonera"></span></button>
+        <!-- Controles nunca se oculta (GO y Parar todo siempre a mano). -->
+        <button role="menuitemcheckbox" data-panel-vis="controles" data-solo-estudio="si" data-siempre="si" data-consejo="panel_controles" aria-checked="true" aria-disabled="true"><span data-t="d_controles"></span><span class="q" aria-hidden="true">?</span></button>
+        <div class="sep"></div>
+        <button role="menuitemcheckbox" data-accion="bloquear_paneles" data-solo-estudio="si" data-consejo="bloquear_paneles" aria-checked="false"><span data-t="bloquear_paneles"></span><span class="q" aria-hidden="true">?</span></button>
+        <button role="menuitem" data-accion="restablecer_paneles" data-solo-estudio="si"><span data-t="restablecer_paneles"></span></button>
       </div>
     </div>
     <div class="mb">
@@ -899,7 +920,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     });
     $("soltar-texto").textContent = funcion ? T("soltar_funcion") : T("soltar_s");
     // Multivista, Modo cabina y Distribuciones son de la Vista Estudio.
-    document.querySelectorAll("[data-solo-estudio]").forEach(function (b) { b.disabled = estilo !== "estudio"; });
+    document.querySelectorAll("[data-solo-estudio]").forEach(function (b) { b.disabled = estilo !== "estudio" || b.dataset.siempre === "si"; });
     actualizarAjustes();
     pintarLuz();
     dibujarBotonera();
@@ -1191,6 +1212,40 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     ids.forEach(function (k) { if (orden.indexOf(k) < 0) orden.push(k); });
     return orden;
   }
+  // Menú Paneles (como el de OBS): qué paneles se ven y si se pueden mover.
+  // Controles nunca se oculta: ahí están GO y Parar todo.
+  var panelesOcultos = [];
+  try { panelesOcultos = JSON.parse(leer("ota-paneles-ocultos", "[]")) || []; } catch (x) { panelesOcultos = []; }
+  var panelesBloqueados = leer("ota-paneles-bloqueados", "no") === "si";
+  function panelVisible(k) {
+    if (k === "controles") return true;
+    if (k === "multivista") return multivista;
+    return panelesOcultos.indexOf(k) < 0;
+  }
+  function ponerPanel(k, si) {
+    if (k === "controles") return;
+    if (k === "multivista") { ponerMultivista(si); return; }
+    panelesOcultos = panelesOcultos.filter(function (x) { return x !== k; });
+    if (!si) panelesOcultos.push(k);
+    escribir("ota-paneles-ocultos", JSON.stringify(panelesOcultos));
+    pintarMenuPaneles();
+    if (e) dibujar();
+  }
+  function ponerBloqueo(si) {
+    panelesBloqueados = !!si;
+    escribir("ota-paneles-bloqueados", si ? "si" : "no");
+    document.body.classList.toggle("paneles-bloqueados", panelesBloqueados);
+    pintarMenuPaneles();
+  }
+  function restablecerPaneles() {
+    panelesOcultos = []; escribir("ota-paneles-ocultos", "[]"); escribir("ota-paneles", "[]");
+    ponerBloqueo(false);
+    desarmarEstudio(); if (e) dibujar();
+  }
+  function pintarMenuPaneles() {
+    document.querySelectorAll("[data-panel-vis]").forEach(function (b) { b.setAttribute("aria-checked", String(panelVisible(b.dataset.panelVis))); });
+    var b = document.querySelector('[data-accion="bloquear_paneles"]'); if (b) b.setAttribute("aria-checked", String(panelesBloqueados));
+  }
   function guardarOrdenPaneles() {
     var o = [].map.call(document.querySelectorAll("#estDocks > .dock"), function (d) { return d.dataset.panel; });
     escribir("ota-paneles", JSON.stringify(o));
@@ -1247,6 +1302,12 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
       h.appendChild(grip);
       h.appendChild(el("span", "titulo", T(p[1])));
       var r = el("span", "r"); r.id = "dockR-" + p[0]; h.appendChild(r);
+      // Cerrar el panel (vuelve desde el menú Paneles). Controles no tiene.
+      if (p[0] !== "controles") {
+        var x = el("button", "cerrar-panel", "×"); x.type = "button"; x.title = T("ocultar_panel"); x.setAttribute("aria-label", T("ocultar_panel"));
+        x.onclick = (function (k) { return function () { if (!ayudando) ponerPanel(k, false); }; })(p[0]);
+        h.appendChild(x);
+      }
       d.appendChild(h);
       var c = el("div", "dock-c"); c.id = "dock-" + p[0]; d.appendChild(c);
       porId[p[0]] = d;
@@ -1294,7 +1355,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     // La palanca T vuelve arriba cuando el motor terminó o canceló el fundido a mano.
     if (!e.palanca && !palanca.arrastrando && palanca.pos > 0.02 && Date.now() - palanca.ultimo > 400) { palanca.pos = 0; pintarPalanca(); }
     $("botonera").hidden = false;
-    $("estDocks").querySelector('[data-panel="multivista"]').hidden = !multivista;
+    [].forEach.call($("estDocks").children, function (d) { d.hidden = !panelVisible(d.dataset.panel); });
     var dt = $("detalle");
     dt.hidden = funcion;
     if (funcion) ladoClave = "";
@@ -1306,7 +1367,8 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
   // los últimos 3) y un destello cuando algo nuevo sale al aire.
   var ultimoAire = null;
   function dibujarTalis() {
-    var aire = (e.sonando || []).filter(function (s) { return s.visual; })[0];
+    var vis = (e.sonando || []).filter(function (s) { return s.visual; });
+    var aire = vis.filter(function (s) { return !s.fundiendo; }).pop() || vis[vis.length - 1];
     var sv = aire || (e.sonando || [])[0];
     var pt = $("previaTag"), at = $("aireTag");
     var enAire = (e.sonando || []).some(function (s) { return s.cue === e.en_espera; });
@@ -1469,7 +1531,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
   function ponerMultivista(si) {
     multivista = !!si;
     escribir("ota-multivista", si ? "si" : "no");
-    var b = document.querySelector('[data-accion="multivista"]'); if (b) b.setAttribute("aria-checked", String(multivista));
+    pintarMenuPaneles();
     // El motor solo hace las tiras de fotos con la Multivista abierta.
     mandar("multivista", { si: multivista && estilo === "estudio" });
     mvClave = "";
@@ -1751,7 +1813,10 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
   (function vigilarTirones() {
     var antes = performance.now(), tirones = 0, desde = antes;
     function cuadro(t) {
-      if (t - antes > 120 && !document.hidden) tirones++;
+      // Más de 1 s sin dibujar no es un tirón: la ventana estaba tapada,
+      // minimizada o en segundo plano y el navegador frenó el dibujo a propósito.
+      var d = t - antes;
+      if (d > 120 && d < 1000 && !document.hidden) tirones++;
       antes = t;
       if (t - desde > 10000) {
         if (rendimiento === "auto" && !autoLiviano && tirones >= 5 && estilo === "estudio") {
@@ -1806,7 +1871,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
   var arrPanel = null;
   document.addEventListener("pointerdown", function (ev) {
     var g = ev.target.closest && ev.target.closest(".dock .grip");
-    if (!g || ayudando) return;
+    if (!g || ayudando || panelesBloqueados) return;
     ev.preventDefault();
     var d = g.closest(".dock");
     arrPanel = { d: d, x: ev.clientX, y: ev.clientY };
@@ -1837,7 +1902,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
   });
   document.addEventListener("keydown", function (ev) {
     var g = ev.target.closest && ev.target.closest(".dock .grip");
-    if (!g || (ev.key !== "ArrowLeft" && ev.key !== "ArrowRight")) return;
+    if (!g || panelesBloqueados || (ev.key !== "ArrowLeft" && ev.key !== "ArrowRight")) return;
     ev.preventDefault(); ev.stopPropagation();
     var d = g.closest(".dock"), otro = ev.key === "ArrowLeft" ? d.previousElementSibling : d.nextElementSibling;
     while (otro && otro.hidden) otro = ev.key === "ArrowLeft" ? otro.previousElementSibling : otro.nextElementSibling;
@@ -2078,13 +2143,36 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
 
   function dibujarAire() {
     var lista = e.sonando || [];
-    var sv = lista.filter(function (s) { return s.visual; })[0];
+    // Lo que se ve es lo más nuevo: durante un fundido cruzado lo de antes sigue
+    // en la lista (fundiéndose), pero el monitor ya muestra lo que entra.
+    var vis = lista.filter(function (s) { return s.visual; });
+    var sv = vis.filter(function (s) { return !s.fundiendo; }).pop() || vis[vis.length - 1];
     var cv = sv ? e.cues[sv.cue] : null;
     var clave = sv ? JSON.stringify([sv.cue, cv && cv.miniatura, sv.imagen]) : "negro|" + idioma;
     if (clave !== aireClave) {
       aireClave = clave;
-      var pa = $("airePantalla"); pa.textContent = "";
-      if (aireVideo) { aireVideo.pause(); aireVideo.removeAttribute("src"); aireVideo.load(); aireVideo = null; }
+      // Lo nuevo entra en una capa encima y lo de antes se quita recién cuando
+      // lo nuevo ya se ve: el monitor nunca queda en negro mientras carga.
+      var pa = $("airePantalla");
+      var capa = el("div", "capa-aire");
+      var tr = e.ajustes && e.ajustes.transicion;
+      var dur = estilo === "estudio" && tr && tr.tipo === "fundido" && sv && !liviano() ? Math.min(tr.ms, 3000) : 0;
+      var viejoVideo = aireVideo;
+      var listo = false;
+      var aparecer = function () {
+        if (listo || !capa.parentNode) return; listo = true;
+        // Sin requestAnimationFrame: con la ventana en segundo plano no corre,
+        // y lo de antes se quitaba con lo nuevo todavía invisible.
+        capa.style.transition = "opacity " + dur + "ms linear";
+        void capa.offsetWidth;
+        capa.style.opacity = "1";
+        setTimeout(function () {
+          [].slice.call(pa.children).forEach(function (h) { if (h !== capa && h.classList.contains("capa-aire")) h.remove(); });
+          if (viejoVideo && viejoVideo !== aireVideo) { viejoVideo.pause(); viejoVideo.removeAttribute("src"); viejoVideo.load(); }
+        }, dur + 30);
+      };
+      [].slice.call(pa.childNodes).forEach(function (h) { if (!(h.classList && h.classList.contains("capa-aire"))) h.remove(); });
+      aireVideo = null;
       if (sv && cv && !sv.imagen) {
         // Vídeo al aire: una copia sin sonido que sigue el punto del proyector.
         var v = document.createElement("video");
@@ -2092,19 +2180,27 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
         if (cv.miniatura) v.poster = urlMiniatura(sv.cue, cv);
         v.src = urlMedio(sv.cue);
         v.addEventListener("loadedmetadata", function () { seguirAire(); });
+        v.addEventListener("loadeddata", aparecer);
         v.addEventListener("error", function () {
           // No se puede ver aquí (p. ej. HEVC sin la extensión de Windows): foto fija.
           v.remove(); if (aireVideo === v) aireVideo = null;
-          if (cv.miniatura) { var f = el("img"); f.alt = ""; f.src = urlMiniatura(sv.cue, cv); pa.insertBefore(f, pa.firstChild); }
+          if (cv.miniatura) { var f = el("img"); f.alt = ""; f.onload = aparecer; f.onerror = aparecer; f.src = urlMiniatura(sv.cue, cv); capa.insertBefore(f, capa.firstChild); }
+          else aparecer();
         });
-        pa.appendChild(v); aireVideo = v;
-        pa.appendChild(el("span", "rotulo", cv.numero + " · " + cv.nombre));
+        capa.appendChild(v); aireVideo = v;
+        capa.appendChild(el("span", "rotulo", cv.numero + " · " + cv.nombre));
       } else if (sv && cv) {
-        var im = el("img"); im.alt = ""; im.src = urlMedio(sv.cue); pa.appendChild(im);
-        pa.appendChild(el("span", "rotulo", cv.numero + " · " + cv.nombre));
+        var im = el("img"); im.alt = ""; im.onload = aparecer; im.onerror = aparecer; im.src = urlMedio(sv.cue); capa.appendChild(im);
+        capa.appendChild(el("span", "rotulo", cv.numero + " · " + cv.nombre));
       } else {
-        pa.appendChild(el("span", "", T("proyector_negro")));
+        capa.appendChild(el("span", "", T("proyector_negro")));
+        capa.classList.add("negro");
+        dur = 0;
       }
+      pa.appendChild(capa);
+      if (!sv || !cv) aparecer();
+      // Si algo tarda demasiado en cargar, se muestra igual.
+      setTimeout(aparecer, 1500);
     }
     aireSv = sv && !sv.imagen ? sv : null;
     seguirAire();
@@ -2225,8 +2321,10 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
       else if (it.dataset.idioma) ponerIdioma(it.dataset.idioma);
       else if (it.dataset.estilo) ponerEstilo(it.dataset.estilo);
       else if (it.dataset.accion === "previa_mov") ponerPreviaMov(!previaMov);
-      else if (it.dataset.accion === "restaurar") { ponerTema(""); escribir("ota-paneles", "[]"); ponerRendimiento("auto"); desarmarEstudio(); if (e) dibujar(); }
-      else if (it.dataset.accion === "multivista") ponerMultivista(!multivista);
+      else if (it.dataset.accion === "restaurar") { ponerTema(""); ponerRendimiento("auto"); restablecerPaneles(); }
+      else if (it.dataset.panelVis) ponerPanel(it.dataset.panelVis, !panelVisible(it.dataset.panelVis));
+      else if (it.dataset.accion === "bloquear_paneles") ponerBloqueo(!panelesBloqueados);
+      else if (it.dataset.accion === "restablecer_paneles") restablecerPaneles();
       else if (it.dataset.accion === "cabina") ponerCabina(!cabina);
       else if (it.dataset.rendimiento) ponerRendimiento(it.dataset.rendimiento);
       else if (it.dataset.accion === "distribuciones") dialogoDistribuciones();
@@ -3363,7 +3461,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
   ponerPreviaMov(previaMov);
   ponerBotonera(vistaBotonera);
   ponerRendimiento(rendimiento);
-  (function () { var b = document.querySelector('[data-accion="multivista"]'); if (b) b.setAttribute("aria-checked", String(multivista)); })();
+  ponerBloqueo(panelesBloqueados);
   ponerConsejos(consejos);
   aplicarTextos();
   reloj(); setInterval(reloj, 1000);

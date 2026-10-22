@@ -428,6 +428,50 @@ pub fn transiciones(pantalla: Option<&str>) -> Result<bool, String> {
     let ahora = pixel(cx, cy);
     anotar(dist(ahora, rd) < 30, format!("GO en pleno blackout: se ve {ahora:?} (esperado {rd:?})"));
 
+    // 6. Palanca T: D → A a mano. En 0 se ve D, a la mitad la mezcla; volver
+    // atrás deja D sin negros ni destellos de A; empujarla hasta el final deja A.
+    cargar(&mut p, 9, a)?;
+    p.enviar(OrdenProyector::MostrarManual { id: 9 });
+    p.enviar(OrdenProyector::Alfa(0.0));
+    std::thread::sleep(Duration::from_millis(250));
+    let en_cero = pixel(cx, cy);
+    anotar(dist(en_cero, rd) < 30, format!("palanca T en 0: se ve {en_cero:?} (esperado lo de antes {rd:?})"));
+    let ok_md = |v: (i32, i32, i32)| (0..=20).any(|k| dist(v, mezcla(rd, ra, k as f64 / 20.0)) < 30);
+    let mut malas = 0;
+    let mut negras = 0;
+    for k in 0..=25 {
+        p.enviar(OrdenProyector::Alfa(k as f32 / 50.0));
+        std::thread::sleep(Duration::from_millis(20));
+        let v = pixel(cx, cy);
+        negras += negro(v) as i32;
+        malas += !ok_md(v) as i32;
+    }
+    std::thread::sleep(Duration::from_millis(150));
+    let mitad = pixel(cx, cy);
+    anotar(negras == 0 && malas == 0, format!("palanca T de 0 a la mitad: {negras} negras, {malas} fuera de la mezcla"));
+    anotar(dist(mitad, rd) > 30 && dist(mitad, ra) > 30, format!("palanca T a la mitad: {mitad:?} es mezcla de {rd:?} y {ra:?}"));
+    // Volver atrás: lo de antes sigue como estaba, sin pasar por A entero ni por negro.
+    p.enviar(OrdenProyector::ManualCancelar);
+    let (n, negras, malas, _) = mirar(&mut p, Duration::from_millis(400), &|v| dist(v, rd) < 30 || ok_md(v) && dist(v, ra) > 30);
+    let atras = pixel(cx, cy);
+    anotar(negras == 0 && malas == 0 && dist(atras, rd) < 30, format!("palanca T de vuelta: {n} muestras, {negras} negras, {malas} raras; queda {atras:?}"));
+    // Otra vez, ahora hasta el final (A sigue precargado tras volver atrás).
+    p.enviar(OrdenProyector::MostrarManual { id: 9 });
+    for k in 0..=10 {
+        p.enviar(OrdenProyector::Alfa(k as f32 / 10.0));
+        std::thread::sleep(Duration::from_millis(30));
+    }
+    p.enviar(OrdenProyector::ManualFin);
+    let (n, negras, _, _) = mirar(&mut p, Duration::from_millis(400), &|_| true);
+    let fin = pixel(cx, cy);
+    anotar(negras == 0 && dist(fin, ra) < 30, format!("palanca T hasta el final: {n} muestras, {negras} negras; queda {fin:?} (esperado {ra:?})"));
+    // Y un GO normal después sigue andando.
+    cargar(&mut p, 10, b)?;
+    p.enviar(OrdenProyector::MostrarCon { id: 10, transicion: Transicion { tipo: TipoTransicion::Fundido, ms: 500 } });
+    std::thread::sleep(Duration::from_millis(800));
+    let luego = pixel(cx, cy);
+    anotar(dist(luego, rb) < 30, format!("fundido después de la palanca: se ve {luego:?} (esperado {rb:?})"));
+
     println!();
     for l in &informe {
         println!("{l}");

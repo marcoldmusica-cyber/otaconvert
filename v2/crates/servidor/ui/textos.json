@@ -264,6 +264,10 @@
       "palanca_t": "Palanca T",
       "palanca_aire": "Al aire",
       "mover_panel": "Mover este panel (arrastra o usa ← →)",
+      "paneles_menu": "Paneles",
+      "ocultar_panel": "Ocultar este panel (vuelve desde el menú Paneles)",
+      "bloquear_paneles": "Bloquear paneles",
+      "restablecer_paneles": "Restablecer paneles",
       "de_cue": "de «{n}»",
       "propiedades": "Propiedades",
       "prop_funcion": "En Función no se cambian las fuentes: pasa a Edición con Tab",
@@ -433,6 +437,30 @@
         "ejemplo_activar": "Ej.: empiezas a preparar la nueva obra de la compañía.",
         "desactivar": "Si solo quieres seguir trabajando un show que ya existe, usa Abrir.",
         "ejemplo_desactivar": "Ej.: retomas el show de ayer para corregir dos cues."
+      },
+      "menu_paneles": {
+        "titulo": "Mostrar u ocultar paneles",
+        "que_hace": "Marca un panel para verlo en la Vista Estudio; desmárcalo (o toca su ×) para ocultarlo. Se recuerda en este equipo.",
+        "activar": "Deja a la vista solo lo que este show necesita.",
+        "ejemplo_activar": "Ej.: en una gala con muchos vídeos enciendes la Multivista y el Mezclador.",
+        "desactivar": "Oculta lo que nunca usas y lo demás tiene más lugar.",
+        "ejemplo_desactivar": "Ej.: una obra sin botonera: ocultas la Botonera y las Fuentes."
+      },
+      "bloquear_paneles": {
+        "titulo": "Bloquear paneles",
+        "que_hace": "Esconde los agarres ⋮⋮ para que ningún panel se mueva sin querer. Mostrar y ocultar sigue funcionando.",
+        "activar": "Cuando la distribución ya está lista para la función.",
+        "ejemplo_activar": "Ej.: antes de abrir sala, para que un clic apurado no mueva los Controles.",
+        "desactivar": "Mientras todavía acomodas la pantalla.",
+        "ejemplo_desactivar": "Ej.: en el primer ensayo técnico todavía pruebas distribuciones."
+      },
+      "panel_controles": {
+        "titulo": "Los Controles siempre se ven",
+        "que_hace": "GO, Pausa, Fundir todo y Parar todo se pueden mover pero nunca ocultar: en un apuro tienen que estar a mano.",
+        "activar": "Siempre está encendido; ponlo cerca de donde más miras.",
+        "ejemplo_activar": "Ej.: lo pones junto a la Multivista para disparar sin apartar la vista.",
+        "desactivar": "No se puede apagar, a propósito.",
+        "ejemplo_desactivar": "Ej.: aunque ocultes todo lo demás, Parar todo sigue ahí."
       },
       "paneles": {
         "titulo": "Mover los paneles",
@@ -1442,6 +1470,10 @@
       "r_fin": "End of file",
       "aj_go": "GO",
       "doble_go": "Double-GO protection",
+      "paneles_menu": "Docks",
+      "ocultar_panel": "Hide this panel (bring it back from the Docks menu)",
+      "bloquear_paneles": "Lock docks",
+      "restablecer_paneles": "Reset docks",
       "fundir_todo_dur": "Fade all duration",
       "aj_sonido": "Sound",
       "d_escenas": "Scenes (cues)",
@@ -1635,6 +1667,30 @@
         "ejemplo_activar": "E.g.: you start preparing the company's new play.",
         "desactivar": "If you just want to keep working on an existing show, use Open.",
         "ejemplo_desactivar": "E.g.: you pick up yesterday's show to fix two cues."
+      },
+      "menu_paneles": {
+        "titulo": "Show or hide panels",
+        "que_hace": "Tick a panel to show it in the Studio view, untick it (or press its ×) to hide it. Remembered on this computer.",
+        "activar": "Show only what this show needs.",
+        "ejemplo_activar": "E.g.: for a gala with many videos you turn on the Multiview and the Mixer.",
+        "desactivar": "Hide what you never use so the rest gets more room.",
+        "ejemplo_desactivar": "E.g.: a play with no sound board: you hide the Sound board and Sources."
+      },
+      "bloquear_paneles": {
+        "titulo": "Lock panels",
+        "que_hace": "Hides the ⋮⋮ handles so no panel can be moved by mistake. Showing and hiding still works.",
+        "activar": "When the layout is ready for the show.",
+        "ejemplo_activar": "E.g.: before opening the house, so a hurried click doesn't move Controls.",
+        "desactivar": "While you are still arranging the screen.",
+        "ejemplo_desactivar": "E.g.: at the first technical rehearsal you are still trying layouts."
+      },
+      "panel_controles": {
+        "titulo": "Controls are always visible",
+        "que_hace": "GO, Pause, Fade all and Stop all can be moved but never hidden: in an emergency they must be at hand.",
+        "activar": "It is always on; move it near where you look most.",
+        "ejemplo_activar": "E.g.: you put it next to the Multiview to fire without looking away.",
+        "desactivar": "It cannot be turned off, on purpose.",
+        "ejemplo_desactivar": "E.g.: even with everything else hidden, Stop all is still there."
       },
       "paneles": {
         "titulo": "Moving the panels",

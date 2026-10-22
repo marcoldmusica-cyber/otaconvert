@@ -677,8 +677,11 @@ fn terminar_transicion(proy: &Proyeccion, capas: &mut [Capa], t: Trans) {
 /// Palanca T de vuelta al principio: lo nuevo baja otra vez (queda precargado,
 /// en pausa en su inicio, listo para otro GO) y lo de abajo sigue como estaba.
 fn cancelar_manual(proy: &Proyeccion, capas: &mut [Capa], capa: usize, previos: Vec<(usize, Estado)>) {
-    proy.transparencia(capa, None);
+    // Primero abajo (todavía transparente) y recién después entera: al revés
+    // se vería un instante lo nuevo entero encima.
+    proy.transparencia(capa, Some(0));
     proy.abajo(capa);
+    proy.transparencia(capa, None);
     let c = &mut capas[capa];
     let _ = c.rep.propiedad("pause", "yes");
     let inicio = c.rep.leer("start").and_then(|s| s.trim().parse::<f64>().ok()).filter(|s| s.is_finite() && *s >= 0.0).unwrap_or(0.0);

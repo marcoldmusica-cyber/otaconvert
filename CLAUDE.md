@@ -1271,3 +1271,22 @@ Pedido del usuario: "Sí, sigue con la etapa 5." Repartida en cuatro partes que 
   - el diálogo de Show nuevo en la ventana propia;
   - la prueba de rendimiento con la Multivista abierta.
 - **Subido y comprobado:** commit 6443153, run 39739154542 **verde**. Portable copiada a `CLOUDE - Herramientas Ota\Otaconvert-V2-0.0.1` (solo los archivos del programa; `datos` y «Show de ejemplo» quedaron); `otaconvert-motor.exe` SHA-256 `07e1dc93…`; `--comprobar`: no falta nada.
+
+### Menú Paneles, transiciones revisadas y tema Espacio más sobrio (22/10/2026)
+- **Pedido del usuario:** «los paneles deben poder agregarse o quitarse, imita el menú "Paneles" de OBS», que las transiciones y los fundidos cruzados anden bien, y botones del tema Espacio «menos de juguete», con un toque más de sobriedad.
+- **Menú Paneles** (barra de arriba, entre Vista y Ayuda; solo con la Vista Estudio):
+  - una marca por panel: Escenas, Multivista, Fuentes, Mezclador, Transiciones, Botonera y Controles;
+  - **Controles no se puede ocultar** (GO y Parar todo siempre a mano): su casilla está en gris, con su consejo;
+  - cada panel tiene una **×** en su título para cerrarlo; vuelve desde el menú;
+  - **Bloquear paneles** esconde los agarres ⋮⋮ (no se mueven ni con ← →);
+  - **Restablecer paneles** (también desde Vista → Restaurar vista) vuelve al orden de fábrica, todos visibles y sin bloqueo;
+  - se guarda en el equipo (`ota-paneles-ocultos`, `ota-paneles-bloqueados`); la Multivista usa su propia preferencia (`ota-multivista`). El ítem Multivista salió del menú Vista (cada opción una sola vez);
+  - consejos nuevos `menu_paneles`, `bloquear_paneles` y `panel_controles` (es/en).
+- **Transiciones con el proyector de verdad:** `--prueba-transiciones` suma la **palanca T** (en 0 se ve lo de antes, a la mitad la mezcla, volver atrás sin negros ni destellos, hasta el final queda lo nuevo, y un fundido normal después). **En la PC del usuario: 16 de 16 BIEN, 0 negros.**
+  - Arreglo hallado al revisar: al volver atrás la palanca, la capa nueva se ponía entera **antes** de bajarla y podía verse un instante. Ahora baja primero (todavía transparente) y recién después se le quita la transparencia.
+- **Parpadeo negro en el monitor «Programa»** (lo que vio el usuario): la copia del Programa en la ventana se vaciaba (negro) mientras cargaba cada vídeo nuevo, y durante un fundido seguía mostrando lo viejo hasta el final y saltaba. Ahora lo nuevo entra en una capa encima y lo de antes se quita **recién cuando lo nuevo ya se ve**, con el mismo fundido cruzado de la transición (máx. 3 s; sin fundido en Liviano). Muestra lo más nuevo que no se está fundiendo. Comprobado en el panel del navegador: la imagen aparece sobre el vídeo sin pasar por negro.
+- **Rendimiento automático:** pasaba solo a Liviano si la ventana estaba tapada o minimizada (el navegador frena el dibujo y parecía un tirón). Ahora solo cuentan pausas de 120 ms a 1 s.
+- **Tema Espacio más sobrio:** GO redondo de cristal oscuro con borde y letras cian (antes relleno brillante con halo grande); GO y Parar todo del panel Controles en cristal oscuro con borde de color; opciones elegidas con fondo tenue y borde en vez de relleno neón; perillas de los faders metálicas; halos de monitores, pantallas y Multivista, reloj, barras y nebulosas más suaves. Vista previa: `v2/diseno/programa-estudio-espacio.jpg`.
+- **Tiras de la Multivista comprobadas** con el vídeo real del show de prueba: 6 fotos de 320×180 servidas por `/miniatura?cue=N&k=1…6`.
+- **140 pruebas en verde.**
+- **Sin probar:** la prueba de rendimiento con la Multivista abierta durante una función simulada; la palanca T oyendo el sonido.
