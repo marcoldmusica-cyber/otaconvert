@@ -209,6 +209,17 @@ impl Servidor {
                 difundir(&c5, v.to_string());
             }
         })?;
+        // Sonidos que esperan su momento (segunda mitad del blackout de la Vista
+        // Estudio): se miran cada 5 ms; casi siempre no hay ninguno.
+        let c6 = ctx.clone();
+        std::thread::Builder::new().name("transiciones".into()).spawn(move || loop {
+            std::thread::sleep(Duration::from_millis(5));
+            if let Ok(mut s) = c6.sesion.lock() {
+                if s.hay_pendientes() {
+                    s.atender_pendientes();
+                }
+            }
+        })?;
         let c4 = ctx.clone();
         std::thread::Builder::new().name("refresco".into()).spawn(move || {
             let mut ultimo = String::new();
@@ -771,8 +782,9 @@ fn ejecutar(ctx: &Arc<Contexto>, texto: &str) {
                 Some(i) => s.cambiar_idioma(i),
                 None => s.aviso = Some(Texto::nuevo("Idioma no válido.", "Invalid language.")),
             },
+            // Vista Estudio (como OBS): `reemplazar` = el cue nuevo reemplaza lo anterior.
             Some("go") => {
-                s.go();
+                s.go_con(v.get("reemplazar").and_then(|r| r.as_bool()).unwrap_or(false));
             }
             Some("parar_todo") => s.parar_todo(),
             Some("pausa") => s.pausa(),

@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use otaconvert_audio::{Comando, Pista};
-use otaconvert_show::{abrir, guardar, marca_de_tiempo, rutas, Cue, ErrorShow, Registro, Show, TipoCue, EXTENSION, SALIDA_AURICULARES};
+use otaconvert_show::{abrir, guardar, marca_de_tiempo, rutas, Cue, ErrorShow, Registro, Show, TipoCue, TipoTransicion, EXTENSION, SALIDA_AURICULARES};
 use serde_json::json;
 
 use crate::sonido::{Destino, Sonido};
@@ -124,6 +124,13 @@ pub struct Sesion {
     /// "Salir desde aquí" (Vista Estudio): cue en espera y segundo del archivo
     /// desde el que sale con el próximo GO. `None` = desde su inicio.
     desde_elegido: Option<(usize, f64)>,
+    /// GO de la Vista Estudio en curso: la transición con que reemplaza lo anterior.
+    reemplazo: Option<otaconvert_show::Transicion>,
+    /// Sonidos que arrancan un poco después del GO (segunda mitad del blackout).
+    pendientes: Vec<(Instant, Destino, Comando)>,
+    /// Para la próxima voz que se dispare con un GO de la Vista Estudio: cuánto
+    /// espera y con qué fundido mínimo entra (ms).
+    entrada_voz: Option<(u64, u64)>,
     /// Patrón de prueba a la vista en el proyector (para encajar las esquinas).
     patron: bool,
     /// Deshacer y rehacer (etapa 5A): cómo era el show antes de cada cambio.
@@ -227,6 +234,9 @@ impl Sesion {
             miniaturas_fallidas: std::collections::HashSet::new(),
             miniaturas_hechas: HashMap::new(),
             desde_elegido: None,
+            reemplazo: None,
+            pendientes: Vec::new(),
+            entrada_voz: None,
             patron: false,
             equipo: serde_json::Value::Null,
             salidas_respondidas: 0,
@@ -637,6 +647,15 @@ impl Sesion {
                 "doble_go_ms" => a.tiempo_minimo_entre_go_ms = rango(0.0, 5000.0, "Protección contra doble GO (ms)", "Double-GO protection (ms)")? as u32,
                 "fundir_todo_ms" => a.fundir_todo_ms = rango(0.0, 60_000.0, "Fundir todo (ms)", "Fade all (ms)")? as u32,
                 "volumen_maestro_db" => a.volumen_maestro_db = rango(-60.0, 12.0, "Volumen maestro (dB)", "Master volume (dB)")? as f32,
+                "transicion_ms" => a.transicion.ms = rango(0.0, 10_000.0, "Duración de la transición (ms)", "Transition length (ms)")? as u32,
+                "transicion_tipo" => {
+                    a.transicion.tipo = match v.as_str() {
+                        Some("corte") => TipoTransicion::Corte,
+                        Some("fundido") => TipoTransicion::Fundido,
+                        Some("negro") => TipoTransicion::Negro,
+                        _ => return Err(t("Transición: cuchilla, fundido o blackout.", "Transition: cut, fade or blackout.")),
+                    }
+                }
                 _ => return Err(t(format!("Ajuste desconocido: {k}"), format!("Unknown setting: {k}"))),
             }
         }
@@ -654,9 +673,10 @@ impl Sesion {
         self.registro.anotar(
             "AJUSTES",
             &format!(
-                "rampas {}/{}/{}/{}/{}/{}/{} ms, doble GO {} ms, fundir todo {} ms, maestro {:.1} dB",
+                "rampas {}/{}/{}/{}/{}/{}/{} ms, doble GO {} ms, fundir todo {} ms, maestro {:.1} dB, transición {:?} {} ms",
                 r.inicio, r.reanudar, r.pausa, r.parada, r.salto, r.volumen, r.fin,
-                self.show.ajustes.tiempo_minimo_entre_go_ms, self.show.ajustes.fundir_todo_ms, self.show.ajustes.volumen_maestro_db
+                self.show.ajustes.tiempo_minimo_entre_go_ms, self.show.ajustes.fundir_todo_ms, self.show.ajustes.volumen_maestro_db,
+                self.show.ajustes.transicion.tipo, self.show.ajustes.transicion.ms
             ),
         );
         Ok(())
@@ -710,9 +730,109 @@ impl Sesion {
         }
     }
 
+    /// GO de la Vista Lista (como QLab): el cue nuevo suena encima de lo que haya.
+    pub fn go(&mut self) -> bool {
+        self.go_con(false)
+    }
+
+    /// GO; con `reemplazar` (Vista Estudio, como OBS) el cue nuevo reemplaza
+    /// todo lo que suena y se ve, con la transición de Ajustes del show. La
+    /// botonera y la escucha por auriculares no se tocan.
+    pub fn go_con(&mut self, reemplazar: bool) -> bool {
+        self.reemplazo = reemplazar.then_some(self.show.ajustes.transicion);
+        let r = self.go_interno();
+        self.reemplazo = None;
+        self.entrada_voz = None;
+        r
+    }
+
+    /// Lo que se hace al disparar el cue `i` con un GO de la Vista Estudio:
+    /// lo anterior se corta o baja (sonido e imagen). La imagen anterior, si lo
+    /// nuevo también es una imagen, la reemplaza la proyección con su transición.
+    /// Devuelve cuánto espera el sonido nuevo para empezar y con qué fundido
+    /// mínimo entra (ms): fundido = entra mientras lo anterior baja; blackout =
+    /// entra cuando lo anterior ya se apagó.
+    fn reemplazar_anteriores(&mut self, i: usize, nuevo_visual: bool) -> (u64, u64) {
+        let Some(t) = self.reemplazo else { return (0, 0) };
+        let entrada = match t.tipo {
+            TipoTransicion::Corte => (0, 0),
+            TipoTransicion::Fundido => (0, t.ms as u64),
+            TipoTransicion::Negro => ((t.ms / 2) as u64, (t.ms / 2) as u64),
+        };
+        let ms = match t.tipo {
+            TipoTransicion::Corte => 0,
+            TipoTransicion::Fundido => t.ms,
+            TipoTransicion::Negro => t.ms / 2,
+        } as u64;
+        let f = self.cuadros(ms) as u32;
+        // Lo mismo que se vuelve a dar (vídeo al aire elegido otra vez) no se toca aquí.
+        let anteriores: Vec<(u32, Destino, bool, bool)> = self.sonando.iter().filter(|s| !(s.visual && s.cue == i)).map(|s| (s.id, s.destino, s.voz, s.visual)).collect();
+        if anteriores.is_empty() {
+            // Nada que reemplazar: en el blackout lo nuevo sale desde negro sin esperar.
+            return (0, entrada.1);
+        }
+        for &(id, destino, voz, _) in &anteriores {
+            if voz {
+                if let Some(son) = self.sonido.as_mut() {
+                    let _ = son.enviar(destino, Comando::Parar { id, fundido: f });
+                }
+            }
+        }
+        self.pendientes.clear();
+        if !nuevo_visual && anteriores.iter().any(|a| a.3) {
+            self.al_proyector(if ms == 0 { OrdenProyector::Negro } else { OrdenProyector::Fundir { ms } });
+            self.remostrar = None;
+        }
+        let fin = Instant::now() + Duration::from_millis(ms);
+        let ids: Vec<u32> = anteriores.iter().map(|a| a.0).collect();
+        if ms == 0 {
+            self.sonando.retain(|s| !ids.contains(&s.id));
+        } else {
+            for s in self.sonando.iter_mut().filter(|s| ids.contains(&s.id)) {
+                s.duracion = Some(fin.saturating_duration_since(s.inicio).min(s.duracion.unwrap_or(Duration::MAX)));
+                s.fundiendo = true;
+            }
+        }
+        let tipo = match t.tipo {
+            TipoTransicion::Corte => "cuchilla",
+            TipoTransicion::Fundido => "fundido",
+            TipoTransicion::Negro => "blackout",
+        };
+        self.registro.anotar("TRANSICION", &format!("{tipo} de {} ms: reemplaza lo que sonaba o se veía ({})", t.ms, anteriores.len()));
+        entrada
+    }
+
+    /// Sonidos que esperaban su momento (segunda mitad del blackout). Lo
+    /// llama seguido un hilo del canal; no hace nada si no hay ninguno.
+    pub fn atender_pendientes(&mut self) {
+        if self.pendientes.is_empty() || self.pausado {
+            return;
+        }
+        let ahora = Instant::now();
+        let mut k = 0;
+        while k < self.pendientes.len() {
+            if self.pendientes[k].0 <= ahora {
+                let (_, destino, comando) = self.pendientes.remove(k);
+                if let Some(son) = self.sonido.as_mut() {
+                    let _ = son.enviar(destino, comando);
+                }
+            } else {
+                k += 1;
+            }
+        }
+    }
+
+    pub fn hay_pendientes(&self) -> bool {
+        !self.pendientes.is_empty()
+    }
+
+    fn quitar_pendiente(&mut self, id: u32) {
+        self.pendientes.retain(|(_, _, c)| !matches!(c, Comando::IniciarCue { id: x, .. } if *x == id));
+    }
+
     /// GO: dispara el cue en espera y deja en espera el siguiente.
     /// Devuelve `false` si se ignoró.
-    pub fn go(&mut self) -> bool {
+    fn go_interno(&mut self) -> bool {
         if self.show.cues.is_empty() || self.en_espera >= self.show.cues.len() {
             self.aviso = Some(Texto::nuevo("No hay ningún cue en espera.", "There is no cue on standby."));
             return false;
@@ -861,10 +981,17 @@ impl Sesion {
     /// GO de un vídeo o imagen ya precargado: sube encima y el anterior se retira.
     /// Si es un vídeo con sonido, el sonido arranca a la vez por el mezclador.
     fn mostrar_visual(&mut self, i: usize, duracion: Option<f64>) {
-        self.al_proyector(OrdenProyector::Mostrar { id: self.show.cues[i].id });
+        let entrada = self.reemplazar_anteriores(i, true);
+        self.entrada_voz = self.reemplazo.map(|_| entrada);
+        let id_cue = self.show.cues[i].id;
+        match self.reemplazo {
+            Some(t) if t.tipo != TipoTransicion::Corte && t.ms > 0 => self.al_proyector(OrdenProyector::MostrarCon { id: id_cue, transicion: t }),
+            _ => self.al_proyector(OrdenProyector::Mostrar { id: id_cue }),
+        }
         // Una sola superficie (Proyector) por ahora: lo que se veía deja de verse,
         // y si tenía sonido, su sonido se para (con la rampa de parada).
-        let viejas: Vec<(u32, Destino)> = self.sonando.iter().filter(|s| s.visual && s.voz).map(|s| (s.id, s.destino)).collect();
+        // (Con un GO de la Vista Estudio ya lo hizo `reemplazar_anteriores`, con su transición.)
+        let viejas: Vec<(u32, Destino)> = self.sonando.iter().filter(|s| s.visual && s.voz && self.reemplazo.is_none()).map(|s| (s.id, s.destino)).collect();
         for (id, destino) in viejas {
             if let Some(son) = self.sonido.as_mut() {
                 let _ = son.enviar(destino, Comando::Parar { id, fundido: 0 });
@@ -912,7 +1039,8 @@ impl Sesion {
             id,
             cue: i,
             destino,
-            inicio: Instant::now().checked_sub(adelanto).unwrap_or_else(Instant::now),
+            // (En el blackout, lo nuevo sale recién a la mitad de la transición.)
+            inicio: (Instant::now() + Duration::from_millis(entrada.0)).checked_sub(adelanto).unwrap_or_else(Instant::now),
             // Termina con el aviso Fin del proyector (vídeo sin bucle) o al parar.
             duracion: None,
             largo,
@@ -1023,12 +1151,14 @@ impl Sesion {
 
     fn disparar(&mut self, i: usize, pista: Arc<Pista>) {
         let c = self.show.cues[i].clone();
+        let entrada = self.reemplazar_anteriores(i, false);
+        self.entrada_voz = self.reemplazo.map(|_| entrada);
         if let Some((id, destino, largo)) = self.iniciar_voz(i, pista, None, None) {
             self.sonando.push(Sonando {
                 id,
                 cue: i,
                 destino,
-                inicio: Instant::now(),
+                inicio: Instant::now() + Duration::from_millis(entrada.0),
                 duracion: (!c.bucle).then_some(largo),
                 largo,
                 fundiendo: false,
@@ -1051,6 +1181,7 @@ impl Sesion {
     /// Como `iniciar_voz`, por la salida pedida («Ver antes» va siempre por Auriculares).
     fn iniciar_voz_en(&mut self, i: usize, pista: Arc<Pista>, fin_s: Option<f64>, desde_s: Option<f64>, destino: Destino) -> Option<(u32, Destino, Duration)> {
         let c = self.show.cues[i].clone();
+        let (retraso_ms, entrada_ms) = self.entrada_voz.take().unwrap_or((0, 0));
         let id = self.siguiente_id;
         self.siguiente_id = self.siguiente_id.wrapping_add(1).max(1);
         let total = pista.cuadros();
@@ -1072,9 +1203,15 @@ impl Sesion {
             desde: desde_s.map(|s| ((s * pista_fs) as usize).clamp(inicio, fin.saturating_sub(1))).unwrap_or(inicio),
             hasta,
             bucle: c.bucle,
-            fundido_entrada: self.cuadros(c.fundido_entrada_ms as u64) as u32,
+            // Con un GO de la Vista Estudio, al menos el fundido de la transición.
+            fundido_entrada: self.cuadros((c.fundido_entrada_ms as u64).max(entrada_ms)) as u32,
             fundido_salida: self.cuadros(c.fundido_salida_ms as u64) as u32,
         };
+        // Blackout: el sonido nuevo espera a que lo anterior se apague.
+        if retraso_ms > 0 && self.sonido.is_some() {
+            self.pendientes.push((Instant::now() + Duration::from_millis(retraso_ms), destino, comando));
+            return Some((id, destino, Duration::from_secs_f64(fin.saturating_sub(inicio) as f64 / fs)));
+        }
         let enviado = self.sonido.as_mut().map(|s| s.enviar(destino, comando));
         match enviado {
             Some(Ok(())) => Some((id, destino, Duration::from_secs_f64(fin.saturating_sub(inicio) as f64 / fs))),
@@ -1379,6 +1516,7 @@ impl Sesion {
     }
 
     pub fn parar_todo(&mut self) {
+        self.pendientes.clear();
         self.a_todas(|| Comando::PararTodo { fundido: 0 });
         // La proyección a negro al instante (telón), como el sonido.
         self.al_proyector(OrdenProyector::Negro);
@@ -1394,6 +1532,8 @@ impl Sesion {
 
     /// Fundir todo (F): baja todo en `fundir_todo_ms`.
     pub fn fundir_todo(&mut self) {
+        // Lo que todavía no empezó (blackout a medias) ya no empieza.
+        self.pendientes.clear();
         let f = self.cuadros(self.show.ajustes.fundir_todo_ms as u64) as u32;
         self.a_todas(|| Comando::PararTodo { fundido: f });
         if self.sonando.iter().any(|s| s.visual) {
@@ -1428,6 +1568,7 @@ impl Sesion {
     /// la lista "sonando" del estado), en la duración de Fundir todo. Vale
     /// también en Función: es un control de la función, no cambia el show.
     pub fn fundir_uno(&mut self, id: u32) {
+        self.quitar_pendiente(id);
         let Some(s) = self.sonando.iter().find(|s| s.id == id) else { return };
         if s.fundiendo {
             return;
@@ -1456,6 +1597,7 @@ impl Sesion {
     /// rampa de parada (sin clic). Si es la imagen o el vídeo que se ve, el
     /// proyector queda en negro. Vale también en Función.
     pub fn parar_uno(&mut self, id: u32) {
+        self.quitar_pendiente(id);
         let Some(k) = self.sonando.iter().position(|s| s.id == id) else { return };
         let s = self.sonando.remove(k);
         if s.voz {
@@ -1486,6 +1628,9 @@ impl Sesion {
                     if let Some(f) = v.fin.as_mut() {
                         *f += pausa;
                     }
+                }
+                for p in &mut self.pendientes {
+                    p.0 += pausa;
                 }
             }
             self.pausado = false;

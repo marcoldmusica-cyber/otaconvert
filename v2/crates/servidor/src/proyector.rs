@@ -31,6 +31,9 @@ pub enum OrdenProyector {
     Patron(bool),
     /// Subir encima de todo y arrancar; la anterior se retira sola.
     Mostrar { id: u64 },
+    /// Como `Mostrar`, con la transición de la Vista Estudio (fundido cruzado o
+    /// blackout) en lugar del corte.
+    MostrarCon { id: u64, transicion: otaconvert_show::Transicion },
     /// Parar todo: telón negro al instante.
     Negro,
     /// Fundir a negro en `ms`.

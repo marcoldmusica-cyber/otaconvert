@@ -125,11 +125,41 @@ pub struct AjustesShow {
     pub fundir_todo_ms: u32,
     /// Volumen maestro en dB.
     pub volumen_maestro_db: f32,
+    /// Vista Estudio (como OBS): cómo pasa el GO de lo que había al cue nuevo.
+    pub transicion: Transicion,
 }
 
 impl Default for AjustesShow {
     fn default() -> Self {
-        Self { rampas_ms: RampasMs::default(), tiempo_minimo_entre_go_ms: 300, fundir_todo_ms: 3000, volumen_maestro_db: 0.0 }
+        Self { rampas_ms: RampasMs::default(), tiempo_minimo_entre_go_ms: 300, fundir_todo_ms: 3000, volumen_maestro_db: 0.0, transicion: Transicion::default() }
+    }
+}
+
+/// Cómo se reemplaza lo anterior con un GO en la Vista Estudio (en la Vista
+/// Lista los cues se superponen y esto no se usa).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum TipoTransicion {
+    /// Cuchilla: lo anterior se corta (con la rampa de parada) y entra lo nuevo.
+    #[default]
+    Corte,
+    /// Lo anterior baja mientras lo nuevo sube (imagen y sonido), en `ms`.
+    Fundido,
+    /// Lo anterior se funde a negro y silencio y lo nuevo sale desde negro:
+    /// cada mitad dura `ms / 2`.
+    Negro,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Transicion {
+    pub tipo: TipoTransicion,
+    pub ms: u32,
+}
+
+impl Default for Transicion {
+    fn default() -> Self {
+        Self { tipo: TipoTransicion::Corte, ms: 1000 }
     }
 }
 

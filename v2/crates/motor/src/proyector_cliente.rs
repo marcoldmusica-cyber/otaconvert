@@ -156,6 +156,14 @@ impl Proyector for ProyectorProceso {
             OrdenProyector::Esquinas(h) => json!({ "o": "esquinas", "h": h }),
             OrdenProyector::Patron(si) => json!({ "o": "patron", "si": si }),
             OrdenProyector::Mostrar { id } => json!({ "o": "mostrar", "id": id }),
+            OrdenProyector::MostrarCon { id, transicion } => {
+                let trans = match transicion.tipo {
+                    otaconvert_show::TipoTransicion::Corte => "corte",
+                    otaconvert_show::TipoTransicion::Fundido => "fundido",
+                    otaconvert_show::TipoTransicion::Negro => "negro",
+                };
+                json!({ "o": "mostrar", "id": id, "trans": trans, "ms": transicion.ms })
+            }
             OrdenProyector::Negro => json!({ "o": "negro" }),
             OrdenProyector::Fundir { ms } => json!({ "o": "fundir", "ms": ms }),
             OrdenProyector::Pausa(si) => json!({ "o": "pausa", "si": si }),

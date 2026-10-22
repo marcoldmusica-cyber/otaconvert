@@ -295,3 +295,143 @@ pub fn ejecutar(cambios: u64, pantalla: Option<&str>) -> Result<bool, String> {
     println!("{}", if fallos == 0 { "RESULTADO: BIEN" } else { "RESULTADO: HAY PROBLEMAS" });
     Ok(fallos == 0)
 }
+
+/// Transiciones de la Vista Estudio con el proceso de proyección de verdad:
+/// `--prueba-transiciones [--pantalla N]`. Fundido cruzado (nunca negro, a la
+/// mitad la mezcla), blackout (pasa por negro y sale el nuevo), cuchilla, y
+/// Parar todo en plena transición (negro al instante, y lo siguiente sale bien).
+pub fn transiciones(pantalla: Option<&str>) -> Result<bool, String> {
+    use otaconvert_show::{TipoTransicion, Transicion};
+    std::env::set_var("OTACONVERT_PRUEBA_VIDEO", "1");
+    let lista = crate::pantallas::listar();
+    let (x, y, w, h) = match pantalla.and_then(|p| p.parse::<usize>().ok()).and_then(|n| lista.get(n.wrapping_sub(1))) {
+        Some(p) => (p.x, p.y, p.ancho, p.alto),
+        None => match lista.iter().find(|p| !p.principal) {
+            Some(p) => (p.x, p.y, p.ancho, p.alto),
+            None => {
+                let p = lista.first().ok_or("no hay pantallas")?;
+                (p.x + p.ancho / 2 - 320, p.y + p.alto / 2 - 180, 640, 360)
+            }
+        },
+    };
+    let (cx, cy) = (x + w / 2, y + h / 2);
+    println!("Prueba de transiciones en {w} × {h} (posición {x}, {y}). Se verán colores que se mezclan y pasan por negro.");
+    let mut p = ProyectorProceso::abrir(x, y, w, h, false)?;
+    if !p.esperar_hola(Duration::from_secs(10)) {
+        return Err("la proyección no arrancó".into());
+    }
+    let rgb = |c: u32| (((c >> 16) & 0xFF) as i32, ((c >> 8) & 0xFF) as i32, (c & 0xFF) as i32);
+    let dist = |a: (i32, i32, i32), b: (i32, i32, i32)| (a.0 - b.0).abs().max((a.1 - b.1).abs()).max((a.2 - b.2).abs());
+    let mezcla = |a: (i32, i32, i32), b: (i32, i32, i32), t: f64| {
+        let m = |x: i32, y: i32| (x as f64 + (y - x) as f64 * t).round() as i32;
+        (m(a.0, b.0), m(a.1, b.1), m(a.2, b.2))
+    };
+    let mut informe = Vec::new();
+    let mut fallos = 0;
+    let mut anotar = |ok: bool, t: String| {
+        informe.push(format!("{}  {t}", if ok { "BIEN    " } else { "PROBLEMA" }));
+        if !ok {
+            fallos += 1;
+        }
+    };
+    let cargar = |p: &mut ProyectorProceso, id: u64, c: u32| -> Result<(), String> {
+        p.enviar(orden_precargar(id, c));
+        esperar(p, Duration::from_secs(5), |a| matches!(a, AvisoProyector::Listo { id: x, .. } if *x == id)).map(|_| ())
+    };
+    // Mira el centro durante `dur` y cuenta: negras, fuera de lo esperado (según `ok`).
+    let mirar = |p: &mut ProyectorProceso, dur: Duration, ok: &dyn Fn((i32, i32, i32)) -> bool| {
+        let (mut n, mut negras, mut malas, mut minimo) = (0, 0, 0, 999);
+        let mut ejemplos: Vec<(i32, i32, i32)> = Vec::new();
+        let t = Instant::now();
+        while t.elapsed() < dur {
+            let c = pixel(cx, cy);
+            n += 1;
+            minimo = minimo.min(c.0.max(c.1).max(c.2));
+            if negro(c) {
+                negras += 1;
+            }
+            if !ok(c) {
+                malas += 1;
+                if ejemplos.len() < 9 {
+                    ejemplos.push(c);
+                }
+            }
+            let _ = p.recoger();
+        }
+        if !ejemplos.is_empty() {
+            println!("   (muestras fuera de lo esperado: {ejemplos:?})");
+        }
+        (n, negras, malas, minimo)
+    };
+    let (a, b, c, d) = (COLORES[0], COLORES[2], COLORES[1], COLORES[3]);
+
+    // Primero A, con corte.
+    cargar(&mut p, 1, a)?;
+    p.enviar(OrdenProyector::Mostrar { id: 1 });
+    std::thread::sleep(Duration::from_millis(400));
+
+    // 1. Fundido cruzado A → B en 1 s.
+    cargar(&mut p, 2, b)?;
+    p.enviar(OrdenProyector::MostrarCon { id: 2, transicion: Transicion { tipo: TipoTransicion::Fundido, ms: 1000 } });
+    let (ra, rb) = (rgb(a), rgb(b));
+    let ok_mezcla = |v: (i32, i32, i32)| (0..=20).any(|k| dist(v, mezcla(ra, rb, k as f64 / 20.0)) < 30);
+    let (n, negras, malas, _) = mirar(&mut p, Duration::from_millis(500), &ok_mezcla);
+    let mitad = pixel(cx, cy);
+    let (n2, negras2, malas2, _) = mirar(&mut p, Duration::from_millis(700), &ok_mezcla);
+    let fin = pixel(cx, cy);
+    anotar(negras + negras2 == 0 && malas + malas2 == 0, format!("fundido 1 s: {} muestras, {} negras, {} fuera de la mezcla; a la mitad {mitad:?} (entre {ra:?} y {rb:?})", n + n2, negras + negras2, malas + malas2));
+    anotar(dist(mitad, ra) > 30 && dist(mitad, rb) > 30, "a la mitad del fundido se ven los dos (mezcla)".into());
+    anotar(dist(fin, rb) < 30, format!("al terminar el fundido se ve {fin:?} (esperado {rb:?})"));
+
+    // 2. Blackout B → C en 1 s (medio segundo a negro, medio desde negro).
+    cargar(&mut p, 3, c)?;
+    p.enviar(OrdenProyector::MostrarCon { id: 3, transicion: Transicion { tipo: TipoTransicion::Negro, ms: 1000 } });
+    let rc = rgb(c);
+    // El brillo de mpv oscurece restando luz (los canales más débiles llegan
+    // antes a 0): vale cualquier versión más oscura del color de antes o del nuevo.
+    let mas_oscuro = |v: (i32, i32, i32), o: (i32, i32, i32)| v.0 <= o.0 + 15 && v.1 <= o.1 + 15 && v.2 <= o.2 + 15;
+    let ok_negro = |v: (i32, i32, i32)| mas_oscuro(v, rb) || mas_oscuro(v, rc);
+    let (n, _, malas, minimo) = mirar(&mut p, Duration::from_millis(1200), &ok_negro);
+    let fin = pixel(cx, cy);
+    anotar(minimo < 24, format!("blackout 1 s: pasa por negro (lo más oscuro: {minimo})"));
+    anotar(malas == 0, format!("blackout: {n} muestras, {malas} que no son ni el de antes ni el nuevo oscurecidos"));
+    anotar(dist(fin, rc) < 30, format!("al terminar el blackout se ve {fin:?} (esperado {rc:?})"));
+
+    // 3. Cuchilla C → D (control): sin negros.
+    cargar(&mut p, 4, d)?;
+    let rd = rgb(d);
+    p.enviar(OrdenProyector::Mostrar { id: 4 });
+    let (n, negras, _, _) = mirar(&mut p, Duration::from_millis(400), &|_| true);
+    anotar(negras == 0 && dist(pixel(cx, cy), rd) < 30, format!("cuchilla: {n} muestras, {negras} negras"));
+
+    // 4. Parar todo a mitad de un fundido: negro enseguida; lo siguiente sale bien.
+    cargar(&mut p, 5, a)?;
+    p.enviar(OrdenProyector::MostrarCon { id: 5, transicion: Transicion { tipo: TipoTransicion::Fundido, ms: 2000 } });
+    std::thread::sleep(Duration::from_millis(600));
+    p.enviar(OrdenProyector::Negro);
+    std::thread::sleep(Duration::from_millis(120));
+    let en_negro = pixel(cx, cy);
+    cargar(&mut p, 6, b)?;
+    p.enviar(OrdenProyector::Mostrar { id: 6 });
+    std::thread::sleep(Duration::from_millis(400));
+    let despues = pixel(cx, cy);
+    anotar(negro(en_negro), format!("Parar todo en pleno fundido: {en_negro:?} a los 120 ms"));
+    anotar(dist(despues, rb) < 30, format!("el GO siguiente se ve entero: {despues:?} (esperado {rb:?})"));
+
+    // 5. GO en pleno blackout: salta al final y sale el nuevo.
+    cargar(&mut p, 7, c)?;
+    p.enviar(OrdenProyector::MostrarCon { id: 7, transicion: Transicion { tipo: TipoTransicion::Negro, ms: 2000 } });
+    std::thread::sleep(Duration::from_millis(300));
+    cargar(&mut p, 8, d)?;
+    p.enviar(OrdenProyector::Mostrar { id: 8 });
+    std::thread::sleep(Duration::from_millis(400));
+    let ahora = pixel(cx, cy);
+    anotar(dist(ahora, rd) < 30, format!("GO en pleno blackout: se ve {ahora:?} (esperado {rd:?})"));
+
+    println!();
+    for l in &informe {
+        println!("{l}");
+    }
+    println!("RESULTADO: {}", if fallos == 0 { "BIEN" } else { "PROBLEMA" });
+    Ok(fallos == 0)
+}

@@ -114,6 +114,9 @@ pub fn validar(show: &Show) -> Result<(), ErrorShow> {
     if show.ajustes.tiempo_minimo_entre_go_ms > 5_000 {
         return Err(ErrorShow::ValorMalo(format!("protección contra doble GO {} ms", show.ajustes.tiempo_minimo_entre_go_ms)));
     }
+    if show.ajustes.transicion.ms > 10_000 {
+        return Err(ErrorShow::ValorMalo(format!("transición {} ms", show.ajustes.transicion.ms)));
+    }
     if show.ajustes.fundir_todo_ms > 60_000 {
         return Err(ErrorShow::ValorMalo(format!("Fundir todo {} ms", show.ajustes.fundir_todo_ms)));
     }

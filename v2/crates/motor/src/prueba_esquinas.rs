@@ -127,7 +127,7 @@ fn opts(h: [f64; 8]) -> String {
     (0..8).map(|k| format!("h{k}={:.9}", h[k])).collect::<Vec<_>>().join(",")
 }
 
-fn bmp(ruta: &Path, w: u32, h: u32, color: impl Fn(u32, u32) -> (u8, u8, u8)) -> Result<(), String> {
+pub(crate) fn bmp(ruta: &Path, w: u32, h: u32, color: impl Fn(u32, u32) -> (u8, u8, u8)) -> Result<(), String> {
     let fila = w * 3;
     let tam = fila * h;
     let mut d = Vec::with_capacity(54 + tam as usize);
@@ -151,7 +151,7 @@ fn bmp(ruta: &Path, w: u32, h: u32, color: impl Fn(u32, u32) -> (u8, u8, u8)) ->
     std::fs::write(ruta, d).map_err(|e| format!("{}: {e}", ruta.display()))
 }
 
-fn pixel(x: i32, y: i32) -> (i32, i32, i32) {
+pub(crate) fn pixel(x: i32, y: i32) -> (i32, i32, i32) {
     use windows_sys::Win32::Graphics::Gdi::{GetDC, GetPixel, ReleaseDC};
     // SAFETY: DC de la pantalla, liberado enseguida.
     let c = unsafe {

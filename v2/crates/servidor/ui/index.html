@@ -1584,7 +1584,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
   var RAMPAS = [["inicio", "rampa_inicio", "r_inicio"], ["reanudar", "rampa_reanudar", "r_reanudar"], ["pausa", "rampa_pausa", "r_pausa"],
     ["parada", "rampa_parada", "r_parada"], ["salto", "rampa_salto", "r_salto"], ["volumen", "rampa_volumen", "r_volumen"], ["fin", "rampa_fin", "r_fin"]];
   var RECOMENDADOS = { rampa_inicio: 0, rampa_reanudar: 5, rampa_pausa: 10, rampa_parada: 10, rampa_salto: 5, rampa_volumen: 5, rampa_fin: 10,
-    doble_go_ms: 300, fundir_todo_ms: 3000, volumen_maestro_db: 0 };
+    doble_go_ms: 300, fundir_todo_ms: 3000, volumen_maestro_db: 0, transicion_tipo: "corte", transicion_ms: 1000 };
   var ajustesDlg = null; // { campos: {clave: {input, leer(e), mostrar(input, valor)}} }
   function dialogoAjustes() {
     if (!puedeEditar()) { dialogo(T("ajustes_show").replace("…", ""), function (d) { d.appendChild(el("p", "", T("aj_funcion"))); }); return; }
@@ -1644,6 +1644,19 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
       var ft = numero("fundir_todo_ms", 0, 60, 0.5, function (v) { return Math.round(v * 1000); });
       ajustesDlg.campos.fundir_todo_ms = { input: ft, valor: function (a) { return a.fundir_todo_ms / 1000; } };
       cuerpo.appendChild(fila("fundir_todo_ms", "fundir_todo_dur", "fundir_todo_dur", ft, "s"));
+      // Vista Estudio: cómo reemplaza el GO lo que había.
+      cuerpo.appendChild(el("h3", "", T("aj_transicion")));
+      cuerpo.appendChild(el("p", "note-small", T("aj_transicion_s")));
+      var tt = el("select");
+      [["corte", "trans_corte"], ["fundido", "trans_fundido"], ["negro", "trans_negro"]].forEach(function (x) {
+        var op = el("option", "", T(x[1])); op.value = x[0]; tt.appendChild(op);
+      });
+      tt.onchange = function () { mandar("ajustes", { cambios: { transicion_tipo: tt.value } }); };
+      ajustesDlg.campos.transicion_tipo = { input: tt, valor: function (a) { return (a.transicion || {}).tipo || "corte"; } };
+      cuerpo.appendChild(fila("transicion_tipo", "transicion", "transicion", tt, ""));
+      var tm = numero("transicion_ms", 0, 10000, 50, function (v) { return Math.round(v); });
+      ajustesDlg.campos.transicion_ms = { input: tm, valor: function (a) { return (a.transicion || {}).ms != null ? a.transicion.ms : 1000; } };
+      cuerpo.appendChild(fila("transicion_ms", "transicion_dur", "transicion_dur", tm, "ms"));
       // Volumen maestro.
       cuerpo.appendChild(el("h3", "", T("aj_sonido")));
       var vm = el("input"); vm.type = "range"; vm.min = -60; vm.max = 12; vm.step = 0.5;
@@ -2063,7 +2076,9 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
   }
 
   // ---- Botones ----
-  $("go").onclick = function () { mandar("go"); };
+  // Vista Estudio (como OBS): el GO reemplaza lo anterior; en la Vista Lista se superpone.
+  function darGo() { mandar("go", { reemplazar: estilo === "estudio" }); }
+  $("go").onclick = darGo;
   $("parar").onclick = function () { mandar("parar_todo"); };
   $("pausa").onclick = function () { mandar("pausa"); };
   $("fundir").onclick = function () { mandar("fundir_todo"); };
@@ -2109,7 +2124,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     if (ev.altKey && !escribiendo && !velo && (ev.key === "ArrowUp" || ev.key === "ArrowDown")) { ev.preventDefault(); moverCue(ev.key === "ArrowUp" ? -1 : 1); return; }
     if (ev.key === "Delete" && !escribiendo && !velo) { ev.preventDefault(); eliminarCue(); return; }
     if (escribiendo || ev.ctrlKey || ev.metaKey || ev.altKey) return;   // con foco en un campo, Tab pasa de campo
-    if (ev.key === " ") { ev.preventDefault(); cerrarDialogo(); cerrarMenus(); cerrarBurbuja(); mandar("go"); return; }
+    if (ev.key === " ") { ev.preventDefault(); cerrarDialogo(); cerrarMenus(); cerrarBurbuja(); darGo(); return; }
     if (mapeo && teclaMapeo(ev)) { ev.preventDefault(); return; }
     if (velo) return;
     // Tecla de un botón de la botonera (también en Función).

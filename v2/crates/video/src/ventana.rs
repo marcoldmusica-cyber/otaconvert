@@ -148,6 +148,33 @@ impl Proyeccion {
         self.poner(self.capas[i], HWND_BOTTOM);
     }
 
+    /// Transparencia de la capa `i` para el fundido cruzado: `Some(0)` = no se
+    /// ve (se ve lo de abajo), `Some(255)` = se ve entera, `None` = capa normal
+    /// otra vez. Es una ventana hija «en capas» (`WS_EX_LAYERED`, Windows 8 o
+    /// más nuevo); medido con `--prueba-cruzado`: la mezcla se ve exacta y sin
+    /// negros con la forma de dibujar de mpv por defecto (d3d11 «flip»).
+    pub fn transparencia(&self, i: usize, alfa: Option<u8>) {
+        use windows_sys::Win32::UI::WindowsAndMessaging::{GetWindowLongPtrW, SetLayeredWindowAttributes, SetWindowLongPtrW, GWL_EXSTYLE, LWA_ALPHA, WS_EX_LAYERED};
+        let h = self.capas[i] as HWND;
+        // SAFETY: HWND válido mientras exista la proyección; solo cambia su estilo y su transparencia.
+        unsafe {
+            let estilo = GetWindowLongPtrW(h, GWL_EXSTYLE);
+            match alfa {
+                Some(a) => {
+                    if estilo & WS_EX_LAYERED as isize == 0 {
+                        SetWindowLongPtrW(h, GWL_EXSTYLE, estilo | WS_EX_LAYERED as isize);
+                    }
+                    SetLayeredWindowAttributes(h, 0, a, LWA_ALPHA);
+                }
+                None => {
+                    if estilo & WS_EX_LAYERED as isize != 0 {
+                        SetWindowLongPtrW(h, GWL_EXSTYLE, estilo & !(WS_EX_LAYERED as isize));
+                    }
+                }
+            }
+        }
+    }
+
     /// Pone el telón negro encima de todo: no se ve ninguna capa.
     pub fn telon_arriba(&self) {
         self.poner(self.telon, HWND_TOP);

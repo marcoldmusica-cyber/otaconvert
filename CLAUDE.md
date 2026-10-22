@@ -1105,3 +1105,48 @@ Pedido del usuario: "Sí, sigue con la etapa 5." Repartida en cuatro partes que 
   - El motor comprueba que el show se pueda abrir, guarda el actual, abre el otro con un motor nuevo (la misma salida de mensajes) y termina.
   - Consejo `abrir_show`; atajo en Ayuda.
   - **Sin probar en vivo:** el usuario tenía la demo abierta y se paró la prueba con teclas automáticas para no tocar sus ventanas.
+
+### Vista Estudio: el GO reemplaza, con transición (22/10/2026)
+- **Pedido del usuario:** en la Vista Estudio (como OBS) los cues no deben superponerse con el anterior; la superposición es para la Vista Lista (como QLab).
+- **Decidido por el usuario:**
+  - En la Vista Estudio el GO reemplaza **todo** (audio y vídeo).
+  - La transición se elige entre **cuchilla, fundido (con ms ajustables) y blackout**.
+  - La botonera y la escucha por auriculares no se tocan.
+  - En la Vista Lista nada cambia: los cues se superponen.
+- **Experimento antes de tocar la proyección** (`--prueba-cruzado`), con riesgo avisado y aprobado:
+  - Fundido cruzado de imagen = la capa nueva como ventana hija «en capas» (`WS_EX_LAYERED`, Windows 8+) con su transparencia de 0 a 255 (`SetLayeredWindowAttributes`).
+  - Con la forma de dibujar de mpv por defecto (d3d11 «flip») a la mitad se ve la mezcla exacta, **0 negros** con imágenes y con vídeos reales.
+  - Con `d3d11-flip=no` sale **negro**: descartado.
+  - **Hallazgo aparte:** al disparar un vídeo nuevo se pierde **1 cuadro al arrancar**, también con el corte de siempre (control: 5 en 6 cambios). No es negro, ya existía y no lo causa el fundido. Revisar más adelante.
+- **Archivo del show:** `ajustes.transicion { tipo: corte | fundido | negro, ms }`, por defecto cuchilla con 1000 ms. Los shows viejos abren igual. Validación: ms ≤ 10 000.
+- **Proyección** (`proyector.rs`):
+  - Orden `mostrar {id, trans, ms}` con estado `Saliendo` (lo anterior sigue a la vista debajo).
+  - **Fundido:** la capa nueva sube transparente y llega a entera en `ms`. Al terminar se le quita la transparencia y se retira lo anterior.
+  - **Blackout:** lo anterior baja a negro con el brillo de mpv (curva t²) en `ms/2`. Después sube lo nuevo desde negro (brillo −100 → 0, curva (1−t)²) en `ms/2`.
+  - Cualquier otra orden (otro GO, Parar todo, Fundir, Pausa) primero salta la transición a su final.
+  - Orden nueva del lado de la sesión: `OrdenProyector::MostrarCon { id, transicion }`. Para la cuchilla se sigue usando `Mostrar`.
+- **Sesión:**
+  - `go_con(reemplazar)`; `go()` = Vista Lista.
+  - `reemplazar_anteriores` hace lo siguiente según la transición:
+    - lo que suena baja con `Parar` (cuchilla = rampa de parada, fundido = `ms`, blackout = `ms/2`);
+    - si lo nuevo es un audio, la imagen anterior va a negro o se funde;
+    - lo nuevo entra con un fundido mínimo igual al de la transición.
+  - En el blackout el sonido nuevo **espera** a la mitad (`pendientes`, hilo «transiciones» cada 5 ms).
+  - Parar todo y Fundir todo vacían lo pendiente; la pausa lo corre.
+  - Registro TRANSICION.
+  - Ajustes: claves `transicion_tipo` y `transicion_ms`.
+- **Ventana:**
+  - En la Vista Estudio el GO (botón y Espacio) manda `go {reemplazar: true}`.
+  - En Ajustes del show, sección «Vista Estudio: transición»: Transición (Cuchilla / Fundido cruzado / Blackout) y Duración en ms.
+  - Consejos `transicion` y `transicion_dur` (es/en). El consejo de cada estilo ahora dice si se superpone o reemplaza.
+- **Pruebas:**
+  - `tests/transicion.rs`: 6 pruebas (Lista superpone; cuchilla; fundido 48 000 cuadros; blackout espera y Parar todo lo cancela; vídeo con `MostrarCon` y audio después funde la imagen; ajustes y shows viejos). **137 pruebas en verde.**
+  - `--prueba-transiciones`, con el proyector de verdad, **todo BIEN** en la PC del usuario:
+    - fundido: 74 muestras, 0 negras, la mezcla a la mitad;
+    - blackout: pasa por negro y sale el nuevo;
+    - cuchilla sin negros;
+    - Parar todo en pleno fundido: negro a los 120 ms, y el GO siguiente sale bien;
+    - GO en pleno blackout: sale el nuevo.
+  - Aprendido: el brillo de mpv oscurece **restando** luz (los canales débiles llegan antes a 0), no escalando.
+  - En el programa: el segundo GO de la Vista Estudio reemplazó al primero con un fundido de 1500 ms (registro TRANSICION), con el volumen maestro en −60 dB.
+- **Sin probar:** con proyector real, y oír el fundido de sonido (solo se comprobaron las órdenes al mezclador).

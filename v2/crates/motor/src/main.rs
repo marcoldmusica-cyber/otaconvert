@@ -26,6 +26,8 @@ mod prueba_proyector;
 mod prueba_funcion;
 #[cfg(windows)]
 mod prueba_esquinas;
+#[cfg(windows)]
+mod prueba_cruzado;
 mod ventana_ui;
 #[cfg(windows)]
 mod miniatura;
@@ -171,6 +173,10 @@ fn main() -> ExitCode {
         Some("--prueba-esquinas") => prueba_esquinas::ejecutar(carpeta.as_deref().map(std::path::Path::new), pantalla),
         #[cfg(windows)]
         Some("--prueba-mapeo") => prueba_esquinas::proceso(pantalla),
+        #[cfg(windows)]
+        Some("--prueba-cruzado") => prueba_cruzado::ejecutar(carpeta.as_deref().map(std::path::Path::new), pantalla),
+        #[cfg(windows)]
+        Some("--prueba-transiciones") => prueba_proyector::transiciones(pantalla),
         #[cfg(windows)]
         Some("--prueba-funcion") => prueba_funcion::ejecutar(num(1, 300), carpeta.as_deref().map(std::path::Path::new), pantalla, salida),
         #[cfg(windows)]

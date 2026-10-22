@@ -50,6 +50,9 @@ enum Estado {
     Lista { id: u64 },
     Mostrando { id: u64, bucle: bool, fin_avisado: bool },
     Retirando { hasta: Instant },
+    /// Sigue a la vista debajo de una transición (fundido cruzado o blackout):
+    /// se retira cuando la transición termina.
+    Saliendo,
 }
 
 struct Capa {
@@ -201,6 +204,16 @@ struct Fundido {
     dur: Duration,
 }
 
+/// Transición de la Vista Estudio en curso (orden `mostrar` con `trans`).
+enum Trans {
+    /// Fundido cruzado: la capa nueva, encima, pasa de transparente a entera.
+    Cruce { capa: usize, inicio: Instant, dur: Duration },
+    /// Blackout, primera mitad: lo que se ve baja a negro.
+    Apagar { viejo: usize, nuevo: usize, inicio: Instant, dur: Duration },
+    /// Blackout, segunda mitad: lo nuevo sube desde negro.
+    Encender { capa: usize, inicio: Instant, dur: Duration },
+}
+
 fn avisar(v: Value) {
     let mut out = std::io::stdout().lock();
     let _ = writeln!(out, "{v}");
@@ -281,18 +294,28 @@ pub fn ejecutar(args: &[String]) -> Result<bool, String> {
 
     avisar(json!({ "a": "hola", "capas": CAPAS }));
     let mut fundido: Option<Fundido> = None;
+    let mut trans: Option<Trans> = None;
     let mut ultimo_latido = Instant::now();
     loop {
         // 1. Órdenes (espera hasta 5 ms si no hay ninguna).
         let mut primera = rx.recv_timeout(Duration::from_millis(5)).ok();
         while let Some(o) = primera.take().or_else(|| rx.try_recv().ok()) {
-            match o["o"].as_str().unwrap_or("") {
+            let orden = o["o"].as_str().unwrap_or("");
+            // Cualquier orden que cambie lo que se ve termina antes la transición
+            // en curso (salta a su final): nunca quedan dos a medias.
+            if matches!(orden, "mostrar" | "negro" | "fundir" | "pausa" | "salir") {
+                if let Some(t) = trans.take() {
+                    terminar_transicion(&proy, &mut capas, t);
+                }
+            }
+            match orden {
                 "salir" => return Ok(true),
                 "precargar" => precargar(&proy, &mut capas, &o),
                 "mostrar" => {
                     let id = o["id"].as_u64().unwrap_or(0);
-                    mostrar(&proy, &mut capas, id);
+                    let ms = o["ms"].as_u64().unwrap_or(0).min(10_000);
                     fundido = None;
+                    trans = mostrar(&proy, &mut capas, id, o["trans"].as_str().unwrap_or("corte"), Duration::from_millis(ms));
                 }
                 "negro" => {
                     fundido = None;
@@ -307,7 +330,7 @@ pub fn ejecutar(args: &[String]) -> Result<bool, String> {
                 "pausa" => {
                     let si = o["si"].as_bool().unwrap_or(true);
                     for c in &capas {
-                        if matches!(c.estado, Estado::Mostrando { .. }) {
+                        if matches!(c.estado, Estado::Mostrando { .. } | Estado::Saliendo) {
                             let _ = c.rep.propiedad("pause", if si { "yes" } else { "no" });
                         }
                     }
@@ -438,6 +461,11 @@ pub fn ejecutar(args: &[String]) -> Result<bool, String> {
             }
         }
 
+        // 4. Transición de la Vista Estudio.
+        if let Some(t) = trans.take() {
+            trans = avanzar_transicion(&proy, &mut capas, t, ahora);
+        }
+
         if ultimo_latido.elapsed() >= LATIDO {
             ultimo_latido = Instant::now();
             avisar(json!({ "a": "latido" }));
@@ -491,7 +519,125 @@ fn precargar(proy: &Proyeccion, capas: &mut [Capa], o: &Value) {
     }
 }
 
-fn mostrar(proy: &Proyeccion, capas: &mut [Capa], id: u64) {
+/// `trans`: «corte» (lo de siempre), «fundido» (cruzado, en `dur`) o «negro»
+/// (blackout: lo anterior a negro en `dur / 2` y lo nuevo desde negro en otro
+/// `dur / 2`). Devuelve la transición que queda en curso.
+fn mostrar(proy: &Proyeccion, capas: &mut [Capa], id: u64, trans: &str, dur: Duration) -> Option<Trans> {
+    let repite = capas.iter().any(|c| matches!(c.estado, Estado::Mostrando { id: x, .. } if x == id));
+    let Some(i) = capas.iter().position(|c| c.estado == (Estado::Lista { id })).filter(|_| !repite && !dur.is_zero()) else {
+        mostrar_corte(proy, capas, id);
+        return None;
+    };
+    let ahora = Instant::now();
+    let a_la_vista: Vec<usize> = (0..capas.len()).filter(|&k| k != i && matches!(capas[k].estado, Estado::Mostrando { .. })).collect();
+    match trans {
+        "fundido" => {
+            // La nueva entra transparente encima (se sigue viendo lo de abajo,
+            // que sigue andando) y se vuelve entera en `dur`.
+            proy.transparencia(i, Some(0));
+            proy.arriba(i);
+            let bucle = capas[i].rep.leer("loop-file").is_some_and(|v| v != "no");
+            let _ = capas[i].rep.propiedad("pause", "no");
+            capas[i].estado = Estado::Mostrando { id, bucle, fin_avisado: false };
+            for k in a_la_vista {
+                capas[k].estado = Estado::Saliendo;
+            }
+            avisar(json!({ "a": "mostrando", "id": id }));
+            Some(Trans::Cruce { capa: i, inicio: ahora, dur })
+        }
+        "negro" => {
+            avisar(json!({ "a": "mostrando", "id": id }));
+            match a_la_vista.last().copied() {
+                Some(v) => {
+                    for k in a_la_vista {
+                        capas[k].estado = Estado::Saliendo;
+                    }
+                    Some(Trans::Apagar { viejo: v, nuevo: i, inicio: ahora, dur: dur / 2 })
+                }
+                None => Some(encender(proy, capas, i, ahora, dur / 2)),
+            }
+        }
+        _ => {
+            mostrar_corte(proy, capas, id);
+            None
+        }
+    }
+}
+
+/// Blackout, segunda mitad: la capa `i` sube encima en negro y empieza a aclarar.
+fn encender(proy: &Proyeccion, capas: &mut [Capa], i: usize, inicio: Instant, dur: Duration) -> Trans {
+    let _ = capas[i].rep.propiedad("brightness", "-100");
+    proy.arriba(i);
+    let bucle = capas[i].rep.leer("loop-file").is_some_and(|v| v != "no");
+    let _ = capas[i].rep.propiedad("pause", "no");
+    if let Estado::Lista { id } = capas[i].estado {
+        capas[i].estado = Estado::Mostrando { id, bucle, fin_avisado: false };
+    }
+    // Lo que se veía ya está en negro y tapado: se retira.
+    retirar_saliendo(capas);
+    Trans::Encender { capa: i, inicio, dur }
+}
+
+fn retirar_saliendo(capas: &mut [Capa]) {
+    let hasta = Instant::now() + RETIRAR_TRAS;
+    for c in capas.iter_mut() {
+        if c.estado == Estado::Saliendo {
+            let _ = c.rep.propiedad("pause", "yes");
+            c.estado = Estado::Retirando { hasta };
+        }
+    }
+}
+
+/// Un paso de la transición; devuelve la que sigue (o nada si terminó).
+fn avanzar_transicion(proy: &Proyeccion, capas: &mut [Capa], t: Trans, ahora: Instant) -> Option<Trans> {
+    let avance = |inicio: Instant, dur: Duration| (ahora.duration_since(inicio).as_secs_f64() / dur.as_secs_f64().max(0.001)).min(1.0);
+    match t {
+        Trans::Cruce { capa, inicio, dur } => {
+            let x = avance(inicio, dur);
+            if x >= 1.0 {
+                terminar_transicion(proy, capas, Trans::Cruce { capa, inicio, dur });
+                return None;
+            }
+            proy.transparencia(capa, Some((x * 255.0).round() as u8));
+            Some(Trans::Cruce { capa, inicio, dur })
+        }
+        Trans::Apagar { viejo, nuevo, inicio, dur } => {
+            let x = avance(inicio, dur);
+            // Misma curva que Fundir todo (t²): la bajada se ve pareja.
+            let _ = capas[viejo].rep.propiedad("brightness", &format!("{:.1}", -100.0 * x * x));
+            if x < 1.0 {
+                return Some(Trans::Apagar { viejo, nuevo, inicio, dur });
+            }
+            Some(encender(proy, capas, nuevo, ahora, dur))
+        }
+        Trans::Encender { capa, inicio, dur } => {
+            let x = avance(inicio, dur);
+            let _ = capas[capa].rep.propiedad("brightness", &format!("{:.1}", -100.0 * (1.0 - x) * (1.0 - x)));
+            (x < 1.0).then_some(Trans::Encender { capa, inicio, dur })
+        }
+    }
+}
+
+/// Salta al final de la transición (llegó otra orden, o terminó su tiempo).
+fn terminar_transicion(proy: &Proyeccion, capas: &mut [Capa], t: Trans) {
+    match t {
+        Trans::Cruce { capa, .. } => {
+            proy.transparencia(capa, Some(255));
+            proy.transparencia(capa, None);
+            retirar_saliendo(capas);
+        }
+        Trans::Apagar { viejo, nuevo, .. } => {
+            let _ = capas[viejo].rep.propiedad("brightness", "-100");
+            encender(proy, capas, nuevo, Instant::now(), Duration::ZERO);
+            let _ = capas[nuevo].rep.propiedad("brightness", "0");
+        }
+        Trans::Encender { capa, .. } => {
+            let _ = capas[capa].rep.propiedad("brightness", "0");
+        }
+    }
+}
+
+fn mostrar_corte(proy: &Proyeccion, capas: &mut [Capa], id: u64) {
     // El mismo cue que ya se ve: vuelve a empezar.
     if let Some(c) = capas.iter_mut().find(|c| matches!(c.estado, Estado::Mostrando { id: x, .. } if x == id)) {
         // A su inicio (el `start` con que se precargó), no al segundo 0 del
@@ -529,7 +675,7 @@ fn negro(proy: &Proyeccion, capas: &mut [Capa]) {
     proy.telon_arriba();
     let hasta = Instant::now() + RETIRAR_TRAS;
     for c in capas.iter_mut() {
-        if matches!(c.estado, Estado::Mostrando { .. }) {
+        if matches!(c.estado, Estado::Mostrando { .. } | Estado::Saliendo) {
             let _ = c.rep.propiedad("pause", "yes");
             c.estado = Estado::Retirando { hasta };
         }
