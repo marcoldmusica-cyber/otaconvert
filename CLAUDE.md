@@ -1150,3 +1150,59 @@ Pedido del usuario: "Sí, sigue con la etapa 5." Repartida en cuatro partes que 
   - Aprendido: el brillo de mpv oscurece **restando** luz (los canales débiles llegan antes a 0), no escalando.
   - En el programa: el segundo GO de la Vista Estudio reemplazó al primero con un fundido de 1500 ms (registro TRANSICION), con el volumen maestro en −60 dB.
 - **Sin probar:** con proyector real, y oír el fundido de sonido (solo se comprobaron las órdenes al mezclador).
+
+### Vista Estudio como OBS: diseño aprobado (22/10/2026)
+- **Pedido del usuario:**
+  - Que la Vista Estudio se vea como el Modo Estudio de OBS: arriba la pantalla partida, con la **previa a la izquierda** y la **salida (Programa) a la derecha**; abajo, paneles con las escenas (cues), las fuentes de cada escena y lo demás que convenga.
+  - **Solo para el modo Estudio**: la Vista Lista no cambia.
+  - Después pidió que **cada panel se pueda mover**, un **estilo más 3D y llamativo** y que se sumaran **todas** las sugerencias.
+  - Sobre todo quiere la **Multivista** (todas las escenas en cuadrícula), **opcional** y **muy personalizable**: ordenable de cualquier forma; en cada escena se elige si el vídeo se ve en movimiento y si se escucha, eligiendo por dónde sale ese sonido para que **nunca suene en la sala (PA)**.
+  - Pidió también que **todo tenga su ayuda** (Modo Ayuda, consejos con ejemplos de escena, Primeros pasos, manual) y que **no suba el uso de hardware ni empeore nada**.
+- **Bocetos** (`v2/diseno/`):
+  - `boceto-estudio-obs.png`: distribución.
+  - `boceto-estudio-obs-2.png`: paneles movibles, mientras se arrastra uno.
+  - `boceto-estudio-obs-3.png`: estilo 3D, **aprobado** («perfecto»).
+  - `boceto-estudio-multivista.png`: con Multivista, palanca T y Corte rápido.
+- **Distribución:**
+  - Arriba: **Vista previa** (borde y luz azul) · centro con **GO de transición**, transición elegida y duración · **Programa / al aire** (borde y luz roja que late, cuenta de lo que falta, Fundir y Parar de cada cosa que suena con mini medidor).
+  - Abajo, paneles movibles (agarre ⋮⋮, el orden se guarda en el equipo, Vista → Restaurar vista lo devuelve):
+    - **Escenas** (lista con fotos y luces de estado);
+    - **Fuentes** del cue elegido (vídeo o imagen, su sonido, encuadre, nota, cada una con ⚙);
+    - **Mezclador** (medidores LED de Sala y Auriculares, maestro y, más adelante, volumen por cue);
+    - **Transiciones**;
+    - **Controles** (GO, Pausa, Fundir todo y Parar todo: se mueven pero **nunca se ocultan**);
+    - **Botonera**, si está activa;
+    - **Multivista** (opcional).
+  - Barra de estado abajo: proyector, sala y auriculares en uso.
+- **Estilo 3D:** relieve con brillo arriba y sombra abajo, pantallas con marco y reflejo, halos azul y rojo, GO en relieve, botones como teclas, medidores LED en segmentos, faders con perilla metálica. Hecho con capas semitransparentes sobre los colores del tema, para que valga también en Noche, Día y Fresno.
+- **Sugerencias aceptadas (todas):**
+  1. teclas 1–9 mandan una escena a la Previa;
+  2. **Corte rápido** (cuchilla aunque la transición elegida sea otra);
+  3. **palanca T** para fundir a mano;
+  4. cuenta regresiva en amarillo y luego rojo en los últimos 10 s;
+  5. «siguiente sugerido» a la Previa (desactivable);
+  6. animación de la transición (barrido de luz y destello en Programa);
+  7. **Multivista**;
+  8. medidores con pico retenido;
+  9. modo cabina a pantalla completa;
+  10. aviso si la Previa ya está al aire;
+  11. escenas con archivo que falta en rojo con ⚠;
+  12. distribuciones de paneles guardables («Mi gala», «Mi obra»).
+- **Multivista:**
+  - Orden **Libre** (arrastrar), por **Lista**, **Tipo** o **Nombre**; **grupos con título** (Acto 1…) entre los que se arrastran las escenas; tamaño de tarjeta; filtro por tipo.
+  - En cada tarjeta, ▶/⏸ (movimiento) y 🎧 (escuchar). Movimiento general: **Todas / Al pasar el ratón / Ninguna**.
+  - El **sonido de prueba sale por la salida elegida y nunca por la de la sala**: si se elige la tarjeta de Principal, no se permite.
+  - Clic = a la Previa; doble clic = GO.
+- **Que no suba el uso de hardware (reglas):**
+  1. El proyector y el sonido mandan; las vistas previas usan lo que sobra.
+  2. Las tarjetas «en movimiento» no reproducen el vídeo: muestran una **tira de fotos chicas** hecha una vez por archivo, en segundo plano y en proceso aparte (como las miniaturas).
+  3. Vídeo real solo en la Vista previa grande y en la tarjeta bajo el ratón, de a uno.
+  4. Una sola escucha de prueba a la vez.
+  5. **Vista → Rendimiento: Automático / Liviano.** Liviano = sin animaciones ni brillos. Automático = pasa a Liviano y avisa si el proyector pierde cuadros o la tarjeta de sonido se atrasa.
+  6. Sin desenfoque de fondo (`backdrop-filter`); la única animación permanente es la luz de «al aire», quieta en Liviano.
+  7. **Prueba obligatoria:** función simulada con la Multivista abierta, 0 cuadros perdidos en el proyector y 0 cortes de sonido, o no se sube.
+- **Partes** (cada una se prueba antes de seguir):
+  1. distribución, estilo 3D y paneles movibles;
+  2. palanca T, Corte rápido, avisos y teclas 1–9;
+  3. Multivista;
+  4. mezclador con volumen por cue (toca el motor de audio: **avisar antes**).
