@@ -75,20 +75,16 @@
 :root[data-tema="espacio"] body{
   background-color:#03040B;
   background-image:
-    radial-gradient(2px 2px at 8% 22%,#fff 50%,transparent 100%),radial-gradient(2.5px 2.5px at 37% 6%,#e6f7ff 50%,transparent 100%),
-    radial-gradient(2px 2px at 63% 47%,#fff 50%,transparent 100%),radial-gradient(3px 3px at 91% 38%,#d6f3ff 45%,transparent 100%),
-    radial-gradient(2px 2px at 22% 88%,#fff 50%,transparent 100%),radial-gradient(2px 2px at 76% 92%,#ffe7c2 50%,transparent 100%),
-    radial-gradient(ellipse 210px 34px at 94% 104%,transparent 62%,rgba(160,210,255,.45) 64%,rgba(160,210,255,.12) 72%,transparent 74%),
-    radial-gradient(circle 120px at 94% 104%,#4b3fa8 0%,#2a1f6b 45%,#120c33 70%,transparent 71%),
-    linear-gradient(118deg,transparent 30%,rgba(140,120,255,.10) 42%,rgba(200,180,255,.16) 48%,rgba(120,200,255,.10) 54%,transparent 66%),
-    radial-gradient(45% 40% at 85% 12%,rgba(180,80,255,.28),transparent 70%),
-    radial-gradient(40% 35% at 70% 22%,rgba(255,70,160,.13),transparent 70%),
-    radial-gradient(45% 45% at 8% 80%,rgba(30,200,255,.18),transparent 70%),
-    radial-gradient(35% 30% at 30% 60%,rgba(60,90,255,.14),transparent 70%),
-    radial-gradient(1px 1px at 20px 30px,#fff 98%,transparent),radial-gradient(1px 1px at 140px 90px,#cfe8ff 98%,transparent),
-    radial-gradient(1px 1px at 90px 170px,#fff 98%,transparent),radial-gradient(1.5px 1.5px at 180px 20px,#fff 98%,transparent),
-    radial-gradient(1px 1px at 60px 120px,#ffeacc 98%,transparent),radial-gradient(1px 1px at 230px 140px,#fff 98%,transparent);
-  background-size:auto,auto,auto,auto,auto,auto,auto,auto,auto,auto,auto,auto,auto,250px 210px,250px 210px,330px 290px,330px 290px,410px 370px,410px 370px;
+    radial-gradient(2px 2px at 8% 22%,rgba(255,255,255,.8) 50%,transparent 100%),radial-gradient(2px 2px at 63% 47%,rgba(255,255,255,.7) 50%,transparent 100%),
+    radial-gradient(2.5px 2.5px at 91% 38%,rgba(214,243,255,.75) 45%,transparent 100%),
+    radial-gradient(ellipse 210px 34px at 94% 104%,transparent 62%,rgba(160,210,255,.32) 64%,rgba(160,210,255,.08) 72%,transparent 74%),
+    radial-gradient(circle 120px at 94% 104%,#3a3285 0%,#211a55 45%,#0f0b2a 70%,transparent 71%),
+    linear-gradient(118deg,transparent 30%,rgba(140,120,255,.05) 42%,rgba(200,180,255,.08) 48%,rgba(120,200,255,.05) 54%,transparent 66%),
+    radial-gradient(45% 40% at 85% 12%,rgba(180,80,255,.17),transparent 70%),
+    radial-gradient(45% 45% at 8% 80%,rgba(30,200,255,.11),transparent 70%),
+    radial-gradient(1px 1px at 20px 30px,rgba(255,255,255,.7) 98%,transparent),radial-gradient(1px 1px at 140px 90px,rgba(207,232,255,.6) 98%,transparent),
+    radial-gradient(1px 1px at 90px 170px,rgba(255,255,255,.55) 98%,transparent);
+  background-size:auto,auto,auto,auto,auto,auto,auto,auto,330px 290px,330px 290px,460px 410px;
   background-attachment:fixed;
 }
 :root[data-tema="espacio"] .top,:root[data-tema="espacio"] .panel,:root[data-tema="espacio"] .dlg,
@@ -164,6 +160,7 @@ kbd{font:12px var(--mono);background:var(--card2);border:1px solid var(--border)
 .menu kbd{font-size:11px;padding:0 5px}
 .menu .sep{height:1px;background:var(--border);margin:4px 6px}
 .menu .lbl{font-size:12px;color:var(--dim);padding:6px 12px 2px}
+.menu.ctx{position:fixed;top:0;left:0;z-index:60;max-width:420px}
 .pronto{font-size:11px;color:var(--dim)}
 
 /* Cabecera */
@@ -2153,7 +2150,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
       aireClave = clave;
       // Lo nuevo entra en una capa encima y lo de antes se quita recién cuando
       // lo nuevo ya se ve: el monitor nunca queda en negro mientras carga.
-      var pa = $("airePantalla");
+      var pa = $("airePantalla"); pa.title = T("ctx_pista");
       var capa = el("div", "capa-aire");
       var tr = e.ajustes && e.ajustes.transicion;
       var dur = estilo === "estudio" && tr && tr.tipo === "fundido" && sv && !liviano() ? Math.min(tr.ms, 3000) : 0;
@@ -2288,7 +2285,7 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
       if (d.tipo === "medios") { dibujarMedios(d.lista || []); if (btEd) { btEd.medios = d.lista || []; pintarEditor(); } return; }
       if (d.tipo === "niveles") { recibirNiveles(d); return; }
       if (d.tipo === "onda") { recibirOnda(d); return; }
-      if (d.tipo === "equipo") { if (ajustesDlg) { ajustesDlg.lista = d; pintarSalidas(); } return; }
+      if (d.tipo === "equipo") { if (ajustesDlg) { ajustesDlg.lista = d; pintarSalidas(); } if (ctxSalida) { ctxSalida.lista = d; pintarCtxSalida(); } return; }
       if (d.tipo !== "estado") return;
       e = d;
       if (desbloqueado != null && !(e.sonando || []).some(function (s) { return s.cue === desbloqueado; })) desbloqueado = null;
@@ -2925,6 +2922,51 @@ body.moviendo,body.moviendo .row{cursor:grabbing;user-select:none}
     var pantallas = l.pantallas.map(function (p) { return [p.id, p.nombre + " · " + p.ancho + " × " + p.alto + (p.principal ? " · " + T("aj_pantalla_principal") : "")]; });
     opciones(s.pantalla, pantallas.concat([["vista", T("aj_vista_previa")]]), eq.pantalla ? eq.pantalla.id : null);
   }
+
+  // ---- Clic derecho en el monitor Programa: elegir la salida de vídeo (como en OBS) ----
+  // Muestra las pantallas que ve Windows y la vista previa en una ventana; marca
+  // la elegida. Igual que en Ajustes del show: solo en Edición y con nada sonando.
+  var ctxSalida = null;
+  function cerrarCtxSalida() { if (ctxSalida) { ctxSalida.m.remove(); ctxSalida = null; } }
+  function abrirCtxSalida(x, y) {
+    cerrarCtxSalida(); cerrarMenus();
+    var m = el("div", "menu ctx"); m.setAttribute("role", "menu");
+    document.body.appendChild(m);
+    ctxSalida = { m: m, x: x, y: y, lista: null };
+    pintarCtxSalida();
+    mandar("equipo_lista");
+  }
+  function pintarCtxSalida() {
+    var c = ctxSalida; if (!c) return;
+    var m = c.m; m.textContent = "";
+    m.appendChild(el("div", "lbl", T("ctx_salida_video")));
+    var libre = e && e.modo !== "funcion" && !(e.sonando || []).length;
+    if (!c.lista) m.appendChild(el("div", "lbl", T("aj_buscando")));
+    else {
+      var actual = e && e.equipo && e.equipo.pantalla ? e.equipo.pantalla.id : null;
+      c.lista.pantallas.map(function (p) { return [p.id, p.nombre + " · " + p.ancho + " × " + p.alto + (p.principal ? " · " + T("aj_pantalla_principal") : "")]; })
+        .concat([["vista", T("aj_vista_previa")]]).forEach(function (it) {
+          var b = el("button", "", it[1]); b.type = "button";
+          b.setAttribute("role", "menuitemradio"); b.setAttribute("aria-checked", String(it[0] === actual));
+          b.disabled = !libre;
+          b.onclick = function () { if (it[0] !== actual) mandar("elegir_salida", { que: "pantalla", id: it[0] }); cerrarCtxSalida(); };
+          m.appendChild(b);
+        });
+    }
+    if (!libre) m.appendChild(el("div", "lbl", T("ctx_salida_bloqueada")));
+    // Dentro de la ventana, aunque el clic sea cerca del borde.
+    var r = m.getBoundingClientRect();
+    m.style.left = Math.max(4, Math.min(c.x, innerWidth - r.width - 4)) + "px";
+    m.style.top = Math.max(4, Math.min(c.y, innerHeight - r.height - 4)) + "px";
+  }
+  document.addEventListener("contextmenu", function (ev) {
+    if (ev.target.closest && ev.target.closest(".mon.programa, #airePantalla")) {
+      ev.preventDefault();
+      if (!ayudando) abrirCtxSalida(ev.clientX, ev.clientY);
+    }
+  });
+  document.addEventListener("pointerdown", function (ev) { if (ctxSalida && !ctxSalida.m.contains(ev.target)) cerrarCtxSalida(); }, true);
+  document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") cerrarCtxSalida(); }, true);
 
   // Pone en la ventanita los valores del motor (sin pisar lo que se está escribiendo).
   function actualizarAjustes(todo) {
