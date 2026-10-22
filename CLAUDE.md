@@ -1312,3 +1312,4 @@ Pedido del usuario: "Sí, sigue con la etapa 5." Repartida en cuatro partes que 
   2. Limitación a verificar: una ventana en capas solo tiene transparencia **pareja**. Un PNG con partes transparentes encima de un vídeo necesita componer dentro de una sola mpv (filtro `overlay` de lavfi o `overlay-add`). Hay que verificarlo en la documentación de mpv.
   3. Formato del show v2 compatible (un cue viejo = escena con una fuente).
   4. Panel Fuentes con orden, ojito, opacidad, + − ↑ ↓ ⚙, y opacidad de escena en Escenas.
+- **Subido y comprobado:** commit 162ba56, run 39743756731 **verde**. Portable copiada a `CLOUDE - Herramientas Ota\Otaconvert-V2-0.0.1` (solo los archivos del programa; `datos` y «Show de ejemplo» quedaron como estaban); `otaconvert-motor.exe` SHA-256 `e8970167…`; `--comprobar`: no falta nada.
