@@ -137,7 +137,7 @@ fn main() -> ExitCode {
     let num = |i: usize, defecto: u64| args.get(i).and_then(|s| s.parse().ok()).unwrap_or(defecto);
     let r = match args.first().map(String::as_str) {
         Some("--version") => {
-            println!("otaconvert-motor {VERSION}");
+            println!("Otaconvert V2 {VERSION}");
             println!("Desarrollado por @marcold.ok (Instagram): sugerencias y errores, escríbeme.");
             Ok(true)
         }
@@ -216,7 +216,7 @@ fn main() -> ExitCode {
         #[cfg(windows)]
         Some("--prueba-video") => prueba_video::ejecutar(num(1, 200), pantalla, carpeta.as_deref().map(std::path::Path::new)),
         _ => {
-            println!("otaconvert-motor {VERSION}");
+            println!("Otaconvert V2 {VERSION}");
             println!("Uso:");
             println!("  --version");
             println!("  --prueba-hardware [--sin-pausa]        todas las pruebas en orden, con informe (también con doble clic en \"Prueba de hardware.exe\")");
