@@ -975,3 +975,9 @@ Pedido del usuario: "Sí, sigue con la etapa 5." Repartida en cuatro partes que 
   3. Formato del show v2 compatible (un cue viejo = escena con una fuente).
   4. Panel Fuentes con orden, ojito, opacidad, + − ↑ ↓ ⚙, y opacidad de escena en Escenas.
 - **Subido y comprobado:** commit 162ba56, run 39743756731 **verde**. Portable copiada a `CLOUDE - Herramientas Ota\Otaconvert-V2-0.0.1` (solo los archivos del programa; `datos` y «Show de ejemplo» quedaron como estaban); `otaconvert-motor.exe` SHA-256 `e8970167…`; `--comprobar`: no falta nada.
+
+## Pausa larga (30/10/2026)
+- El usuario deja el proyecto en pausa por bastante tiempo.
+- Limpieza de `CLOUDE - Herramientas Ota`: a la Papelera de reciclaje la demo vieja (`Otaconvert-Demo-0.0.1.rar`), la copia vieja de la portable (`Otaconvert-V2-0.0.1.rar`, del 21/10) y el instalador viejo (`Otaconvert-V2-Instalador-0.0.1.exe`, del 21/10; GitHub arma uno nuevo en cada compilación). Quedan: el repositorio, la portable `Otaconvert-V2-0.0.1` (motor `e8970167…`, la última probada), `Otaconvert V1.zip` y los códigos de recuperación de GitHub.
+- Guía para retomar sin Claude: `CLOUDE - Herramientas Ota\LEEME - Cómo retomar Otaconvert V2.txt`. Las reglas que solo estaban en la memoria de Claude pasaron a CLAUDE.md, sección 0.
+- Lo siguiente sigue siendo el pedido grande «escenas con varias fuentes» (arriba): avisar el riesgo y el plan antes de tocar nada.

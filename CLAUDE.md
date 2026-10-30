@@ -22,7 +22,24 @@ Léelo entero antes de proponer o tocar nada. Si algo de aquí choca con el cód
 
 ### Entorno de la PC del usuario
 - Git y GitHub CLI instalados con winget (15/10/2026). Rutas: `C:\Program Files\Git\cmd\git.exe`, `C:\Program Files\GitHub CLI\gh.exe`. Sesión iniciada en GitHub como `marcoldmusica-cyber` (alcances repo y workflow).
-- Repositorio local: `C:\Users\Marco1\Desktop\CLOUDE - Herramientas Ota\otaconvert`. En la carpeta superior el usuario tiene builds descargadas de la V1 y un zip; no tocarlas.
+- Repositorio local: `C:\Users\Marco1\Desktop\CLOUDE - Herramientas Ota\otaconvert`. En la carpeta superior el usuario tiene `Otaconvert V1.zip` (la V1 terminada), la portable `Otaconvert-V2-0.0.1` y `github-recovery-codes.txt` (privado: **nunca abrirlo, copiarlo ni subirlo**); no tocarlos. La guía para retomar está ahí: `LEEME - Cómo retomar Otaconvert V2.txt` (escrita el 30/10/2026 al dejar el proyecto en pausa).
+
+### Reglas de trabajo que pidió el usuario (pasadas aquí desde la memoria de Claude el 30/10/2026)
+- Se llama **«Otaconvert V2»** en todo lo visible (programa, accesos directos, instalador, manuales, al hablarle). Excepción: el ProductName interno de los .exe sigue siendo «Otaconvert», porque SignPath exige que coincida con el proyecto; la carpeta de datos `%LOCALAPPDATA%\Otaconvert` tampoco cambia.
+- **No instalar nada en su PC**: usa versiones portables. Tampoco instalar el programa sin su permiso.
+- Las pruebas en su PC (GTX 1050 Ti, un monitor 1080p): cortas (minutos, no horas), con el **volumen maestro en −60 dB** para que no suene nada, y avisando antes si la pantalla se va a llenar de colores. La 1050 Ti no es un límite del producto.
+- **No mandar teclas ni clics automáticos** si él tiene el programa abierto.
+- No repetir pruebas ya hechas salvo que haga falta; no alargar el desarrollo, pero sin saltear pasos necesarios.
+- La portable nueva se copia a `CLOUDE - Herramientas Ota\Otaconvert-V2-0.0.1` reemplazando **solo los archivos del programa**: `datos` y «Show de ejemplo» quedan como estén.
+- **SignPath:** la solicitud de firma se hizo el 16/10/2026 con un correo del usuario que Claude no ve; él avisa cuando respondan. Decidió esperar a SignPath sin buscar alternativas. Al llegar: conectar el workflow con la acción oficial de SignPath y la aprobación manual de cada firma.
+
+### Compilar en esta PC (sin instalar nada)
+- No hay Visual Studio. Se usa un Rust portable con **llvm-mingw** en `%TEMP%\otr` (Windows puede vaciarlo con el tiempo). Variables (en Git Bash):
+  `R=/c/Users/Marco1/AppData/Local/Temp/otr; LM=$R/lm/llvm-mingw-20261006-ucrt-x86_64/bin; export RUSTUP_HOME=$R/rustup CARGO_HOME=$R/cargo CARGO_TARGET_DIR=$R/target-lm PATH="$R/cargo/bin:$LM:$PATH" CARGO_TARGET_X86_64_PC_WINDOWS_GNULLVM_LINKER=$LM/x86_64-w64-mingw32-clang.exe WINDRES=$LM/x86_64-w64-mingw32-windres.exe AR_PARA_RECURSOS=$LM/llvm-ar.exe`
+  y luego `cargo +stable-x86_64-pc-windows-gnullvm build|test --release --workspace` desde `v2/` (con `--offline` si ya están las librerías).
+- Si `%TEMP%\otr` desapareció: bajar de nuevo rustup (en `RUSTUP_HOME`/`CARGO_HOME` de esa carpeta, toolchain `stable-x86_64-pc-windows-gnullvm`) y llvm-mingw 20261006 ucrt x86_64 (comprobar su SHA-256 en la página de releases). Si solo faltan librerías descomprimidas, mover `cargo/registry/src/index.crates.io-…` a `src-viejo-*` y compilar con `--offline`.
+- Junto al exe local hacen falta `libunwind.dll` (de llvm-mingw), `libmpv-2.dll` y `WebView2Loader.dll`. Tras compilar, comprobar que el exe copiado trae la interfaz nueva (buscar una palabra nueva dentro del exe).
+- Lo que se entrega sale siempre de **GitHub Actions** (MSVC): artifacts `Otaconvert-V2-Portable` y `Otaconvert-V2-Instalador`.
 
 ---
 
